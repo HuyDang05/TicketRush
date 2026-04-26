@@ -1,0 +1,26 @@
+import api from './api';
+
+const authService = {
+  login: (email, password) =>
+    api.post('/auth/login', { email, password }),
+
+  register: (email, password, fullName) =>
+    api.post('/auth/register', { email, password, fullName }),
+
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  },
+
+  getCurrentUser: () => {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
+  },
+
+  setToken: (token, user) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+  },
+};
+
+export default authService;
