@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
+
+const adminDashboardRoutes = require('./routes/admin-dashboard.routes');
+
 require('dotenv').config();
 
 const bookingRoutes = require('./routes/booking.routes');
@@ -25,5 +28,6 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/admin', adminDashboardRoutes);
 
 module.exports = app;
