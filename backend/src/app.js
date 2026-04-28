@@ -2,6 +2,7 @@ const express = require('express');
 require('dotenv').config();
 const authRoutes = require('./routes/auth.routes');
 const adminRoutes = require('./routes/admin.routes');
+const eventRoutes = require('./routes/event.routes');
 
 const app = express();
 
@@ -15,5 +16,6 @@ app.get('/health', (req, res) => {
 });
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/events', eventRoutes);
 
 module.exports = app;
