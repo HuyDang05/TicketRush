@@ -125,4 +125,42 @@ async function lockSeat(userId, seatId) {
   };
 }
 
-module.exports = { lockSeat };
+async function getMyTickets(userId) {
+  const tickets = await prisma.booking.findMany({
+    where: {
+      userId,
+      status: 'PAID',
+    },
+    orderBy: {
+      paidAt: 'desc',
+    },
+    include: {
+      seat: {
+        include: {
+          zone: {
+            include: {
+              event: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return tickets.map((booking) => ({
+    bookingId: booking.id,
+    qrCode: booking.qrCode,
+    paidAt: booking.paidAt,
+    seatName: booking.seat.label,
+    zoneName: booking.seat.zone.name,
+    price: Number(booking.totalPrice),
+    eventName: booking.seat.zone.event.title,
+    location: booking.seat.zone.event.venue,
+    eventDate: booking.seat.zone.event.date,
+  }));
+}
+
+module.exports = {
+  lockSeat,
+  getMyTickets,
+};

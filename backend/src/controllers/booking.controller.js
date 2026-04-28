@@ -1,11 +1,11 @@
-const { lockSeat } = require('../services/booking.service');
+const { lockSeat, getMyTickets } = require('../services/booking.service');
 
 async function lockSeatHandler(req, res) {
   const { seatId } = req.body;
   const userId = req.user.id;
 
   if (!seatId) {
-    return res.status(400).json({ message: 'seatId là bắt buộc' });
+    return res.status(400).json({ message: 'seatId is required' });
   }
 
   try {
@@ -17,4 +17,25 @@ async function lockSeatHandler(req, res) {
   }
 }
 
-module.exports = { lockSeatHandler };
+async function getMyTicketsHandler(req, res) {
+  try {
+    const userId = req.user.id;
+    const tickets = await getMyTickets(userId);
+
+    return res.status(200).json({
+      success: true,
+      data: tickets,
+    });
+  } catch (err) {
+    const status = err.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      message: err.message,
+    });
+  }
+}
+
+module.exports = {
+  lockSeatHandler,
+  getMyTicketsHandler,
+};
