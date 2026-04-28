@@ -13,18 +13,20 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
-    "prisma": "^5.0.0",
     "@prisma/client": "^5.0.0",
-    "redis": "^4.6.0",
-    "bullmq": "^4.10.0",
-    "socket.io": "^4.5.4",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.0",
-    "qrcode": "^1.5.3",
-    "node-cron": "^3.0.2",
+    "bullmq": "^4.10.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "node-cron": "^3.0.2",
+    "prisma": "^5.0.0",
+    "qrcode": "^1.5.3",
+    "redis": "^4.6.0",
+    "socket.io": "^4.5.4",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
