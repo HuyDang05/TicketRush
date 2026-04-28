@@ -77,8 +77,17 @@ export default function Header() {
             </>
           ) : (
             <>
-              <span style={{ color: 'var(--muted)', fontSize: 14, display: 'flex', alignItems: 'center' }}>
-                {user.fullName}
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: 'var(--accent)', color: '#fff',
+                  fontSize: 13, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  {user.fullName?.charAt(0).toUpperCase()}
+                </span>
+                <span style={{ color: 'var(--muted)', fontSize: 14 }}>{user.fullName}</span>
               </span>
               {user.role === 'CUSTOMER' && (
                 <Link to="/my-tickets" style={{
@@ -88,11 +97,17 @@ export default function Header() {
                 }}>Vé của tôi</Link>
               )}
               {user.role === 'ADMIN' && (
-                <Link to="/admin/dashboard" style={{
-                  padding: '8px 18px', border: '1px solid var(--border)', borderRadius: 8,
-                  background: 'transparent', color: '#fff', fontSize: 14, fontWeight: 500,
-                  textDecoration: 'none', display: 'inline-flex', alignItems: 'center',
-                }}>Admin</Link>
+                <Link to="/admin" style={{
+                  padding: '8px 18px', border: '1px solid var(--accent)', borderRadius: 8,
+                  background: 'transparent', color: 'var(--accent)', fontSize: 14, fontWeight: 600,
+                  textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6,
+                }}>
+                  <span style={{
+                    background: 'var(--accent)', color: '#fff', fontSize: 10, fontWeight: 700,
+                    padding: '2px 6px', borderRadius: 4, letterSpacing: '0.5px',
+                  }}>ADMIN</span>
+                  Dashboard
+                </Link>
               )}
               <button onClick={logout} style={{
                 padding: '8px 18px', border: '1px solid #fff', borderRadius: 8,
