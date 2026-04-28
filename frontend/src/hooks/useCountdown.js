@@ -1,23 +1,34 @@
 import { useState, useEffect } from 'react';
 
-export function useCountdown(initialSeconds) {
-  const [seconds, setSeconds] = useState(initialSeconds);
+export function useCountdown(expiresAt) {
+  const [seconds, setSeconds] = useState(() => {
+    if (!expiresAt) return 0;
+    return Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+  });
 
   useEffect(() => {
-    if (seconds <= 0) return;
+    if (!expiresAt) { setSeconds(0); return; }
+
+    const tick = () => Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+
+    setSeconds(tick());
 
     const interval = setInterval(() => {
-      setSeconds((s) => s - 1);
+      const rem = tick();
+      setSeconds(rem);
+      if (rem <= 0) clearInterval(interval);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [seconds]);
+  }, [expiresAt]);
 
-  const formatTime = (sec) => {
-    const minutes = Math.floor(sec / 60);
-    const remainingSeconds = sec % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  const minutes = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+
+  return {
+    minutes,
+    seconds: secs,
+    totalSeconds: seconds,
+    isExpired: seconds <= 0,
   };
-
-  return { seconds, formatTime: formatTime(seconds) };
 }

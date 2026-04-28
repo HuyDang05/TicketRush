@@ -1,34 +1,47 @@
 import SeatItem from './SeatItem';
 
-export default function SeatGrid({ seats, selectedSeats, onSelectSeat }) {
-  // Group seats by row
-  const seatsByRow = {};
+export default function SeatGrid({ seats, selectedSeats, onSelectSeat, zonePrice }) {
+  const rowMap = {};
   seats.forEach((seat) => {
-    if (!seatsByRow[seat.row]) {
-      seatsByRow[seat.row] = [];
-    }
-    seatsByRow[seat.row].push(seat);
+    const rowKey = seat.label?.[0] ?? '?';
+    if (!rowMap[rowKey]) rowMap[rowKey] = [];
+    rowMap[rowKey].push(seat);
   });
 
+  const rowKeys = Object.keys(rowMap).sort();
+
   return (
-    <div className="flex flex-col gap-4 p-4">
-      {Object.entries(seatsByRow).map(([rowIndex, rowSeats]) => (
-        <div key={rowIndex} className="flex gap-2 items-center">
-          <span className="w-8 font-bold text-gray-600">
-            {rowSeats[0]?.label[0]}
-          </span>
-          <div className="flex gap-2">
-            {rowSeats.map((seat) => (
-              <SeatItem
-                key={seat.id}
-                seat={seat}
-                onSelect={onSelectSeat}
-                isSelected={selectedSeats.some((s) => s.id === seat.id)}
-              />
-            ))}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 8px' }}>
+      {rowKeys.map((rowKey) => {
+        const rowSeats = rowMap[rowKey].sort((a, b) => {
+          const na = parseInt(a.label?.slice(1)) || 0;
+          const nb = parseInt(b.label?.slice(1)) || 0;
+          return na - nb;
+        });
+        return (
+          <div key={rowKey} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{
+              width: 20,
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#AAAAAA',
+              textAlign: 'center',
+              flexShrink: 0,
+            }}>{rowKey}</span>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {rowSeats.map((seat) => (
+                <SeatItem
+                  key={seat.id}
+                  seat={seat}
+                  isSelected={selectedSeats.some((s) => s.id === seat.id)}
+                  onSelect={onSelectSeat}
+                  zonePrice={zonePrice}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

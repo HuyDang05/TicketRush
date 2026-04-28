@@ -3,57 +3,55 @@ import ZoneLegend from './ZoneLegend';
 
 export default function SeatMap({ zones, selectedSeats, onSelectSeat }) {
   return (
-    <div className="grid grid-cols-3 gap-8">
-      <div className="col-span-2">
-        <h2 className="font-bold text-lg mb-4">Chọn ghế</h2>
-        <div className="bg-white rounded-lg border border-gray-200 overflow-auto">
-          {zones.map((zone) => (
-            <div key={zone.id} className="border-b last:border-b-0">
-              <div className="bg-gray-50 px-4 py-2">
-                <h3 className="font-semibold">
-                  {zone.name} - {zone.price.toLocaleString()}đ
-                </h3>
-              </div>
-              <SeatGrid
-                seats={zone.seats}
-                selectedSeats={selectedSeats}
-                onSelectSeat={onSelectSeat}
-              />
-            </div>
-          ))}
+    <div>
+      {/* Stage */}
+      <div style={{ textAlign: 'center', marginBottom: 16 }}>
+        <div style={{
+          background: '#111111',
+          border: '1px solid #333333',
+          borderRadius: 8,
+          padding: '10px 0',
+          fontSize: 12,
+          fontWeight: 700,
+          letterSpacing: 2,
+          color: 'rgba(255,255,255,.6)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+            background: 'linear-gradient(90deg, transparent, rgba(255,107,53,.5), transparent)',
+          }} />
+          SÂN KHẤU / STAGE
         </div>
       </div>
 
-      <div>
-        <ZoneLegend />
-        <div className="mt-4 bg-white p-4 rounded-lg border border-gray-200">
-          <h3 className="font-bold mb-3">Ghế đã chọn</h3>
-          {selectedSeats.length > 0 ? (
-            <div className="space-y-2">
-              {selectedSeats.map((seat) => (
-                <div
-                  key={seat.id}
-                  className="flex justify-between items-center text-sm"
-                >
-                  <span>{seat.label}</span>
-                  <span className="font-semibold">
-                    {seat.zone.price.toLocaleString()}đ
-                  </span>
-                </div>
-              ))}
-              <div className="border-t pt-2 font-bold">
-                Tổng:{' '}
-                {selectedSeats
-                  .reduce((sum, seat) => sum + parseInt(seat.zone.price), 0)
-                  .toLocaleString()}
-                đ
-              </div>
-            </div>
-          ) : (
-            <p className="text-gray-500 text-sm">Chưa chọn ghế</p>
-          )}
+      {/* Zones */}
+      {zones.map((zone) => (
+        <div key={zone.id} style={{ marginBottom: 16, background: '#1A1A1A', borderRadius: 10, overflow: 'hidden', border: '1px solid #333333' }}>
+          <div style={{
+            background: '#242424',
+            padding: '10px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid #333333',
+          }}>
+            <span style={{ fontWeight: 700, fontSize: 14 }}>{zone.name}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#FF6B35' }}>
+              {zone.price?.toLocaleString('vi-VN')}đ / ghế
+            </span>
+          </div>
+          <SeatGrid
+            seats={zone.seats || []}
+            selectedSeats={selectedSeats}
+            onSelectSeat={onSelectSeat}
+            zonePrice={zone.price}
+          />
         </div>
-      </div>
+      ))}
+
+      <ZoneLegend />
     </div>
   );
 }
