@@ -2,10 +2,10 @@ import api from './api';
 
 const authService = {
   login: (email, password) =>
-    api.post('/auth/login', { email, password }),
+    api.post('api/auth/login', { email, password }),
 
-  register: (email, password, fullName) =>
-    api.post('/auth/register', { email, password, fullName }),
+  register: (payload) =>
+    api.post('api/auth/register', payload),
 
   logout: () => {
     localStorage.removeItem('token');

@@ -1,7 +1,26 @@
+import { useNavigate } from 'react-router-dom';
 import SeatGrid from './SeatGrid';
 import ZoneLegend from './ZoneLegend';
+import { useCountdown } from '../../hooks/useCountdown';
+import { toast } from '../../utils/toast';
 
-export default function SeatMap({ zones, selectedSeats, onSelectSeat }) {
+export default function SeatMap({ zones, selectedSeats, onSelectSeat, onRemoveSeat }) {
+  const navigate = useNavigate();
+
+  function SeatCountdown({ expiresAt, onExpire }) {
+    const { minutes, seconds, isExpired } = useCountdown(expiresAt, onExpire);
+    return (
+      <span className="text-sm text-gray-600">
+        {isExpired ? '00:00' : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`}
+      </span>
+    );
+  }
+
+  const total = selectedSeats.reduce((sum, seat) => {
+    const price = seat.zone?.price || seat.price || 0;
+    return sum + Number(price);
+  }, 0);
+
   return (
     <div className="grid grid-cols-3 gap-8">
       <div className="col-span-2">
@@ -35,18 +54,44 @@ export default function SeatMap({ zones, selectedSeats, onSelectSeat }) {
                   key={seat.id}
                   className="flex justify-between items-center text-sm"
                 >
-                  <span>{seat.label}</span>
-                  <span className="font-semibold">
-                    {seat.zone.price.toLocaleString()}đ
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      className="text-xs text-gray-400 hover:text-gray-600"
+                      onClick={() => onRemoveSeat && onRemoveSeat(seat.id)}
+                      aria-label={`Bỏ chọn ${seat.label}`}
+                    >
+                      ✕
+                    </button>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{seat.label}</span>
+                      <span className="text-xs text-gray-500">{seat.zone?.name || seat.zone?.id}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <span className="font-semibold">{(seat.zone?.price || seat.price || 0).toLocaleString()}đ</span>
+                    <SeatCountdown
+                      expiresAt={seat.expiresAt || seat.lockExpiresAt || seat.lockedUntil}
+                      onExpire={() => {
+                        toast('Phiên giữ chỗ đã hết hạn', 'warning');
+                        onRemoveSeat && onRemoveSeat(seat.id);
+                      }}
+                    />
+                  </div>
                 </div>
               ))}
+
               <div className="border-t pt-2 font-bold">
-                Tổng:{' '}
-                {selectedSeats
-                  .reduce((sum, seat) => sum + parseInt(seat.zone.price), 0)
-                  .toLocaleString()}
-                đ
+                Tổng: {total.toLocaleString()}đ
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={() => navigate('/checkout')}
+                  className="w-full bg-primary text-white py-2 rounded"
+                >
+                  Tiến hành thanh toán
+                </button>
               </div>
             </div>
           ) : (

@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useSocket } from '../../hooks/useSocket';
+import SeatMap from '../../components/seat-map/SeatMap';
 import eventService from '../../services/event.service';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
+import { toast } from '../../utils/toast';
 
 const ARTIST_CHIPS = [
   { emoji: '🎤', name: 'Sơn Tùng M-TP', role: 'Nghệ sĩ chính', bg: 'linear-gradient(135deg,#2d1000,#8b3500)' },
@@ -33,8 +36,7 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState(null);
   const [zones, setZones] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedZoneId, setSelectedZoneId] = useState(null);
-  const [qty, setQty] = useState(1);
+  const { on, off } = useSocket();
 
   useEffect(() => {
     setIsLoading(true);
@@ -52,33 +54,91 @@ export default function EventDetailPage() {
       .finally(() => setIsLoading(false));
   }, [id]);
 
-  if (isLoading) return <LoadingSpinner />;
-  if (!event) return (
-    <div style={{ textAlign:'center', padding:'60px 0', color:'#AAAAAA' }}>
-      Không tìm thấy sự kiện
-    </div>
-  );
+  useEffect(() => {
+    // subscribe to socket events
+    const handleLocked = (data) => {
+      const { seatId } = data;
+      setZones((prev) =>
+        prev.map((zone) => ({
+          ...zone,
+          seats: zone.seats.map((s) => (s.id === seatId ? { ...s, status: 'LOCKED' } : s)),
+        }))
+      );
+    };
 
-  const selectedZone = zones.find((z) => z.id === selectedZoneId);
-  const total = selectedZone ? selectedZone.price * qty : 0;
-  const dateStr = event.date
-    ? new Date(event.date).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
-    : '';
-  const timeStr = event.date
-    ? new Date(event.date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-    : '';
+    const handleReleased = (data) => {
+      const { seatId } = data;
+      setZones((prev) =>
+        prev.map((zone) => ({
+          ...zone,
+          seats: zone.seats.map((s) => (s.id === seatId ? { ...s, status: 'AVAILABLE' } : s)),
+        }))
+      );
 
-  const handleBook = () => {
-    if (!selectedZone) return;
-    navigate(`/event/${id}/seats`, { state: { zoneId: selectedZoneId, qty } });
+      // if this seat was selected by current user, notify and remove
+      if (selectedSeats.some((s) => s.id === data.seatId)) {
+        toast('Phiên giữ chỗ đã hết hạn', 'warning');
+        setSelectedSeats((prev) => prev.filter((s) => s.id !== data.seatId));
+      }
+    };
+
+    const handleSold = (data) => {
+      const { seatId } = data;
+      setZones((prev) =>
+        prev.map((zone) => ({
+          ...zone,
+          seats: zone.seats.map((s) => (s.id === seatId ? { ...s, status: 'SOLD' } : s)),
+        }))
+      );
+    };
+
+    on('seat_locked', handleLocked);
+    on('seat_released', handleReleased);
+    on('seat_sold', handleSold);
+
+    return () => {
+      off('seat_locked', handleLocked);
+      off('seat_released', handleReleased);
+      off('seat_sold', handleSold);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [on, off, selectedSeats]);
+
+  const fetchEventDetails = async () => {
+    try {
+      setIsLoading(true);
+      const eventResponse = await eventService.getEventById(id);
+      // backend returns { event }
+      const eventData = eventResponse.data?.event || eventResponse.data;
+      setEvent(eventData);
+
+      // zones are included in the event payload
+      setZones(eventData?.zones || []);
+    } catch (error) {
+      console.error('Failed to fetch event:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  return (
-    <div>
-      {/* ── HERO ── */}
-      <section style={{ position:'relative', width:'100%', height:360, overflow:'hidden', display:'flex', alignItems:'flex-end' }}>
-        {/* BG */}
-        <div style={{ position:'absolute', inset:0, zIndex:0, background:'radial-gradient(ellipse at 60% 30%, #3a1200 0%, #1a0800 40%, #080808 100%)' }} />
+  const handleSelectSeat = (seat) => {
+    const isSelected = selectedSeats.some((s) => s.id === seat.id);
+    if (isSelected) {
+      setSelectedSeats(selectedSeats.filter((s) => s.id !== seat.id));
+    } else {
+      // set a local expiry 10 minutes from now (ISO string) if server doesn't provide one
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      setSelectedSeats([...selectedSeats, { ...seat, expiresAt }]);
+    }
+  };
+
+  const handleRemoveSeat = (seatId) => {
+    setSelectedSeats((prev) => prev.filter((s) => s.id !== seatId));
+    // optionally call API to unlock seat
+    // eventService.unlockSeat(seatId).catch(() => {});
+  };
+
+  if (isLoading) return <LoadingSpinner />;
 
         {/* Stage lights */}
         {[
@@ -308,33 +368,12 @@ export default function EventDetailPage() {
   );
 }
 
-function InfoCard({ heading, children }) {
-  return (
-    <div style={{ background:'#242424', border:'1px solid #333333', borderRadius:12, padding:24, marginBottom:20 }}>
-      <h2 style={{ fontSize:20, fontWeight:700, marginBottom:18, paddingLeft:14, borderLeft:'3px solid #FF6B35', display:'flex', alignItems:'center', gap:10 }}>
-        {heading}
-      </h2>
-      {children}
-    </div>
-  );
-}
-
-function ArtistChip({ emoji, name, role, bg }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <div
-      style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      <div style={{
-        width:64, height:64, borderRadius:'50%',
-        background: bg, display:'flex', alignItems:'center', justifyContent:'center',
-        fontSize:26, border:`2px solid ${hovered ? '#FF6B35' : '#333333'}`,
-        transition:'border-color .2s',
-      }}>{emoji}</div>
-      <div style={{ fontSize:12, fontWeight:600, textAlign:'center' }}>{name}</div>
-      <div style={{ fontSize:11, color:'#AAAAAA', textAlign:'center' }}>{role}</div>
+      <SeatMap
+        zones={zones}
+        selectedSeats={selectedSeats}
+        onSelectSeat={handleSelectSeat}
+        onRemoveSeat={handleRemoveSeat}
+      />
     </div>
   );
 }

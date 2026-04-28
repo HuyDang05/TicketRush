@@ -1,17 +1,26 @@
 import api from './api';
 
 const eventService = {
-  getEvents: (params) => api.get('/events', { params }),
-  getEventById: (id) => api.get(`/events/${id}`),
-  createEvent: (data) => api.post('/events', data),
-  updateEvent: (id, data) => api.put(`/events/${id}`, data),
-  deleteEvent: (id) => api.delete(`/events/${id}`),
+  getEvents: (params) =>
+    api.get('api/events', { params }),
 
-  publishEvent: (id) => api.patch(`/events/${id}/publish`),
-  endEvent: (id) => api.patch(`/events/${id}/end`),
+  getEventById: (id) =>
+    api.get(`api/events/${id}`),
 
-  getEventZones: (eventId) => api.get(`/events/${eventId}/zones`),
-  getZoneSeats: (zoneId) => api.get(`/zones/${zoneId}/seats`),
+  createEvent: (data) =>
+    api.post('api/events', data),
+
+  updateEvent: (id, data) =>
+    api.put(`api/events/${id}`, data),
+
+  deleteEvent: (id) =>
+    api.delete(`api/events/${id}`),
+
+  getEventZones: (eventId) =>
+    api.get(`api/events/${eventId}/zones`),
+
+  getZoneSeats: (zoneId) =>
+    api.get(`api/zones/${zoneId}/seats`),
 };
 
 export default eventService;

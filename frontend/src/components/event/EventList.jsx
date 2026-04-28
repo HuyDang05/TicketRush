@@ -1,12 +1,14 @@
 import EventCard from './EventCard';
+import SkeletonLoader from './SkeletonLoader';
+import EmptyState from './EmptyState';
 
-export default function EventList({ events, isLoading }) {
+export default function EventList({ events, isLoading, searchQuery = '' }) {
   if (isLoading) {
-    return <div className="text-center py-8">Đang tải...</div>;
+    return <SkeletonLoader count={6} />;
   }
 
   if (!events || events.length === 0) {
-    return <div className="text-center py-8 text-gray-500">Không có sự kiện nào</div>;
+    return <EmptyState searchQuery={searchQuery} />;
   }
 
   return (
