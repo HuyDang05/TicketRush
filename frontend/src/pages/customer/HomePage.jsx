@@ -54,13 +54,18 @@ export default function HomePage() {
 
   useEffect(() => {
     eventService.getEvents({ status: 'PUBLISHED' })
-      .then((res) => setEvents(res.data || []))
+      .then((res) => {
+        const data = res.data?.data || res.data || [];
+        setEvents(Array.isArray(data) ? data : []);
+      })
       .catch(() => setEvents([]))
       .finally(() => setIsLoading(false));
   }, []);
 
-  const featured = events.slice(0, 4);
-  const upcoming = events.slice(4, 8);
+  const safeEvents = Array.isArray(events) ? events : [];
+
+  const featured = safeEvents.slice(0, 4);
+  const upcoming = safeEvents.slice(4, 8);
 
   return (
     <div>

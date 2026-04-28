@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import AdminLayout from '../../components/shared/AdminLayout';
 import api from '../../services/api';
 import eventService from '../../services/event.service';
@@ -152,6 +153,9 @@ function zoneStatus(soldPct) {
 
 // ── main component ────────────────────────────────────────────────────────────
 export default function AdminDashboardPage() {
+  const [searchParams] = useSearchParams();
+  const eventIdFromUrl = searchParams.get('eventId');
+  
   const [events, setEvents] = useState([]);
   const [selectedId, setSelectedId] = useState('');
   const [dash, setDash] = useState(null);
@@ -167,10 +171,17 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     eventService.getEvents({ limit: 50 }).then(res => {
       const list = res.data?.data || res.data || [];
-      setEvents(Array.isArray(list) ? list : []);
-      if (list.length > 0) setSelectedId(list[0].id);
+      const eventList = Array.isArray(list) ? list : [];
+
+      setEvents(eventList);
+
+      if (eventIdFromUrl) {
+        setSelectedId(eventIdFromUrl);
+      } else if (eventList.length > 0) {
+        setSelectedId(eventList[0].id);
+      }
     }).catch(() => {});
-  }, []);
+  }, [eventIdFromUrl]);
 
   const fetchDash = useCallback((id) => {
     if (!id) return;
@@ -221,7 +232,12 @@ export default function AdminDashboardPage() {
 
   const summary = dash?.summary || {};
   const { totalSeats = 0, soldSeats = 0, lockedSeats = 0, revenue = 0, occupancyRate = 0 } = summary;
-  const eventTitle = dash?.event?.title || (events.find(e => e.id === selectedId)?.title) || 'Dashboard';
+  const eventTitle =
+    dash?.event?.title ||
+    dash?.event?.name ||
+    events.find(e => String(e.id) === String(selectedId))?.title ||
+    events.find(e => String(e.id) === String(selectedId))?.name ||
+    'Dashboard';
 
   const genderMap = audience?.genderDistribution || {};
   const totalGender = (genderMap.MALE || 0) + (genderMap.FEMALE || 0) + (genderMap.OTHER || 0);
@@ -260,7 +276,7 @@ export default function AdminDashboardPage() {
                 backgroundRepeat: 'no-repeat', backgroundPosition: 'right 9px center',
               }}
             >
-              {events.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+              {events.map(e => <option key={e.id} value={e.id}>{e.title || e.name}</option>)}
               {events.length === 0 && <option value="">Chưa có sự kiện</option>}
             </select>
             <button
