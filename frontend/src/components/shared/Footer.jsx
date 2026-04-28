@@ -1,41 +1,69 @@
+import { Link } from 'react-router-dom';
+
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-white mt-12">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-4 gap-8 mb-8">
-          <div>
-            <h3 className="font-bold mb-4">Về TicketRush</h3>
-            <ul className="text-gray-400 space-y-2">
-              <li><a href="#" className="hover:text-white">Giới thiệu</a></li>
-              <li><a href="#" className="hover:text-white">Liên hệ</a></li>
-              <li><a href="#" className="hover:text-white">Blog</a></li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-bold mb-4">Hỗ trợ</h3>
-            <ul className="text-gray-400 space-y-2">
-              <li><a href="#" className="hover:text-white">FAQ</a></li>
-              <li><a href="#" className="hover:text-white">Điều khoản</a></li>
-              <li><a href="#" className="hover:text-white">Chính sách</a></li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-bold mb-4">Mạng xã hội</h3>
-            <ul className="text-gray-400 space-y-2">
-              <li><a href="#" className="hover:text-white">Facebook</a></li>
-              <li><a href="#" className="hover:text-white">Instagram</a></li>
-              <li><a href="#" className="hover:text-white">Twitter</a></li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-bold mb-4">Liên hệ</h3>
-            <p className="text-gray-400">Email: support@ticketrush.com</p>
-            <p className="text-gray-400">Phone: (84) 123-456-789</p>
+    <footer style={{ background: 'var(--nav)', borderTop: '3px solid var(--accent)', padding: '48px 40px 0' }}>
+      <div style={{
+        display: 'grid', gridTemplateColumns: '2fr 1fr 1fr',
+        gap: 40, paddingBottom: 40,
+      }}>
+        <div>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', marginBottom: 14 }}>
+            <span style={{ color: 'var(--accent)', fontSize: 22 }}>⚡</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.5px' }}>TicketRush</span>
+          </Link>
+          <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, maxWidth: 320, marginBottom: 20 }}>
+            Nền tảng đặt vé sự kiện hàng đầu Việt Nam. Nhanh chóng, an toàn và tiện lợi — mọi lúc mọi nơi.
+          </p>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {['f', 'in', 'yt', 'tk'].map((s) => (
+              <a key={s} href="#" style={{
+                width: 36, height: 36, border: '1px solid var(--border)', borderRadius: 8,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, fontWeight: 700, color: 'var(--muted)', textDecoration: 'none',
+                textTransform: 'uppercase',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)'; }}
+              >{s}</a>
+            ))}
           </div>
         </div>
-        <div className="border-t border-gray-700 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 TicketRush. All rights reserved.</p>
+
+        <div>
+          <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Hỗ trợ</h4>
+          <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {['Trung tâm hỗ trợ', 'Chính sách hoàn tiền', 'Điều khoản sử dụng', 'Chính sách bảo mật', 'Liên hệ'].map((l) => (
+              <li key={l}>
+                <a href="#" style={{ color: 'var(--muted)', fontSize: 14, textDecoration: 'none' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}
+                >{l}</a>
+              </li>
+            ))}
+          </ul>
         </div>
+
+        <div>
+          <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Khám phá</h4>
+          <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {['Nhạc sống', 'Sân khấu & Nghệ thuật', 'Thể thao', 'Hội thảo & Workshop', 'Lễ hội'].map((l) => (
+              <li key={l}>
+                <a href="#" style={{ color: 'var(--muted)', fontSize: 14, textDecoration: 'none' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}
+                >{l}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <div style={{
+        borderTop: '1px solid var(--border)', padding: '20px 0',
+        textAlign: 'center', fontSize: 13, color: 'var(--muted)',
+      }}>
+        © 2026 TicketRush. Tất cả quyền được bảo lưu. · Được xây dựng với ❤️ tại Việt Nam
       </div>
     </footer>
   );
