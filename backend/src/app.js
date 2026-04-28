@@ -1,5 +1,7 @@
 const express = require('express');
 require('dotenv').config();
+const authRoutes = require('./routes/auth.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 
@@ -11,5 +13,7 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/health', (req, res) => {
   res.json({ status: 'OK' });
 });
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 
 module.exports = app;
