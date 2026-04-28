@@ -1,43 +1,39 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 
-export function useSocket() {
+export function useSocket(eventId) {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    socketRef.current = io(SOCKET_URL, {
+    const socket = io(SOCKET_URL, {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: 5,
     });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      if (eventId) socket.emit('join_event', eventId);
+    });
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
+      if (eventId) socket.emit('leave_event', eventId);
+      socket.disconnect();
+      socketRef.current = null;
     };
+  }, [eventId]);
+
+  // Stable reference — registers listener, returns cleanup fn so callers
+  // can deregister inside their own useEffect cleanup.
+  const on = useCallback((eventName, callback) => {
+    const socket = socketRef.current;
+    if (!socket) return () => {};
+    socket.on(eventName, callback);
+    return () => socket.off(eventName, callback);
   }, []);
 
-  const emit = (event, data) => {
-    if (socketRef.current) {
-      socketRef.current.emit(event, data);
-    }
-  };
-
-  const on = (event, callback) => {
-    if (socketRef.current) {
-      socketRef.current.on(event, callback);
-    }
-  };
-
-  const off = (event, callback) => {
-    if (socketRef.current) {
-      socketRef.current.off(event, callback);
-    }
-  };
-
-  return { emit, on, off };
+  return { on };
 }

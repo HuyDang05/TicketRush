@@ -35,6 +35,7 @@ app.get('/health', (req, res) => {
 });
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin', adminDashboardRoutes);
 app.use('/api/events', eventRoutes);
 
 module.exports = app;
