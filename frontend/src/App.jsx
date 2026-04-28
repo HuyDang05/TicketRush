@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import Header from './components/shared/Header';
 import Footer from './components/shared/Footer';
 import ProtectedRoute from './components/shared/ProtectedRoute';
@@ -18,6 +19,7 @@ import EventFormPage from './pages/admin/EventFormPage';
 function App() {
   return (
     <Router>
+      <Toaster position="top-right" richColors />
       <Routes>
         {/* Customer + Auth Routes — wrapped in Header/Footer */}
         <Route path="/*" element={
@@ -26,9 +28,9 @@ function App() {
             <main className="flex-grow">
               <Routes>
                 <Route path="/" element={<HomePage />} />
-                <Route path="/event/:id" element={<EventDetailPage />} />
+                <Route path="/events/:id" element={<EventDetailPage />} />
                 <Route
-                  path="/event/:id/seats"
+                  path="/events/:id/seats"
                   element={
                     <ProtectedRoute>
                       <SeatSelectionPage />
@@ -59,9 +61,9 @@ function App() {
           </div>
         } />
 
-        {/* Admin Routes — full-screen, no Header/Footer */}
+        {/* Admin Routes — full-screen layout, no Header/Footer */}
         <Route
-          path="/admin/dashboard"
+          path="/admin"
           element={
             <ProtectedRoute requiredRole="ADMIN">
               <AdminDashboardPage />
@@ -77,7 +79,7 @@ function App() {
           }
         />
         <Route
-          path="/admin/events/create"
+          path="/admin/events/new"
           element={
             <ProtectedRoute requiredRole="ADMIN">
               <EventFormPage />
