@@ -25,10 +25,10 @@ export function useAuth() {
   );
 
   const register = useCallback(
-    async (email, password, fullName) => {
+    async (payload) => {
       setLoading(true);
       try {
-        const response = await authService.register(email, password, fullName);
+        const response = await authService.register(payload);
         const { token, user } = response.data;
         authService.setToken(token, user);
         setUser(user, token);
