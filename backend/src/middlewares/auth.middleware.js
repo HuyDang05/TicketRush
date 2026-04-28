@@ -1,19 +1,25 @@
-const jwt = require('jsonwebtoken');
+const { verifyAccessToken } = require('../utils/jwt.util');
 
-const authMiddleware = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
+const authenticate = (req, res, next) => {
+  const authorizationHeader = req.headers.authorization;
+
+  if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  const token = authorizationHeader.slice(7).trim();
 
   if (!token) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const payload = verifyAccessToken(token);
     req.user = payload;
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: 'Token không hợp lệ hoặc đã hết hạn' });
+    return next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Unauthorized' });
   }
 };
 
-module.exports = authMiddleware;
+module.exports = authenticate;

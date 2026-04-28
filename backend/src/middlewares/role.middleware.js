@@ -1,10 +1,17 @@
-const requireRole = (...roles) => {
+const requireRole = (allowedRoles) => {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Không có quyền truy cập' });
+    const userRole = req.user?.role;
+
+    if (!userRole || !allowedRoles.includes(userRole)) {
+      return res.status(403).json({ message: 'Kh\u00f4ng c\u00f3 quy\u1ec1n truy c\u1eadp' });
     }
-    next();
+
+    return next();
   };
 };
 
+const requireAdmin = requireRole(['ADMIN']);
+
 module.exports = requireRole;
+module.exports.requireRole = requireRole;
+module.exports.requireAdmin = requireAdmin;
