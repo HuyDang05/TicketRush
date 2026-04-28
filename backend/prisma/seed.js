@@ -108,7 +108,7 @@ async function main() {
         description: 'Đêm nhạc EDM sôi động từ DJ Sơn Tùng',
         venue: 'Sân vận động Mỹ Đình, Hà Nội',
         date: new Date('2024-11-15T20:00:00'),
-        imageUrl: 'https://via.placeholder.com/600x400?text=DJ+Son+Tung',
+        imageUrl: 'https://th.bing.com/th/id/R.9dfffb02fcde33c007dc02819eea95b3?rik=dmEvtnLM3HNwUw&pid=ImgRaw&r=0',
         status: 'PUBLISHED',
       },
     });

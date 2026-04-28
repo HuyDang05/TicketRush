@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { useSocket } from '../../hooks/useSocket';
 import SeatMap from '../../components/seat-map/SeatMap';
 import eventService from '../../services/event.service';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
+import { toast } from '../../utils/toast';
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -10,19 +12,72 @@ export default function EventDetailPage() {
   const [zones, setZones] = useState([]);
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { on, off } = useSocket();
 
   useEffect(() => {
     fetchEventDetails();
   }, [id]);
 
+  useEffect(() => {
+    // subscribe to socket events
+    const handleLocked = (data) => {
+      const { seatId } = data;
+      setZones((prev) =>
+        prev.map((zone) => ({
+          ...zone,
+          seats: zone.seats.map((s) => (s.id === seatId ? { ...s, status: 'LOCKED' } : s)),
+        }))
+      );
+    };
+
+    const handleReleased = (data) => {
+      const { seatId } = data;
+      setZones((prev) =>
+        prev.map((zone) => ({
+          ...zone,
+          seats: zone.seats.map((s) => (s.id === seatId ? { ...s, status: 'AVAILABLE' } : s)),
+        }))
+      );
+
+      // if this seat was selected by current user, notify and remove
+      if (selectedSeats.some((s) => s.id === data.seatId)) {
+        toast('Phiên giữ chỗ đã hết hạn', 'warning');
+        setSelectedSeats((prev) => prev.filter((s) => s.id !== data.seatId));
+      }
+    };
+
+    const handleSold = (data) => {
+      const { seatId } = data;
+      setZones((prev) =>
+        prev.map((zone) => ({
+          ...zone,
+          seats: zone.seats.map((s) => (s.id === seatId ? { ...s, status: 'SOLD' } : s)),
+        }))
+      );
+    };
+
+    on('seat_locked', handleLocked);
+    on('seat_released', handleReleased);
+    on('seat_sold', handleSold);
+
+    return () => {
+      off('seat_locked', handleLocked);
+      off('seat_released', handleReleased);
+      off('seat_sold', handleSold);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [on, off, selectedSeats]);
+
   const fetchEventDetails = async () => {
     try {
       setIsLoading(true);
       const eventResponse = await eventService.getEventById(id);
-      setEvent(eventResponse.data);
+      // backend returns { event }
+      const eventData = eventResponse.data?.event || eventResponse.data;
+      setEvent(eventData);
 
-      const zonesResponse = await eventService.getEventZones(id);
-      setZones(zonesResponse.data);
+      // zones are included in the event payload
+      setZones(eventData?.zones || []);
     } catch (error) {
       console.error('Failed to fetch event:', error);
     } finally {
@@ -35,8 +90,16 @@ export default function EventDetailPage() {
     if (isSelected) {
       setSelectedSeats(selectedSeats.filter((s) => s.id !== seat.id));
     } else {
-      setSelectedSeats([...selectedSeats, seat]);
+      // set a local expiry 10 minutes from now (ISO string) if server doesn't provide one
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      setSelectedSeats([...selectedSeats, { ...seat, expiresAt }]);
     }
+  };
+
+  const handleRemoveSeat = (seatId) => {
+    setSelectedSeats((prev) => prev.filter((s) => s.id !== seatId));
+    // optionally call API to unlock seat
+    // eventService.unlockSeat(seatId).catch(() => {});
   };
 
   if (isLoading) return <LoadingSpinner />;
@@ -79,7 +142,12 @@ export default function EventDetailPage() {
         </div>
       </div>
 
-      <SeatMap zones={zones} selectedSeats={selectedSeats} onSelectSeat={handleSelectSeat} />
+      <SeatMap
+        zones={zones}
+        selectedSeats={selectedSeats}
+        onSelectSeat={handleSelectSeat}
+        onRemoveSeat={handleRemoveSeat}
+      />
     </div>
   );
 }
