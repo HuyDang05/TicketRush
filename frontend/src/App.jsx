@@ -38,7 +38,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/checkout/:seatId"
+                  path="/checkout"
                   element={
                     <ProtectedRoute>
                       <CheckoutPage />
