@@ -1,9 +1,10 @@
 import SeatItem from './SeatItem';
+import './seat-map.css';
 
-export default function SeatGrid({ seats, selectedSeats, onSelectSeat, zonePrice }) {
+export default function SeatGrid({ seats, selectedSeats, onSelectSeat, zonePrice, accentColor }) {
   const rowMap = {};
   seats.forEach((seat) => {
-    const rowKey = seat.label?.[0] ?? '?';
+    const rowKey = seat.row ?? seat.label?.[0] ?? '?';
     if (!rowMap[rowKey]) rowMap[rowKey] = [];
     rowMap[rowKey].push(seat);
   });
@@ -11,31 +12,24 @@ export default function SeatGrid({ seats, selectedSeats, onSelectSeat, zonePrice
   const rowKeys = Object.keys(rowMap).sort();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 8px' }}>
+    <div className="seat-grid">
       {rowKeys.map((rowKey) => {
         const rowSeats = rowMap[rowKey].sort((a, b) => {
-          const na = parseInt(a.label?.slice(1)) || 0;
-          const nb = parseInt(b.label?.slice(1)) || 0;
+          const na = a.col ?? parseInt(a.label?.replace(/^[A-Za-z]+/, '')) ?? 0;
+          const nb = b.col ?? parseInt(b.label?.replace(/^[A-Za-z]+/, '')) ?? 0;
           return na - nb;
         });
         return (
-          <div key={rowKey} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{
-              width: 20,
-              fontSize: 11,
-              fontWeight: 700,
-              color: '#AAAAAA',
-              textAlign: 'center',
-              flexShrink: 0,
-            }}>{rowKey}</span>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          <div key={rowKey} className="seat-grid__row">
+            <span className="seat-grid__row-label">{rowKey}</span>
+            <div className="seat-grid__seats">
               {rowSeats.map((seat) => (
                 <SeatItem
                   key={seat.id}
-                  seat={seat}
+                  seat={{ ...seat, price: seat.price ?? zonePrice ?? 0 }}
                   isSelected={selectedSeats.some((s) => s.id === seat.id)}
                   onSelect={onSelectSeat}
-                  zonePrice={zonePrice}
+                  accentColor={accentColor}
                 />
               ))}
             </div>
