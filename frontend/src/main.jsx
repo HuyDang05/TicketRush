@@ -9,7 +9,5 @@ useAuthStore.getState().initAuth()
 logoutRef.fn = () => useAuthStore.getState().logout()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+  <App />
 )

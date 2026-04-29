@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import Header from './components/shared/Header';
 import Footer from './components/shared/Footer';
@@ -12,9 +12,24 @@ import MyTicketsPage from './pages/customer/MyTicketsPage';
 import SeatSelectionPage from './pages/customer/SeatSelectionPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import EventManagerPage from './pages/admin/EventManagerPage';
 import EventFormPage from './pages/admin/EventFormPage';
+
+function CustomerLayout() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Header />
+      <main style={{ flex: 1 }}>
+        <Outlet />
+      </main>
+      <Footer />
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -22,44 +37,41 @@ function App() {
       <Toaster position="top-right" richColors />
       <Routes>
         {/* Customer + Auth Routes — wrapped in Header/Footer */}
-        <Route path="/*" element={
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <Header />
-            <main className="flex-grow">
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/events/:id" element={<EventDetailPage />} />
-                <Route
-                  path="/events/:id/seats"
-                  element={
-                    <ProtectedRoute>
-                      <SeatSelectionPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/checkout"
-                  element={
-                    <ProtectedRoute>
-                      <CheckoutPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/my-tickets"
-                  element={
-                    <ProtectedRoute>
-                      <MyTicketsPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-              </Routes>
-            </main>
-            <Footer />
-          </div>
-        } />
+        <Route element={<CustomerLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/events/:id" element={<EventDetailPage />} />
+          <Route
+            path="/events/:id/seats"
+            element={
+              <ProtectedRoute>
+                <SeatSelectionPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute>
+                <CheckoutPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-tickets"
+            element={
+              <ProtectedRoute>
+                <MyTicketsPage />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+
+        {/* Auth Routes — no Header/Footer */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/auth/callback" element={<OAuthCallbackPage />} />
 
         {/* Admin Routes — full-screen layout, no Header/Footer */}
         <Route
