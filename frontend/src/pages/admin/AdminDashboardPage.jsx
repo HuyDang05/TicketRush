@@ -19,6 +19,7 @@ import {
 } from 'recharts';
 
 import { useSocket } from '../../hooks/useSocket';
+import './admin.css';
 
 // ── canvas helpers ────────────────────────────────────────────────────────────
 

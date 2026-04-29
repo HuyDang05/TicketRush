@@ -1,4 +1,6 @@
+import { useCallback } from 'react';
 import useAuthStore from '../store/authStore';
+import authService from '../services/auth.service';
 
 export function useAuth() {
   const { user, token, isLoading, error, setUser, logout, setLoading, setError } = useAuthStore();
@@ -48,9 +50,13 @@ export function useAuth() {
 
   return {
     user,
-    isAuthenticated,
+    token,
+    isAuthenticated: !!token,
     isAdmin: user?.role === 'ADMIN',
+    isLoading,
+    error,
     login,
-    logout,
+    register,
+    logout: handleLogout,
   };
 }
