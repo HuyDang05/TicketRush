@@ -1,19 +1,18 @@
-import { useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { Navigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 
 export default function ProtectedRoute({ children, requiredRole = null }) {
   const { user, token } = useAuthStore();
+  const location = useLocation();
 
-  const wrongRole = token && user && requiredRole && user.role !== requiredRole;
+  if (!token || !user) {
+    // pass original location so LoginPage can redirect back after auth
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
 
-  useEffect(() => {
-    if (wrongRole) toast.error('Bạn không có quyền truy cập trang này.');
-  }, [wrongRole]);
-
-  if (!token || !user) return <Navigate to="/login" replace />;
-  if (wrongRole) return <Navigate to="/" replace />;
+  if (requiredRole && user.role !== requiredRole) {
+    return <Navigate to="/" replace />;
+  }
 
   return children;
 }

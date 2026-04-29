@@ -221,6 +221,30 @@ export default function EventManagerPage() {
     }
   };
 
+  const handlePublish = async (id) => {
+    if (!confirm('Bạn có chắc muốn xuất bản sự kiện này?')) return;
+
+    try {
+      await eventService.publishEvent(id);
+      showToast('✓ Đã xuất bản sự kiện');
+      fetchEvents();
+    } catch {
+      showToast('Không thể xuất bản sự kiện');
+    }
+  };
+
+  const handleEnd = async (id) => {
+    if (!confirm('Bạn có chắc muốn kết thúc sự kiện này?')) return;
+
+    try {
+      await eventService.endEvent(id);
+      showToast('✓ Đã kết thúc sự kiện');
+      fetchEvents();
+    } catch {
+      showToast('Không thể kết thúc sự kiện');
+    }
+  };
+
   const filtered = events.filter(ev => {
     const matchSearch = !search || (ev.name || ev.title || '').toLowerCase().includes(search.toLowerCase());
     const evStatus = ev.status === 'PUBLISHED' ? 'pub' : ev.status === 'DRAFT' ? 'draft' : 'ended';
@@ -232,9 +256,36 @@ export default function EventManagerPage() {
   const totalSold = events.reduce((s, e) => s + (e._count?.bookings ?? 0), 0);
 
   const getStatusBadge = (status) => {
-    if (status === 'PUBLISHED') return { cls: { background: '#0F2A1A', color: '#22c55e' }, label: 'Đang mở bán' };
-    if (status === 'DRAFT') return { cls: { background: 'rgba(170,170,170,.08)', color: '#AAAAAA', border: '1px solid #333333' }, label: 'Bản nháp' };
-    return { cls: { background: 'rgba(80,80,80,.15)', color: '#555' }, label: 'Đã kết thúc' };
+    if (status === 'DRAFT') {
+      return {
+        label: 'DRAFT',
+        cls: {
+          background: 'rgba(156, 163, 175, 0.15)',
+          color: '#9CA3AF',
+          border: '1px solid rgba(156, 163, 175, 0.35)',
+        },
+      };
+    }
+
+    if (status === 'PUBLISHED') {
+      return {
+        label: 'PUBLISHED',
+        cls: {
+          background: 'rgba(34, 197, 94, 0.15)',
+          color: '#22C55E',
+          border: '1px solid rgba(34, 197, 94, 0.35)',
+        },
+      };
+    }
+
+    return {
+      label: 'ENDED',
+      cls: {
+        background: 'rgba(239, 68, 68, 0.15)',
+        color: '#EF4444',
+        border: '1px solid rgba(239, 68, 68, 0.35)',
+      },
+    };
   };
 
   const ActBtn = ({ title, hoverStyle, onClick, children }) => (
@@ -319,7 +370,7 @@ export default function EventManagerPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
               <thead>
                 <tr style={{ background: '#1A1A1A' }}>
-                  {['Sự kiện', 'Ngày', 'Địa điểm', 'Trạng thái', 'Vé bán', 'Doanh thu', 'Thao tác'].map(h => (
+                  {['Tên sự kiện', 'Địa điểm', 'Ngày diễn', 'Trạng thái', 'Tổng ghế', 'Số ghế đã bán', 'Thao tác'].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#AAAAAA', letterSpacing: .8, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -331,10 +382,8 @@ export default function EventManagerPage() {
                   <tr><td colSpan="7" style={{ textAlign: 'center', padding: 40, color: '#AAAAAA', fontSize: 13 }}>Không tìm thấy sự kiện nào</td></tr>
                 ) : filtered.map((ev, i) => {
                   const name = ev.name || ev.title || 'Sự kiện';
-                  const sold = ev._count?.bookings ?? 0;
-                  const total = ev.capacity ?? 0;
-                  const pct = total ? Math.round(sold / total * 100) : 0;
-                  const revenue = (sold * (ev.zones?.[0]?.price ?? 0));
+                  const totalSeats = ev.capacity ?? ev.totalSeats ?? 0;
+                  const soldSeats = ev._count?.bookings ?? ev.soldSeats ?? 0;
                   const badge = getStatusBadge(ev.status);
                   const isDeleting = deletingId === ev.id;
 
@@ -344,7 +393,6 @@ export default function EventManagerPage() {
                       style={{ borderTop: '1px solid rgba(255,255,255,.04)', cursor: 'pointer', transition: 'background .15s', opacity: isDeleting ? 0.4 : 1 }}
                       onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.03)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      onClick={() => navigate(`/admin/events/${ev.id}/edit`)}
                     >
                       <td style={{ padding: '14px 16px', fontSize: 13, verticalAlign: 'middle' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -357,43 +405,66 @@ export default function EventManagerPage() {
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: '14px 16px', color: '#AAAAAA', whiteSpace: 'nowrap', fontSize: 12, verticalAlign: 'middle' }}>
-                        {ev.date ? new Date(ev.date).toLocaleDateString('vi-VN') : '—'}
-                      </td>
                       <td style={{ padding: '14px 16px', color: '#AAAAAA', fontSize: 12, whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
                         {ev.location || '—'}
                       </td>
+
+                      <td style={{ padding: '14px 16px', color: '#AAAAAA', whiteSpace: 'nowrap', fontSize: 12, verticalAlign: 'middle' }}>
+                        {ev.date ? new Date(ev.date).toLocaleDateString('vi-VN') : '—'}
+                      </td>
+
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 5, letterSpacing: .3, whiteSpace: 'nowrap', ...badge.cls }}>{badge.label}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 5, letterSpacing: .3, whiteSpace: 'nowrap', ...badge.cls }}>
+                            {badge.label}
+                          </span>
+                      </td>
+
+                      <td style={{ padding: '14px 16px', verticalAlign: 'middle', fontWeight: 700 }}>
+                        {totalSeats > 0 ? totalSeats.toLocaleString('vi-VN') : '—'}
+                      </td>
+
+                      <td style={{ padding: '14px 16px', verticalAlign: 'middle', fontWeight: 700 }}>
+                        {soldSeats.toLocaleString('vi-VN')}
                       </td>
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
-                        <div style={{ minWidth: 100 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 5 }}>
-                            <span style={{ fontWeight: 700 }}>{sold.toLocaleString()}</span>
-                            <span style={{ color: '#AAAAAA' }}>/ {total > 0 ? total.toLocaleString() : '—'}</span>
-                          </div>
-                          <div style={{ height: 4, background: '#333333', borderRadius: 2, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, background: pct >= 100 ? '#22c55e' : '#FF6B35', borderRadius: 2 }} />
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
-                        <div style={{ fontWeight: 700 }}>{revenue > 0 ? revenue.toLocaleString('vi-VN') + 'đ' : '—'}</div>
-                        {ev.status !== 'DRAFT' && total > 0 && (
-                          <div style={{ fontSize: 11, color: '#AAAAAA', marginTop: 2 }}>{pct}% đạt mục tiêu</div>
-                        )}
-                      </td>
-                      <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
-                        <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
-                          <ActBtn title="Xem" hoverStyle={{ borderColor: 'rgba(255,255,255,.25)', color: '#fff', background: 'rgba(255,255,255,.05)' }} onClick={() => navigate(`/event/${ev.id}`)}>
-                            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
+                          <ActBtn
+                            title="Xem Dashboard"
+                            hoverStyle={{ borderColor: 'rgba(255,255,255,.25)', color: '#fff', background: 'rgba(255,255,255,.05)' }}
+                            onClick={() => navigate(`/admin?eventId=${ev.id}`)}
+                          >
+                            📊
                           </ActBtn>
-                          <ActBtn title="Chỉnh sửa" hoverStyle={{ borderColor: '#FF6B35', color: '#FF6B35', background: 'rgba(255,107,53,.08)' }} onClick={() => setModal(ev)}>
-                            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                          </ActBtn>
-                          <ActBtn title="Xóa" hoverStyle={{ borderColor: '#f87171', color: '#f87171', background: 'rgba(239,68,68,.08)' }} onClick={() => handleDelete(ev.id)}>
-                            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-                          </ActBtn>
+
+                          {ev.status === 'DRAFT' && (
+                            <ActBtn
+                              title="Chỉnh sửa"
+                              hoverStyle={{ borderColor: '#FF6B35', color: '#FF6B35', background: 'rgba(255,107,53,.08)' }}
+                              onClick={() => setModal(ev)}
+                            >
+                              ✏️
+                            </ActBtn>
+                          )}
+
+                          {ev.status === 'DRAFT' && (
+                            <ActBtn
+                              title="Xuất bản"
+                              hoverStyle={{ borderColor: '#22C55E', color: '#22C55E', background: 'rgba(34,197,94,.08)' }}
+                              onClick={() => handlePublish(ev.id)}
+                            >
+                              🚀
+                            </ActBtn>
+                          )}
+
+                          {ev.status === 'PUBLISHED' && (
+                            <ActBtn
+                              title="Kết thúc"
+                              hoverStyle={{ borderColor: '#EF4444', color: '#EF4444', background: 'rgba(239,68,68,.08)' }}
+                              onClick={() => handleEnd(ev.id)}
+                            >
+                              ⛔
+                            </ActBtn>
+                          )}
                         </div>
                       </td>
                     </tr>

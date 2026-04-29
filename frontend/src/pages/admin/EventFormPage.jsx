@@ -151,8 +151,14 @@ export default function EventFormPage() {
   const [loading, setLoading] = useState(isEdit);
 
   const [form, setForm] = useState({
-    name: '', date: '', time: '19:00', category: 'Âm nhạc',
-    organizer: '', location: '', description: '',
+    name: '',
+    description: '',
+    location: '',
+    date: '',
+    time: '19:00',
+    thumbnailUrl: '',
+    category: 'Âm nhạc',
+    organizer: '',
   });
 
   const [zones, setZones] = useState([
@@ -169,13 +175,12 @@ export default function EventFormPage() {
         const ev = res.data;
         const dt = ev.date ? new Date(ev.date) : null;
         setForm({
-          name:        ev.name || ev.title || '',
-          date:        dt ? dt.toISOString().slice(0, 10) : '',
-          time:        dt ? dt.toISOString().slice(11, 16) : '19:00',
-          category:    ev.category || 'Âm nhạc',
-          organizer:   ev.organizer || '',
-          location:    ev.location || '',
+          name: ev.title || ev.name || '',
           description: ev.description || '',
+          location: ev.venue || ev.location || '',
+          date: dt ? dt.toISOString().slice(0, 10) : '',
+          time: dt ? dt.toISOString().slice(11, 16) : '19:00',
+          thumbnailUrl: ev.imageUrl || '',
         });
         if (ev.zones?.length) {
           setZones(ev.zones.map((z, i) => ({
@@ -211,36 +216,70 @@ export default function EventFormPage() {
     ? (totalRevenue / 1e9).toFixed(2) + 'tỷ đ'
     : Math.round(totalRevenue / 1e6) + 'tr đ';
 
-  const buildPayload = (status) => ({
-    name:        form.name.trim(),
-    date:        form.date && form.time ? `${form.date}T${form.time}:00` : form.date,
-    location:    form.location.trim(),
-    category:    form.category,
+  const buildPayload = () => ({
+    title: form.name.trim(),
     description: form.description.trim(),
-    organizer:   form.organizer.trim(),
-    status,
-    zones: zones.map(z => ({ name: z.name, rows: z.rows, cols: z.cols, price: z.price })),
+    venue: form.location.trim(),
+    date: form.date && form.time ? `${form.date}T${form.time}:00` : form.date,
+    imageUrl: form.thumbnailUrl.trim(),
+    zones: zones.map(z => ({
+      name: z.name.trim(),
+      rows: Number(z.rows),
+      cols: Number(z.cols),
+      price: Number(z.price),
+    })),
   });
 
-  const handleSave = useCallback(async (status) => {
-    if (!form.name.trim()) { setToast('⚠ Vui lòng nhập tên sự kiện'); return; }
+  const validateForm = () => {
+    if (!form.name.trim()) return 'Vui lòng nhập tên sự kiện';
+    if (!form.description.trim()) return 'Vui lòng nhập mô tả sự kiện';
+    if (!form.location.trim()) return 'Vui lòng nhập địa điểm';
+    if (!form.date || !form.time) return 'Vui lòng chọn ngày và giờ diễn';
+    if (!form.thumbnailUrl.trim()) return 'Vui lòng nhập URL ảnh thumbnail';
+
+    const eventDate = new Date(`${form.date}T${form.time}:00`);
+    if (eventDate <= new Date()) return 'Ngày diễn phải trong tương lai';
+
+    if (zones.length < 1) return 'Phải có ít nhất 1 khu vực';
+
+    for (const zone of zones) {
+      if (!zone.name.trim()) return 'Tên khu vực không được để trống';
+      if (Number(zone.rows) < 1) return 'Số hàng phải >= 1';
+      if (Number(zone.cols) < 1) return 'Số cột phải >= 1';
+      if (Number(zone.price) <= 0) return 'Giá vé phải > 0';
+    }
+
+    return null;
+  };
+
+  const handleSave = useCallback(async () => {
+    const error = validateForm();
+
+    if (error) {
+      setToast(`⚠ ${error}`);
+      return;
+    }
+
     setSaving(true);
+
     try {
-      const payload = buildPayload(status);
+      const payload = buildPayload();
+
       if (isEdit) {
         await eventService.updateEvent(id, payload);
+        setToast('✓ Đã lưu thay đổi sự kiện');
       } else {
         await eventService.createEvent(payload);
+        setToast('✓ Tạo sự kiện thành công');
       }
-      const msg = status === 'PUBLISHED' ? '🚀 Sự kiện đã được xuất bản!' : '✓ Đã lưu bản nháp thành công';
-      setToast(msg);
+
       setTimeout(() => navigate('/admin/events'), 1200);
-    } catch {
-      setToast('Không thể lưu sự kiện');
+    } catch (err) {
+      setToast(err.response?.data?.message || 'Không thể lưu sự kiện');
     } finally {
       setSaving(false);
     }
-  }, [form, zones, id, isEdit]);
+  }, [form, zones, id, isEdit, navigate]);
 
   // ── Preview values ────────────────────────────────────────────────
   const prevDate = form.date
@@ -294,12 +333,24 @@ export default function EventFormPage() {
             onMouseLeave={e => { e.currentTarget.style.borderColor = '#333333'; e.currentTarget.style.color = '#AAAAAA'; }}
           >Hủy</button>
           <button
-            onClick={() => handleSave('DRAFT')}
+            onClick={handleSave}
             disabled={saving}
-            style={{ padding: '9px 16px', border: '1px solid #FF6B35', borderRadius: 8, background: 'transparent', color: '#FF6B35', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', transition: 'all .2s' }}
-            onMouseEnter={e => { if (!saving) e.currentTarget.style.background = 'rgba(255,107,53,.08)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-          >Lưu bản nháp</button>
+            style={{
+              padding: '9px 18px',
+              border: '1px solid #FF6B35',
+              borderRadius: 8,
+              background: saving ? '#c45a2a' : '#FF6B35',
+              color: '#fff',
+              fontFamily: 'inherit',
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: saving ? 'not-allowed' : 'pointer',
+              transition: 'background .2s, transform .15s',
+              boxShadow: '0 2px 12px rgba(255,107,53,.3)',
+            }}
+          >
+            {saving ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi' : 'Tạo sự kiện'}
+          </button>
           <button
             onClick={() => handleSave('PUBLISHED')}
             disabled={saving}
@@ -398,6 +449,17 @@ export default function EventFormPage() {
                     onFocus={focusOn} onBlur={focusOff}
                   />
                 </div>
+              </Field>
+
+              <Field label="URL ảnh thumbnail">
+                <input
+                  style={INPUT}
+                  placeholder="https://example.com/image.jpg"
+                  value={form.thumbnailUrl}
+                  onChange={e => set('thumbnailUrl', e.target.value)}
+                  onFocus={focusOn}
+                  onBlur={focusOff}
+                />
               </Field>
 
               <Field label="Mô tả sự kiện">

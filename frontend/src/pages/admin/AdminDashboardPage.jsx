@@ -1,7 +1,24 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import AdminLayout from '../../components/shared/AdminLayout';
 import api from '../../services/api';
 import eventService from '../../services/event.service';
+
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+} from 'recharts';
+
+import { useSocket } from '../../hooks/useSocket';
 
 // ── canvas helpers ────────────────────────────────────────────────────────────
 
@@ -152,6 +169,9 @@ function zoneStatus(soldPct) {
 
 // ── main component ────────────────────────────────────────────────────────────
 export default function AdminDashboardPage() {
+  const [searchParams] = useSearchParams();
+  const eventIdFromUrl = searchParams.get('eventId');
+  
   const [events, setEvents] = useState([]);
   const [selectedId, setSelectedId] = useState('');
   const [dash, setDash] = useState(null);
@@ -160,6 +180,8 @@ export default function AdminDashboardPage() {
   const [lastUpdate, setLastUpdate] = useState('vừa xong');
   const [revOffset, setRevOffset] = useState(0);
 
+  const { on } = useSocket(selectedId);
+
   const sparkRef = useRef(null);
   const revRef   = useRef(null);
 
@@ -167,10 +189,17 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     eventService.getEvents({ limit: 50 }).then(res => {
       const list = res.data?.data || res.data || [];
-      setEvents(Array.isArray(list) ? list : []);
-      if (list.length > 0) setSelectedId(list[0].id);
+      const eventList = Array.isArray(list) ? list : [];
+
+      setEvents(eventList);
+
+      if (eventIdFromUrl) {
+        setSelectedId(eventIdFromUrl);
+      } else if (eventList.length > 0) {
+        setSelectedId(eventList[0].id);
+      }
     }).catch(() => {});
-  }, []);
+  }, [eventIdFromUrl]);
 
   const fetchDash = useCallback((id) => {
     if (!id) return;
@@ -187,6 +216,25 @@ export default function AdminDashboardPage() {
   }, []);
 
   useEffect(() => { fetchDash(selectedId); }, [selectedId, fetchDash]);
+
+  // realtime refresh when seat status changes
+  useEffect(() => {
+    if (!selectedId) return;
+
+    const refreshDashboard = () => {
+      fetchDash(selectedId);
+    };
+
+    const offSold = on('seat_sold', refreshDashboard);
+    const offLocked = on('seat_locked', refreshDashboard);
+    const offReleased = on('seat_released', refreshDashboard);
+
+    return () => {
+      if (offSold) offSold();
+      if (offLocked) offLocked();
+      if (offReleased) offReleased();
+    };
+  }, [selectedId, on, fetchDash]);
 
   // auto-refresh every 8s
   useEffect(() => {
@@ -221,7 +269,12 @@ export default function AdminDashboardPage() {
 
   const summary = dash?.summary || {};
   const { totalSeats = 0, soldSeats = 0, lockedSeats = 0, revenue = 0, occupancyRate = 0 } = summary;
-  const eventTitle = dash?.event?.title || (events.find(e => e.id === selectedId)?.title) || 'Dashboard';
+  const eventTitle =
+    dash?.event?.title ||
+    dash?.event?.name ||
+    events.find(e => String(e.id) === String(selectedId))?.title ||
+    events.find(e => String(e.id) === String(selectedId))?.name ||
+    'Dashboard';
 
   const genderMap = audience?.genderDistribution || {};
   const totalGender = (genderMap.MALE || 0) + (genderMap.FEMALE || 0) + (genderMap.OTHER || 0);
@@ -230,6 +283,33 @@ export default function AdminDashboardPage() {
     { label: 'Nữ',   count: genderMap.FEMALE || 0, color: '#f472b6' },
     { label: 'Khác', count: genderMap.OTHER  || 0, color: '#AAAAAA' },
   ];
+  
+  const seatPieData = [
+    { name: 'SOLD', value: soldSeats },
+    { name: 'LOCKED', value: lockedSeats },
+    { name: 'AVAILABLE', value: summary.availableSeats || Math.max(0, totalSeats - soldSeats - lockedSeats) },
+  ];
+
+  const zoneRevenueData = (dash?.zones || []).map((zone) => ({
+    name: zone.zoneName,
+    revenue: zone.revenue,
+  }));
+
+  const genderPieData = [
+    { name: 'MALE', value: genderMap.MALE || 0 },
+    { name: 'FEMALE', value: genderMap.FEMALE || 0 },
+    { name: 'OTHER', value: genderMap.OTHER || 0 },
+  ];
+
+  const ageBarData = audience?.ageDistribution
+    ? Object.entries(audience.ageDistribution).map(([key, value]) => ({
+        name: key,
+        value,
+      }))
+    : [];
+
+  const PIE_COLORS = ['#4ADE80', '#FF6B35', '#AAAAAA'];
+  const GENDER_COLORS = ['#60A5FA', '#F472B6', '#AAAAAA'];
 
   const formatRevenue = (n) => {
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(0) + 'tr đ';
@@ -260,7 +340,7 @@ export default function AdminDashboardPage() {
                 backgroundRepeat: 'no-repeat', backgroundPosition: 'right 9px center',
               }}
             >
-              {events.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+              {events.map(e => <option key={e.id} value={e.id}>{e.title || e.name}</option>)}
               {events.length === 0 && <option value="">Chưa có sự kiện</option>}
             </select>
             <button
@@ -338,18 +418,46 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* REVENUE + DONUT */}
-        <div style={{ display: 'grid', gridTemplateColumns: '60% 40%', gap: 16, marginBottom: 20 }}>
+        {/* CHARTS */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
           <div style={{ background: '#242424', border: '1px solid #333333', borderRadius: 12, padding: 20 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              Doanh thu theo thời gian
-              <span style={{ fontSize: 11, color: '#AAAAAA' }}>Hôm nay · cập nhật mỗi 60s</span>
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>
+              Tỷ lệ trạng thái ghế
             </div>
-            <canvas ref={revRef} height="140" style={{ borderRadius: 6 }} />
+
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={seatPieData}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={90}
+                  label
+                >
+                  {seatPieData.map((_, index) => (
+                    <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
+
           <div style={{ background: '#242424', border: '1px solid #333333', borderRadius: 12, padding: 20 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Tỷ lệ lấp đầy</div>
-            <DonutChart sold={soldSeats} held={lockedSeats} total={totalSeats} />
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>
+              Doanh thu theo Zone
+            </div>
+
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={zoneRevenueData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(value) => `${Number(value).toLocaleString('vi-VN')} đ`} />
+                <Bar dataKey="revenue" fill="#FF6B35" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
@@ -406,39 +514,44 @@ export default function AdminDashboardPage() {
 
         {/* GENDER + AGE */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          {/* Gender */}
           <div style={{ background: '#242424', border: '1px solid #333333', borderRadius: 12, padding: 20 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Phân bổ giới tính</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '8px 0' }}>
-              {genderBars.map(({ label, count, color }) => {
-                const pct = totalGender > 0 ? Math.round(count / totalGender * 100) : 0;
-                return (
-                  <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                      <span style={{ fontWeight: 600 }}>{label}</span>
-                      <span style={{ color: '#AAAAAA' }}>{pct}% · {count} người</span>
-                    </div>
-                    <div style={{ height: 8, background: '#333333', borderRadius: 4, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, borderRadius: 4, background: color, transition: 'width .8s ease' }} />
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>
+              Phân bổ giới tính
             </div>
-            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: '1px solid #333333' }}>
-              {genderBars.map(({ label, color }) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#AAAAAA' }}>
-                  <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
-                  {label}
-                </div>
-              ))}
-            </div>
+
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={genderPieData}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={90}
+                  label
+                >
+                  {genderPieData.map((_, index) => (
+                    <Cell key={index} fill={GENDER_COLORS[index % GENDER_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
 
-          {/* Age */}
           <div style={{ background: '#242424', border: '1px solid #333333', borderRadius: 12, padding: 20 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Phân bổ độ tuổi</div>
-            <AgeBarChart data={audience?.ageDistribution} />
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>
+              Phân bổ độ tuổi
+            </div>
+
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={ageBarData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#4ADE80" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 

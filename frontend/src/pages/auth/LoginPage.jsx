@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
 const MINI_EVENTS = [
@@ -10,16 +10,18 @@ const MINI_EVENTS = [
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isLoading, error } = useAuth();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
 
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
-  const [showPw,   setShowPw]   = useState(false);
-  const [fieldErr, setFieldErr] = useState({ email: '', password: '' });
-  const [success,  setSuccess]  = useState(false);
-
-  const clearFieldErr = (field) =>
-    setFieldErr(prev => ({ ...prev, [field]: '' }));
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,11 +35,19 @@ export default function LoginPage() {
     if (errs.email || errs.password) { setFieldErr(errs); return; }
 
     try {
-      await login(email, password);
-      setSuccess(true);
-      setTimeout(() => navigate('/'), 1200);
-    } catch {
-      // error shown via useAuth error state
+      const data = await login(formData.email, formData.password);
+      const role = data?.user?.role || data?.role || 'CUSTOMER';
+
+      if (role === 'ADMIN') {
+        navigate('/admin/dashboard', { replace: true });
+        return;
+      }
+
+      const from = location.state?.from?.pathname || '/';
+      navigate(from, { replace: true });
+    } catch (err) {
+      console.error('Login failed:', err);
+      // error is displayed from auth hook
     }
   };
 
@@ -102,179 +112,49 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── RIGHT PANEL ── */}
-      <div style={{
-        width:'50%', background:'#1A1A1A',
-        display:'flex', alignItems:'center', justifyContent:'center',
-        padding:'60px 48px',
-      }}>
-        <div style={{ width:'100%', maxWidth:400 }}>
-          <h2 style={{ fontSize:28, fontWeight:800, marginBottom:8 }}>Đăng nhập</h2>
-          <p style={{ fontSize:14, color:'#AAAAAA', marginBottom:28 }}>
-            Chưa có tài khoản?{' '}
-            <Link to="/register" style={{ color:'#FF6B35', textDecoration:'none', fontWeight:600 }}>
-              Đăng ký ngay
-            </Link>
-          </p>
-
-          {/* Success */}
-          {success && (
-            <div style={{
-              background:'rgba(34,197,94,.12)', border:'1px solid rgba(34,197,94,.3)',
-              borderRadius:8, padding:'12px 16px', fontSize:13, fontWeight:600,
-              color:'#4ade80', marginBottom:16,
-            }}>
-              ✓ &nbsp;Đăng nhập thành công! Đang chuyển hướng...
-            </div>
-          )}
-
-          {/* API error */}
-          {error && !success && (
-            <div style={{
-              background:'rgba(248,113,113,.12)', border:'1px solid rgba(248,113,113,.3)',
-              borderRadius:8, padding:'12px 16px', fontSize:13, fontWeight:600,
-              color:'#f87171', marginBottom:16,
-            }}>
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} noValidate>
-            {/* Email */}
-            <div style={{ marginBottom:18 }}>
-              <label style={{ display:'block', fontSize:13, color:'#AAAAAA', fontWeight:600, marginBottom:7, letterSpacing:'.2px' }}>
-                Email
-              </label>
+          <div>
+            <label className="block text-sm font-semibold mb-2">Mật khẩu</label>
+            <div className="relative">
               <input
-                type="email"
-                value={email}
-                onChange={e => { setEmail(e.target.value); clearFieldErr('email'); }}
-                placeholder="ten@email.com"
-                autoComplete="email"
-                style={{
-                  width:'100%', background:'#242424',
-                  border:`1px solid ${fieldErr.email ? '#f87171' : '#333333'}`,
-                  borderRadius:8, padding:'12px 16px', color:'#FFFFFF',
-                  fontFamily:"'Be Vietnam Pro', sans-serif", fontSize:14, outline:'none',
-                  transition:'border-color .2s, box-shadow .2s',
-                  boxSizing:'border-box',
-                }}
-                onFocus={e => { e.target.style.borderColor='#FF6B35'; e.target.style.boxShadow='0 0 0 3px rgba(255,107,53,.1)'; }}
-                onBlur={e => { e.target.style.borderColor = fieldErr.email ? '#f87171' : '#333333'; e.target.style.boxShadow='none'; }}
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                required
               />
-              {fieldErr.email && (
-                <div style={{ fontSize:12, color:'#f87171', marginTop:6 }}>{fieldErr.email}</div>
-              )}
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute right-2 top-2 text-sm text-gray-600"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? 'Ẩn' : 'Hiện'}
+              </button>
             </div>
-
-            {/* Password */}
-            <div style={{ marginBottom:18 }}>
-              <label style={{ display:'block', fontSize:13, color:'#AAAAAA', fontWeight:600, marginBottom:7, letterSpacing:'.2px' }}>
-                Mật khẩu
-              </label>
-              <div style={{ position:'relative' }}>
-                <input
-                  type={showPw ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => { setPassword(e.target.value); clearFieldErr('password'); }}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  style={{
-                    width:'100%', background:'#242424',
-                    border:`1px solid ${fieldErr.password ? '#f87171' : '#333333'}`,
-                    borderRadius:8, padding:'12px 44px 12px 16px', color:'#FFFFFF',
-                    fontFamily:"'Be Vietnam Pro', sans-serif", fontSize:14, outline:'none',
-                    transition:'border-color .2s, box-shadow .2s',
-                    boxSizing:'border-box',
-                  }}
-                  onFocus={e => { e.target.style.borderColor='#FF6B35'; e.target.style.boxShadow='0 0 0 3px rgba(255,107,53,.1)'; }}
-                  onBlur={e => { e.target.style.borderColor = fieldErr.password ? '#f87171' : '#333333'; e.target.style.boxShadow='none'; }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw(v => !v)}
-                  style={{
-                    position:'absolute', right:0, top:0, bottom:0, width:44,
-                    background:'transparent', border:'none', cursor:'pointer',
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    color:'#AAAAAA',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.color='#FFFFFF'}
-                  onMouseLeave={e => e.currentTarget.style.color='#AAAAAA'}
-                >
-                  {showPw ? (
-                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
-                      <line x1="1" y1="1" x2="23" y2="23"/>
-                    </svg>
-                  ) : (
-                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                  )}
-                </button>
-              </div>
-              <div style={{ display:'flex', justifyContent:'flex-end', marginTop:7 }}>
-                <a href="#" style={{ fontSize:13, color:'#FF6B35', textDecoration:'none', fontWeight:600 }}>
-                  Quên mật khẩu?
-                </a>
-              </div>
-              {fieldErr.password && (
-                <div style={{ fontSize:12, color:'#f87171', marginTop:6 }}>{fieldErr.password}</div>
-              )}
-            </div>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isLoading || success}
-              style={{
-                width:'100%', height:48, background: isLoading || success ? '#e85a24' : '#FF6B35',
-                border:'none', borderRadius:8, color:'#fff',
-                fontFamily:"'Be Vietnam Pro', sans-serif", fontSize:15, fontWeight:700,
-                cursor: isLoading || success ? 'not-allowed' : 'pointer',
-                transition:'background .2s, transform .15s',
-                boxShadow:'0 4px 20px rgba(255,107,53,.3)',
-                display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-                marginBottom:24, opacity: isLoading || success ? .75 : 1,
-              }}
-              onMouseEnter={e => { if (!isLoading && !success) e.currentTarget.style.background='#e85a24'; }}
-              onMouseLeave={e => { if (!isLoading && !success) e.currentTarget.style.background='#FF6B35'; }}
-            >
-              {isLoading && (
-                <svg style={{ animation:'spin .7s linear infinite', flexShrink:0 }} width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <circle cx="9" cy="9" r="7" stroke="rgba(255,255,255,.3)" strokeWidth="2"/>
-                  <path d="M9 2a7 7 0 017 7" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-                  <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-                </svg>
-              )}
-              {isLoading ? 'Đang xử lý...' : 'Đăng nhập'}
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
-            <div style={{ flex:1, height:1, background:'#333333' }} />
-            <span style={{ fontSize:12, color:'#AAAAAA', fontWeight:500, flexShrink:0 }}>hoặc</span>
-            <div style={{ flex:1, height:1, background:'#333333' }} />
           </div>
 
-          {/* Social */}
-          <div style={{ display:'flex', gap:12, marginBottom:24 }}>
-            <SocialBtn icon={<GoogleIcon />} label="Google" />
-            <SocialBtn icon={<FacebookIcon />} label="Facebook" />
-          </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-primary text-white py-2 rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isLoading && (
+              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+              </svg>
+            )}
+            {isLoading ? 'Đang xử lý...' : 'Đăng nhập'}
+          </button>
+        </form>
 
-          {/* Note */}
-          <p style={{ fontSize:12, color:'#AAAAAA', textAlign:'center', lineHeight:1.7 }}>
-            Bằng cách đăng nhập, bạn đồng ý với{' '}
-            <a href="#" style={{ color:'#AAAAAA', textDecoration:'underline' }}>Điều khoản dịch vụ</a>
-            {' '}và{' '}
-            <a href="#" style={{ color:'#AAAAAA', textDecoration:'underline' }}>Chính sách bảo mật</a>
-            {' '}của TicketRush.
-          </p>
-        </div>
+        <p className="mt-4 text-center text-gray-600">
+          Chưa có tài khoản?{' '}
+          <Link to="/register" className="text-primary hover:underline">
+            Đăng ký ngay
+          </Link>
+        </p>
       </div>
     </div>
   );

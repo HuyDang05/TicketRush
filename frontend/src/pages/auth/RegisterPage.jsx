@@ -2,169 +2,74 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
-const MINI_EVENTS = [
-  { emoji: '🎤', title: 'Sky Tour 2026', date: '15/06/2026', bg: 'linear-gradient(135deg,#2d1000,#8b3500)' },
-  { emoji: '⚽', title: 'AFF Cup 2026',  date: '28/06/2026', bg: 'linear-gradient(135deg,#001a2d,#004d8b)' },
-  { emoji: '🎪', title: 'Sài Gòn Fest',  date: '05/07/2026', bg: 'linear-gradient(135deg,#1a001a,#6a006a)' },
-];
-
-const STATS = [
-  { num: '2M+', lbl: 'Người dùng' },
-  { num: '5K+', lbl: 'Sự kiện' },
-  { num: '63',  lbl: 'Tỉnh thành' },
-];
-
-// Compute password strength 0–4
-function calcStrength(val) {
-  let score = 0;
-  if (val.length >= 8)           score++;
-  if (/[A-Z]/.test(val))         score++;
-  if (/[0-9]/.test(val))         score++;
-  if (/[^A-Za-z0-9]/.test(val)) score++;
-  return score;
-}
-
-const STRENGTH_COLORS = ['#EF4444', '#f97316', '#eab308', '#22c55e'];
-const STRENGTH_LABELS = ['Rất yếu', 'Yếu', 'Trung bình', 'Mạnh'];
-
-const inputBase = {
-  width: '100%',
-  background: '#242424',
-  border: '1px solid #333333',
-  borderRadius: 8,
-  padding: '11px 16px',
-  color: '#FFFFFF',
-  fontFamily: "'Be Vietnam Pro', sans-serif",
-  fontSize: 14,
-  outline: 'none',
-  transition: 'border-color .2s, box-shadow .2s',
-  boxSizing: 'border-box',
-};
-
-function Field({ label, error, children }) {
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <label style={{ display: 'block', fontSize: 13, color: '#AAAAAA', fontWeight: 600, marginBottom: 6, letterSpacing: '.2px' }}>
-        {label}
-      </label>
-      {children}
-      {error && (
-        <div style={{ fontSize: 12, color: '#EF4444', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
-          </svg>
-          {error}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TextInput({ value, onChange, hasError, withIcon, ...props }) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <input
-      value={value}
-      onChange={onChange}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-      style={{
-        ...inputBase,
-        paddingRight: withIcon ? 44 : 16,
-        borderColor: hasError ? '#EF4444' : focused ? '#FF6B35' : '#333333',
-        boxShadow: hasError
-          ? '0 0 0 3px rgba(239,68,68,.08)'
-          : focused
-          ? '0 0 0 3px rgba(255,107,53,.1)'
-          : 'none',
-      }}
-      {...props}
-    />
-  );
-}
-
-function EyeBtn({ show, onToggle }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      style={{
-        position: 'absolute', right: 0, top: 0, bottom: 0, width: 44,
-        background: 'transparent', border: 'none', cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#AAAAAA',
-      }}
-      onMouseEnter={e => e.currentTarget.style.color = '#FFFFFF'}
-      onMouseLeave={e => e.currentTarget.style.color = '#AAAAAA'}
-    >
-      {show ? (
-        <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
-          <line x1="1" y1="1" x2="23" y2="23"/>
-        </svg>
-      ) : (
-        <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-      )}
-    </button>
-  );
-}
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { register, isLoading, error } = useAuth();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    fullName: '',
+    dob: '',
+    gender: 'MALE',
+  });
 
-  const [fullName,  setFullName]  = useState('');
-  const [email,     setEmail]     = useState('');
-  const [password,  setPassword]  = useState('');
-  const [confirm,   setConfirm]   = useState('');
-  const [agreed,    setAgreed]    = useState(false);
-  const [showPw,    setShowPw]    = useState(false);
-  const [showCfm,   setShowCfm]   = useState(false);
-  const [success,   setSuccess]   = useState(false);
-  const [toast,     setToast]     = useState('');
-  const [errs, setErrs] = useState({ fullName: '', email: '', password: '', confirm: '' });
+  const [errors, setErrors] = useState({});
 
-  const strength = password.length > 0 ? calcStrength(password) : 0;
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
 
-  function showToast(msg) {
-    setToast(msg);
-    setTimeout(() => setToast(''), 2400);
-  }
+    // clear field error on change
+    setErrors((prev) => ({ ...prev, [name]: '' }));
+  };
 
-  function clearErr(field) {
-    setErrs(prev => ({ ...prev, [field]: '' }));
-  }
+  const validate = () => {
+    const next = {};
 
-  async function handleSubmit(e) {
+    if (!formData.fullName.trim()) next.fullName = 'Họ tên không được để trống';
+    if (!emailRegex.test(formData.email)) next.email = 'Email không hợp lệ';
+    if (!formData.password || formData.password.length < 8) next.password = 'Mật khẩu cần ít nhất 8 ký tự';
+    if (formData.password !== formData.confirmPassword) next.confirmPassword = 'Xác nhận mật khẩu không khớp';
+
+    if (!formData.dob) {
+      next.dob = 'Vui lòng chọn ngày sinh';
+    } else {
+      const dobDate = new Date(formData.dob);
+      const today = new Date();
+      if (isNaN(dobDate.getTime())) next.dob = 'Ngày sinh không hợp lệ';
+      else if (dobDate > today) next.dob = 'Ngày sinh không được ở tương lai';
+      else {
+        const ageDifMs = today - dobDate;
+        const ageDate = new Date(ageDifMs);
+        const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+        if (age < 13) next.dob = 'Phải từ 13 tuổi trở lên';
+      }
+    }
+
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const newErrs = { fullName: '', email: '', password: '', confirm: '' };
-
-    if (!fullName.trim())
-      newErrs.fullName = 'Vui lòng nhập họ và tên';
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-      newErrs.email = 'Vui lòng nhập email hợp lệ';
-    if (password.length < 8)
-      newErrs.password = 'Mật khẩu phải có ít nhất 8 ký tự';
-    if (!confirm || password !== confirm)
-      newErrs.confirm = 'Mật khẩu không khớp';
-
-    if (Object.values(newErrs).some(Boolean)) {
-      setErrs(newErrs);
-      return;
-    }
-    if (!agreed) {
-      showToast('Vui lòng đồng ý với điều khoản để tiếp tục');
-      return;
-    }
+    if (!validate()) return;
 
     try {
-      await register(email, password, fullName.trim());
-      setSuccess(true);
-      setTimeout(() => navigate('/'), 1500);
-    } catch {
-      // error shown via useAuth error state
+      await register({
+        email: formData.email,
+        password: formData.password,
+        fullName: formData.fullName,
+        dob: formData.dob,
+        gender: formData.gender,
+      });
+      // on success, user is auto-logged in by auth hook
+      navigate('/');
+    } catch (err) {
+      console.error('Registration failed:', err);
+      // server error shown by auth hook in `error`
     }
   }
 
@@ -207,29 +112,31 @@ export default function RegisterPage() {
             <span style={{ fontSize: 32, color: '#FF6B35', filter: 'drop-shadow(0 0 12px rgba(255,107,53,.5))' }}>⚡</span>
             <span style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-.5px' }}>TicketRush</span>
           </div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.25, marginBottom: 12 }}>
-            Tham gia cộng đồng<br />TicketRush
-          </h1>
-          <p style={{ fontSize: 15, color: '#AAAAAA', lineHeight: 1.6, marginBottom: 40 }}>
-            Hàng triệu khán giả đã tin tưởng<br />chúng tôi đặt vé mỗi ngày
-          </p>
+        )}
 
-          {/* Stats row */}
-          <div style={{ display: 'flex', border: '1px solid rgba(255,255,255,.1)', borderRadius: 12, overflow: 'hidden', marginBottom: 20 }}>
-            {STATS.map((s, i) => (
-              <div key={i} style={{
-                flex: 1, padding: '16px 8px', textAlign: 'center',
-                borderRight: i < STATS.length - 1 ? '1px solid rgba(255,255,255,.08)' : 'none',
-              }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#FF6B35', lineHeight: 1 }}>{s.num}</div>
-                <div style={{ fontSize: 10, color: '#AAAAAA', marginTop: 4, fontWeight: 500 }}>{s.lbl}</div>
-              </div>
-            ))}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2">Họ tên</label>
+            <input
+              type="text"
+              name="fullName"
+              value={formData.fullName}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            {errors.fullName && <p className="text-red-600 text-sm mt-1">{errors.fullName}</p>}
           </div>
 
-          {/* Mini event cards */}
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-            {MINI_EVENTS.map((ev, i) => <MiniCard key={i} ev={ev} />)}
+          <div>
+            <label className="block text-sm font-semibold mb-2">Email</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
           </div>
         </div>
       </div>
@@ -344,124 +251,77 @@ export default function RegisterPage() {
               </div>
             </Field>
 
-            {/* DOB + Gender */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ display: 'block', fontSize: 13, color: '#AAAAAA', fontWeight: 600, marginBottom: 6 }}>
-                  Ngày sinh
-                </label>
-                <DateInput />
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ display: 'block', fontSize: 13, color: '#AAAAAA', fontWeight: 600, marginBottom: 6 }}>
-                  Giới tính
-                </label>
-                <GenderSelect />
-              </div>
-            </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2">Mật khẩu</label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password}</p>}
+          </div>
 
-            {/* Checkbox */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 18, marginTop: 4 }}>
-              <Checkbox checked={agreed} onChange={setAgreed} />
-              <label
-                onClick={() => setAgreed(v => !v)}
-                style={{ fontSize: 13, color: '#AAAAAA', lineHeight: 1.5, cursor: 'pointer', userSelect: 'none' }}
-              >
-                Tôi đồng ý với{' '}
-                <a href="#" onClick={e => e.stopPropagation()} style={{ color: '#FF6B35', textDecoration: 'none' }}>Điều khoản dịch vụ</a>
-                {' '}và{' '}
-                <a href="#" onClick={e => e.stopPropagation()} style={{ color: '#FF6B35', textDecoration: 'none' }}>Chính sách bảo mật</a>
-                {' '}của TicketRush
-              </label>
-            </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2">Xác nhận mật khẩu</label>
+            <input
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            {errors.confirmPassword && <p className="text-red-600 text-sm mt-1">{errors.confirmPassword}</p>}
+          </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isLoading || success}
-              style={{
-                width: '100%', height: 48,
-                background: isLoading || success ? '#444' : '#FF6B35',
-                border: 'none', borderRadius: 8, color: '#fff',
-                fontFamily: "'Be Vietnam Pro', sans-serif", fontSize: 15, fontWeight: 700,
-                cursor: isLoading || success ? 'not-allowed' : 'pointer',
-                transition: 'background .2s, transform .15s',
-                boxShadow: isLoading || success ? 'none' : '0 4px 20px rgba(255,107,53,.3)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                marginBottom: 20,
-              }}
-              onMouseEnter={e => { if (!isLoading && !success) e.currentTarget.style.background = '#e85a24'; }}
-              onMouseLeave={e => { if (!isLoading && !success) e.currentTarget.style.background = '#FF6B35'; }}
+          <div>
+            <label className="block text-sm font-semibold mb-2">Ngày sinh</label>
+            <input
+              type="date"
+              name="dob"
+              value={formData.dob}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            {errors.dob && <p className="text-red-600 text-sm mt-1">{errors.dob}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-2">Giới tính</label>
+            <select
+              name="gender"
+              value={formData.gender}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              {isLoading && (
-                <svg style={{ animation: 'spin .7s linear infinite', flexShrink: 0 }} width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <circle cx="9" cy="9" r="7" stroke="rgba(255,255,255,.3)" strokeWidth="2"/>
-                  <path d="M9 2a7 7 0 017 7" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-                  <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-                </svg>
-              )}
-              {isLoading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <div style={{ flex: 1, height: 1, background: '#333333' }} />
-            <span style={{ fontSize: 12, color: '#AAAAAA', fontWeight: 500, flexShrink: 0 }}>hoặc đăng ký bằng</span>
-            <div style={{ flex: 1, height: 1, background: '#333333' }} />
+              <option value="MALE">Nam</option>
+              <option value="FEMALE">Nữ</option>
+              <option value="OTHER">Khác</option>
+            </select>
           </div>
 
-          {/* Social */}
-          <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-            <SocialBtn icon={<GoogleIcon />} label="Google" />
-            <SocialBtn icon={<FacebookIcon />} label="Facebook" />
-          </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-primary text-white py-2 rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isLoading && (
+              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+              </svg>
+            )}
+            {isLoading ? 'Đang xử lý...' : 'Đăng ký'}
+          </button>
+        </form>
 
-          <p style={{ fontSize: 12, color: '#AAAAAA', textAlign: 'center', lineHeight: 1.7 }}>
-            Bằng cách tạo tài khoản, bạn xác nhận rằng bạn đã đọc và đồng ý với{' '}
-            <a href="#" style={{ color: '#AAAAAA', textDecoration: 'underline' }}>Điều khoản</a> của chúng tôi.
-          </p>
-        </div>
-      </div>
-
-      {/* Toast */}
-      {toast && (
-        <div style={{
-          position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
-          background: '#1e1e1e', border: '1px solid #FF6B35', borderRadius: 8,
-          padding: '10px 20px', color: '#fff', fontSize: 13, fontWeight: 600,
-          zIndex: 9999, whiteSpace: 'nowrap', pointerEvents: 'none',
-        }}>
-          {toast}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function MiniCard({ ev }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        width: 100, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
-        border: `1px solid ${hovered ? '#FF6B35' : 'rgba(255,255,255,.08)'}`,
-        transform: hovered ? 'translateY(-4px)' : 'none',
-        transition: 'transform .2s, border-color .2s', cursor: 'pointer',
-      }}
-    >
-      <div style={{ height: 58, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, background: ev.bg }}>
-        {ev.emoji}
-      </div>
-      <div style={{ background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(6px)', padding: '5px 7px' }}>
-        <div style={{ fontSize: 9, fontWeight: 700, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {ev.title}
-        </div>
-        <div style={{ fontSize: 8, color: '#FF6B35', marginTop: 2, fontWeight: 600 }}>{ev.date}</div>
+        <p className="mt-4 text-center text-gray-600">
+          Đã có tài khoản?{' '}
+          <Link to="/login" className="text-primary hover:underline">
+            Đăng nhập
+          </Link>
+        </p>
       </div>
     </div>
   );

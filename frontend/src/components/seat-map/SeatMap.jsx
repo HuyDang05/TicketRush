@@ -1,7 +1,26 @@
+import { useNavigate } from 'react-router-dom';
 import SeatGrid from './SeatGrid';
 import ZoneLegend from './ZoneLegend';
+import { useCountdown } from '../../hooks/useCountdown';
+import { toast } from '../../utils/toast';
 
-export default function SeatMap({ zones, selectedSeats, onSelectSeat }) {
+export default function SeatMap({ zones, selectedSeats, onSelectSeat, onRemoveSeat }) {
+  const navigate = useNavigate();
+
+  function SeatCountdown({ expiresAt, onExpire }) {
+    const { minutes, seconds, isExpired } = useCountdown(expiresAt, onExpire);
+    return (
+      <span className="text-sm text-gray-600">
+        {isExpired ? '00:00' : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`}
+      </span>
+    );
+  }
+
+  const total = selectedSeats.reduce((sum, seat) => {
+    const price = seat.zone?.price || seat.price || 0;
+    return sum + Number(price);
+  }, 0);
+
   return (
     <div>
       {/* Stage */}
@@ -26,28 +45,60 @@ export default function SeatMap({ zones, selectedSeats, onSelectSeat }) {
         </div>
       </div>
 
-      {/* Zones */}
-      {zones.map((zone) => (
-        <div key={zone.id} style={{ marginBottom: 16, background: '#1A1A1A', borderRadius: 10, overflow: 'hidden', border: '1px solid #333333' }}>
-          <div style={{
-            background: '#242424',
-            padding: '10px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderBottom: '1px solid #333333',
-          }}>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>{zone.name}</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#FF6B35' }}>
-              {zone.price?.toLocaleString('vi-VN')}đ / ghế
-            </span>
-          </div>
-          <SeatGrid
-            seats={zone.seats || []}
-            selectedSeats={selectedSeats}
-            onSelectSeat={onSelectSeat}
-            zonePrice={zone.price}
-          />
+      <div>
+        <ZoneLegend />
+        <div className="mt-4 bg-white p-4 rounded-lg border border-gray-200">
+          <h3 className="font-bold mb-3">Ghế đã chọn</h3>
+          {selectedSeats.length > 0 ? (
+            <div className="space-y-2">
+              {selectedSeats.map((seat) => (
+                <div
+                  key={seat.id}
+                  className="flex justify-between items-center text-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <button
+                      className="text-xs text-gray-400 hover:text-gray-600"
+                      onClick={() => onRemoveSeat && onRemoveSeat(seat.id)}
+                      aria-label={`Bỏ chọn ${seat.label}`}
+                    >
+                      ✕
+                    </button>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{seat.label}</span>
+                      <span className="text-xs text-gray-500">{seat.zone?.name || seat.zone?.id}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <span className="font-semibold">{(seat.zone?.price || seat.price || 0).toLocaleString()}đ</span>
+                    <SeatCountdown
+                      expiresAt={seat.expiresAt || seat.lockExpiresAt || seat.lockedUntil}
+                      onExpire={() => {
+                        toast('Phiên giữ chỗ đã hết hạn', 'warning');
+                        onRemoveSeat && onRemoveSeat(seat.id);
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+
+              <div className="border-t pt-2 font-bold">
+                Tổng: {total.toLocaleString()}đ
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={() => navigate('/checkout')}
+                  className="w-full bg-primary text-white py-2 rounded"
+                >
+                  Tiến hành thanh toán
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm">Chưa chọn ghế</p>
+          )}
         </div>
       ))}
 

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { MapPin, Calendar } from 'lucide-react';
+import { formatDate, formatPrice } from '../../lib/utils';
 
 const CARD_GRADIENTS = [
   'linear-gradient(135deg,#2d1200,#8b3a00)',
@@ -34,102 +36,42 @@ export default function EventCard({ event }) {
     : null;
 
   return (
-    <Link
-      to={`/event/${event.id}`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background: 'var(--card)',
-        border: `1px solid ${hovered ? 'var(--accent)' : 'var(--border)'}`,
-        borderRadius: 12,
-        overflow: 'hidden',
-        cursor: 'pointer',
-        transition: 'border-color .2s, filter .2s, transform .2s',
-        textDecoration: 'none',
-        color: 'inherit',
-        display: 'block',
-        filter: hovered ? 'brightness(1.07)' : 'none',
-        transform: hovered ? 'translateY(-3px)' : 'none',
-      }}
-    >
-      <div style={{ position: 'relative', aspectRatio: '16/9', overflow: 'hidden' }}>
-        {event.imageUrl ? (
+    <Link to={`/event/${event.id}`} className="block">
+      <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 h-full hover:-translate-y-1 cursor-pointer">
+        {/* Thumbnail */}
+        <div className="relative overflow-hidden bg-gray-200 h-48">
           <img
-            src={event.imageUrl}
+            src={event.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'}
             alt={event.title}
-            style={{
-              width: '100%', height: '100%', objectFit: 'cover',
-              transform: hovered ? 'scale(1.04)' : 'scale(1)',
-              transition: 'transform .3s',
-            }}
+            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           />
-        ) : (
-          <div style={{
-            width: '100%', height: '100%', background: gradient,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 36,
-            transform: hovered ? 'scale(1.04)' : 'scale(1)',
-            transition: 'transform .3s',
-          }}>{emoji}</div>
-        )}
-        {dateStr && (
-          <div style={{
-            position: 'absolute', top: 10, left: 10,
-            background: 'var(--accent)', color: '#fff',
-            fontSize: 11, fontWeight: 700,
-            padding: '3px 8px', borderRadius: 5, lineHeight: 1.4,
-          }}>{dateStr}</div>
-        )}
-        {event.category && (
-          <div style={{
-            position: 'absolute', top: 10, right: 10,
-            background: 'rgba(0,0,0,.65)', backdropFilter: 'blur(4px)',
-            color: '#fff', fontSize: 11, fontWeight: 500,
-            padding: '3px 8px', borderRadius: 5,
-          }}>{event.category}</div>
-        )}
-      </div>
+        </div>
 
-      <div style={{ padding: '14px 16px 16px' }}>
-        <div style={{
-          fontSize: 15, fontWeight: 700, lineHeight: 1.4, marginBottom: 8,
-          display: '-webkit-box', WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical', overflow: 'hidden',
-        }}>{event.title}</div>
+        {/* Content */}
+        <div className="p-4 flex flex-col h-full">
+          {/* Event Title */}
+          <h3 className="font-bold text-lg mb-2 line-clamp-2 text-gray-900">
+            {event.title}
+          </h3>
 
-        {event.venue && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: 'var(--muted)', marginBottom: 5 }}>
-            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-              <circle cx="12" cy="9" r="2.5"/>
-            </svg>
-            {event.venue}
+          {/* Venue */}
+          <div className="flex items-start gap-2 mb-3 text-gray-600">
+            <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <p className="text-sm line-clamp-2">{event.venue}</p>
           </div>
-        )}
 
-        {event.date && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: 'var(--muted)', marginBottom: 5 }}>
-            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
-            </svg>
-            {new Date(event.date).toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+          {/* Date */}
+          <div className="flex items-center gap-2 mb-4 text-gray-600">
+            <Calendar className="w-4 h-4 flex-shrink-0" />
+            <p className="text-sm font-medium">{formatDate(event.date)}</p>
           </div>
-        )}
 
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)',
-        }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>
-            {minPrice != null ? `Từ ${minPrice.toLocaleString('vi-VN')}đ` : 'Liên hệ'}
-          </span>
-          <span style={{
-            border: '1px solid var(--accent)', color: 'var(--accent)',
-            background: hovered ? 'var(--accent)' : 'transparent',
-            ...(hovered ? { color: '#fff' } : {}),
-            borderRadius: 6, fontSize: 12, fontWeight: 600, padding: '5px 12px',
-            transition: 'background .2s, color .2s',
-          }}>Đặt vé →</span>
+          {/* Price - always at bottom */}
+          <div className="mt-auto pt-4 border-t border-gray-200">
+            <p className="text-lg font-bold text-primary">
+              Từ {formatPrice(event.minPrice)}
+            </p>
+          </div>
         </div>
       </div>
     </Link>
