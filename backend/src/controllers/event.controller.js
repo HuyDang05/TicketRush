@@ -302,6 +302,30 @@ const endEvent = async (req, res) => {
   }
 };
 
+const deleteEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const event = await prisma.event.findUnique({ where: { id } });
+    if (!event) {
+      return res.status(404).json({ message: 'Sự kiện không tồn tại' });
+    }
+
+    // Delete all related data via cascade or explicit order
+    await prisma.$transaction([
+      prisma.booking.deleteMany({ where: { seat: { zone: { eventId: id } } } }),
+      prisma.seat.deleteMany({ where: { zone: { eventId: id } } }),
+      prisma.zone.deleteMany({ where: { eventId: id } }),
+      prisma.event.delete({ where: { id } }),
+    ]);
+
+    return res.status(200).json({ message: 'Đã xoá sự kiện thành công' });
+  } catch (error) {
+    console.error('[Event][deleteEvent] Error:', error);
+    return res.status(500).json({ message: 'Đã có lỗi xảy ra' });
+  }
+};
+
 module.exports = {
   getEvents,
   getEventById,
@@ -309,4 +333,5 @@ module.exports = {
   updateEvent,
   publishEvent,
   endEvent,
+  deleteEvent,
 };
