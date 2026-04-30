@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const QRCode = require('qrcode');
 const { seatReleaseQueue } = require('../jobs/queue');
 const { emitSeatEvent } = require('../config/socket');
+const { sendTicketEmail } = require('../utils/mailer');
 
 const prisma = new PrismaClient();
 
@@ -13,17 +14,20 @@ async function checkout(userId, bookingIds) {
     throw err;
   }
 
-  // Fetch all bookings with seat/zone/event info
-  const bookings = await prisma.booking.findMany({
-    where: { id: { in: bookingIds } },
-    include: {
-      seat: {
-        include: {
-          zone: { include: { event: true } },
+  // Fetch user email + all bookings with seat/zone/event info
+  const [user, bookings] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { email: true } }),
+    prisma.booking.findMany({
+      where: { id: { in: bookingIds } },
+      include: {
+        seat: {
+          include: {
+            zone: { include: { event: true } },
+          },
         },
       },
-    },
-  });
+    }),
+  ]);
 
   // Validate all requested IDs exist
   if (bookings.length !== bookingIds.length) {
@@ -129,17 +133,28 @@ async function checkout(userId, bookingIds) {
     }
   }
 
-  return updatedBookings.map((b) => ({
+  const result = updatedBookings.map((b) => ({
     bookingId: b.id,
     seatId: b.seatId,
     seatLabel: b.seat.label,
     zoneName: b.seat.zone.name,
     eventTitle: b.seat.zone.event.title,
+    eventVenue: b.seat.zone.event.venue,
+    eventDate: b.seat.zone.event.date,
     totalPrice: Number(b.totalPrice),
     status: b.status,
     paidAt: b.paidAt,
     qrCode: b.qrCode,
   }));
+
+  // Send confirmation email (fire-and-forget — không block response)
+  if (user?.email) {
+    sendTicketEmail(user.email, result).catch((err) =>
+      console.error('[Checkout] Failed to send ticket email:', err.message)
+    );
+  }
+
+  return result;
 }
 
 module.exports = { checkout };
