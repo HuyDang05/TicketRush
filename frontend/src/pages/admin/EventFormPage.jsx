@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import eventService from '../../services/event.service';
 import AdminLayout from '../../components/shared/AdminLayout';
+import './admin.css';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const ZONE_COLORS = ['#c8860a', '#3d6828', '#1a4a7a', '#7a1a3a', '#1a5a5a', '#5a1a7a'];
@@ -30,14 +31,7 @@ const LABEL = {
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2600); return () => clearTimeout(t); }, [onDone]);
-  return (
-    <div style={{
-      position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
-      background: '#1e1e1e', border: '1px solid #FF6B35', borderRadius: 8,
-      padding: '11px 22px', color: '#fff', fontSize: 13, fontWeight: 600,
-      zIndex: 9999, whiteSpace: 'nowrap', boxShadow: '0 4px 20px rgba(0,0,0,.5)',
-    }}>{msg}</div>
-  );
+  return <div className="admin-toast">{msg}</div>;
 }
 
 // ─── Field ────────────────────────────────────────────────────────────────────
@@ -312,52 +306,21 @@ export default function EventFormPage() {
   return (
     <AdminLayout>
       {/* ── Top Bar ── */}
-      <div style={{ background: '#111111', borderBottom: '1px solid #333333', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <div style={{ fontSize: 13, color: '#AAAAAA', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Link to="/admin/dashboard" style={{ color: '#AAAAAA', textDecoration: 'none' }}
-            onMouseEnter={e => e.target.style.color = '#fff'}
-            onMouseLeave={e => e.target.style.color = '#AAAAAA'}>Admin</Link>
-          <span style={{ opacity: 0.4 }}>/</span>
-          <Link to="/admin/events" style={{ color: '#AAAAAA', textDecoration: 'none' }}
-            onMouseEnter={e => e.target.style.color = '#fff'}
-            onMouseLeave={e => e.target.style.color = '#AAAAAA'}>Sự kiện</Link>
-          <span style={{ opacity: 0.4 }}>/</span>
-          <span style={{ color: '#fff', fontWeight: 600 }}>{isEdit ? 'Chỉnh sửa sự kiện' : 'Tạo sự kiện mới'}</span>
+      <div className="event-form-topbar">
+        <div className="admin-breadcrumb">
+          <Link to="/admin/dashboard">Admin</Link>
+          <span className="admin-breadcrumb__sep">/</span>
+          <Link to="/admin/events">Sự kiện</Link>
+          <span className="admin-breadcrumb__sep">/</span>
+          <span className="admin-breadcrumb__current">{isEdit ? 'Chỉnh sửa sự kiện' : 'Tạo sự kiện mới'}</span>
         </div>
 
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={() => navigate('/admin/events')}
-            style={{ padding: '9px 16px', border: '1px solid #333333', borderRadius: 8, background: 'transparent', color: '#AAAAAA', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all .2s' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.2)'; e.currentTarget.style.color = '#fff'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#333333'; e.currentTarget.style.color = '#AAAAAA'; }}
-          >Hủy</button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              padding: '9px 18px',
-              border: '1px solid #FF6B35',
-              borderRadius: 8,
-              background: saving ? '#c45a2a' : '#FF6B35',
-              color: '#fff',
-              fontFamily: 'inherit',
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: saving ? 'not-allowed' : 'pointer',
-              transition: 'background .2s, transform .15s',
-              boxShadow: '0 2px 12px rgba(255,107,53,.3)',
-            }}
-          >
+        <div className="event-form-topbar__actions">
+          <button className="btn-ghost" onClick={() => navigate('/admin/events')}>Hủy</button>
+          <button className="btn-primary" onClick={handleSave} disabled={saving}>
             {saving ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi' : 'Tạo sự kiện'}
           </button>
-          <button
-            onClick={() => handleSave('PUBLISHED')}
-            disabled={saving}
-            style={{ padding: '9px 18px', border: '1px solid #FF6B35', borderRadius: 8, background: saving ? '#c45a2a' : '#FF6B35', color: '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', transition: 'background .2s, transform .15s', boxShadow: '0 2px 12px rgba(255,107,53,.3)', display: 'flex', alignItems: 'center', gap: 6 }}
-            onMouseEnter={e => { if (!saving) { e.currentTarget.style.background = '#e85a24'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
-            onMouseLeave={e => { if (!saving) { e.currentTarget.style.background = '#FF6B35'; e.currentTarget.style.transform = 'none'; } }}
-          >
+          <button className="btn-primary" onClick={() => handleSave('PUBLISHED')} disabled={saving}>
             <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             Xuất bản
           </button>

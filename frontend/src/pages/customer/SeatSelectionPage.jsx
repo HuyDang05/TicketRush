@@ -3,6 +3,7 @@ import { useParams, useLocation, useNavigate, Link } from 'react-router-dom';
 import eventService from '../../services/event.service';
 import bookingService from '../../services/booking.service';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
+import './seat-selection.css';
 
 // ── Arc geometry constants ────────────────────────────────────────────────────
 const ARC_SPAN_DEG = 138;
@@ -11,15 +12,14 @@ const ROW_SPACING  = 44;
 const SEAT_R       = 11;
 const LOCK_SECONDS = 10 * 60;
 
-// Static zone/row config matching backend schema (VIP 2 rows, Khu A 2 rows, Khu B 3 rows)
 const STATIC_ROWS = [
-  { label:'A', zone:'vip', seats:9,  color:'#8a5c00', hov:'#c8860a' },
-  { label:'B', zone:'vip', seats:11, color:'#8a5c00', hov:'#c8860a' },
-  { label:'C', zone:'a',   seats:13, color:'#2D4A1E', hov:'#3d6828' },
-  { label:'D', zone:'a',   seats:15, color:'#2D4A1E', hov:'#3d6828' },
-  { label:'E', zone:'b',   seats:17, color:'#0f2d4a', hov:'#1a4a7a' },
-  { label:'F', zone:'b',   seats:19, color:'#0f2d4a', hov:'#1a4a7a' },
-  { label:'G', zone:'b',   seats:21, color:'#0f2d4a', hov:'#1a4a7a' },
+  { label:'A', zone:'vip', rowInZone:0, seats:9,  color:'#8a5c00', hov:'#c8860a' },
+  { label:'B', zone:'vip', rowInZone:1, seats:11, color:'#8a5c00', hov:'#c8860a' },
+  { label:'C', zone:'a',   rowInZone:0, seats:13, color:'#2D4A1E', hov:'#3d6828' },
+  { label:'D', zone:'a',   rowInZone:1, seats:15, color:'#2D4A1E', hov:'#3d6828' },
+  { label:'E', zone:'b',   rowInZone:0, seats:17, color:'#0f2d4a', hov:'#1a4a7a' },
+  { label:'F', zone:'b',   rowInZone:1, seats:19, color:'#0f2d4a', hov:'#1a4a7a' },
+  { label:'G', zone:'b',   rowInZone:2, seats:21, color:'#0f2d4a', hov:'#1a4a7a' },
 ];
 
 const ZONE_META = {
@@ -30,7 +30,7 @@ const ZONE_META = {
 
 function fmt(n) { return n.toLocaleString('vi-VN') + 'đ'; }
 
-function Countdown({ seconds, id1, id2 }) {
+function Countdown({ seconds }) {
   const [secs, setSecs] = useState(seconds);
   useEffect(() => {
     if (secs <= 0) return;
@@ -39,13 +39,7 @@ function Countdown({ seconds, id1, id2 }) {
   }, [secs]);
   const mm = String(Math.floor(secs / 60)).padStart(2, '0');
   const ss = String(secs % 60).padStart(2, '0');
-  const display = `${mm}:${ss}`;
-  return (
-    <>
-      <span id={id1}>{display}</span>
-      {id2 && <span id={id2} style={{ display:'none' }}>{display}</span>}
-    </>
-  );
+  return <span>{mm}:{ss}</span>;
 }
 
 export default function SeatSelectionPage() {
@@ -53,20 +47,16 @@ export default function SeatSelectionPage() {
   const location        = useLocation();
   const navigate        = useNavigate();
 
-  const { zoneId: preselectedZoneId } = location.state || {};
+  void location.state;
 
-  const [event,     setEvent]     = useState(null);
-  const [zones,     setZones]     = useState([]);
-  const [seats,     setSeats]     = useState({}); // zoneId → seat[]
-  const [loading,   setLoading]   = useState(true);
-  const [booking,   setBooking]   = useState(false);
-  const [toast,     setToast]     = useState('');
-  const [selected,  setSelected]  = useState({}); // key "LABEL-col" → { rowIdx, col, seatId, zoneKey, price }
-  const [filterActive, setFilter] = useState({ vip:true, a:true, b:true });
-  const [timerSecs] = useState(LOCK_SECONDS);
-
-  // ── Build rows from API data ─────────────────────────────────────────────
-  const [rows, setRows] = useState(STATIC_ROWS.map(r => ({ ...r, price: 0, sold:[], locked:[] })));
+  const [event,        setEvent]     = useState(null);
+  const [zones,        setZones]     = useState([]);
+  const [loading,      setLoading]   = useState(true);
+  const [booking,      setBooking]   = useState(false);
+  const [toastMsg,     setToastMsg]  = useState('');
+  const [selected,     setSelected]  = useState({});
+  const [filterActive, setFilter]    = useState({ vip:true, a:true, b:true });
+  const [rows,         setRows]      = useState(STATIC_ROWS.map(r => ({ ...r, price:0, zoneId: null, soldSet: new Set(), lockedSet: new Set(), seatByRowCol: {} })));
 
   const canvasRef  = useRef(null);
   const wrapRef    = useRef(null);
@@ -78,49 +68,39 @@ export default function SeatSelectionPage() {
   useEffect(() => {
     if (!eventId) return;
     setLoading(true);
-    Promise.all([
-      eventService.getEventById(eventId),
-      eventService.getEventZones(eventId),
-    ])
-      .then(async ([evRes, zoneRes]) => {
-        setEvent(evRes.data);
-        const fetchedZones = zoneRes.data || [];
+    eventService.getEventById(eventId)
+      .then(evRes => {
+        const evData = evRes.data?.event ?? evRes.data;
+        setEvent(evData);
+        const fetchedZones = evData?.zones || [];
         setZones(fetchedZones);
 
-        // Fetch seats per zone
-        const seatMap = {};
-        await Promise.all(
-          fetchedZones.map(z =>
-            eventService.getZoneSeats(z.id)
-              .then(r => { seatMap[z.id] = r.data || []; })
-              .catch(() => { seatMap[z.id] = []; })
-          )
-        );
-        setSeats(seatMap);
-
-        // Map API zones to rows: sort by price desc (VIP first)
         const sorted = [...fetchedZones].sort((a, b) => b.price - a.price);
         if (sorted.length > 0) {
           const newRows = STATIC_ROWS.map((staticRow, ri) => {
             const zoneKeys = ['vip','vip','a','a','b','b','b'];
             const zKey = zoneKeys[ri];
-            // find matching zone by index within its group
             const samePriceZones = sorted.filter(z => {
-              const relPrice = sorted[0].price;
-              if (zKey === 'vip') return z.price === relPrice;
+              if (zKey === 'vip') return z.price === sorted[0].price;
               if (zKey === 'a')   return z.price < sorted[0].price && z.price > sorted[sorted.length-1].price;
               return z.price === sorted[sorted.length - 1].price;
             });
             const zone = samePriceZones[0] || sorted[Math.min(ri, sorted.length - 1)];
-            const zoneSeatList = seatMap[zone?.id] || [];
-            const sold   = zoneSeatList.filter(s => s.status === 'SOLD').map(s => s.label);
-            const locked = zoneSeatList.filter(s => s.status === 'LOCKED').map(s => s.label);
+            const zoneSeatList = zone?.seats || [];
+            // key = "rowInZone-col(0-based)" → seat UUID
+            const seatByRowCol = Object.fromEntries(
+              zoneSeatList.map(s => [`${s.row}-${s.col}`, s.id])
+            );
+            // sold/locked dùng cùng key để canvas kiểm tra
+            const soldSet   = new Set(zoneSeatList.filter(s => s.status === 'SOLD').map(s => `${s.row}-${s.col}`));
+            const lockedSet = new Set(zoneSeatList.filter(s => s.status === 'LOCKED').map(s => `${s.row}-${s.col}`));
             return {
               ...staticRow,
-              price: zone?.price ?? staticRow.price,
-              zoneId: zone?.id,
-              sold,
-              locked,
+              price:        zone?.price ?? staticRow.price,
+              zoneId:       zone?.id,
+              soldSet,
+              lockedSet,
+              seatByRowCol,
             };
           });
           setRows(newRows);
@@ -212,10 +192,10 @@ export default function SeatSelectionPage() {
         const ang  = -halfRad + t * ARC_SPAN_DEG * Math.PI / 180;
         const sx   = cx + r * Math.sin(ang);
         const sy   = cyOff + r * Math.cos(ang);
-        const sid  = `${row.label}${si + 1}`;
+        const rcKey = `${row.rowInZone}-${si}`;
         const key  = `${row.label}-${si + 1}`;
-        const isSold   = row.sold?.includes(sid);
-        const isLocked = row.locked?.includes(sid);
+        const isSold   = row.soldSet?.has(rcKey);
+        const isLocked = row.lockedSet?.has(rcKey);
         const isSel    = !!selected[key];
 
         let fillColor;
@@ -239,7 +219,7 @@ export default function SeatSelectionPage() {
         }
 
         const state = isSel ? 'selected' : isSold ? 'sold' : isLocked ? 'locked' : 'avail';
-        seatHitRef.current.push({ cx: sx, cy: sy, key, rowIdx: ri, col: si + 1, seatId: sid, state, dimmed });
+        seatHitRef.current.push({ cx: sx, cy: sy, key, rowIdx: ri, col: si + 1, state, dimmed });
       }
     });
 
@@ -249,8 +229,8 @@ export default function SeatSelectionPage() {
       { zone:'a',   rowIndices:[2,3], text:'KHU A' },
       { zone:'b',   rowIndices:[4,6], text:'KHU B' },
     ].forEach(({ zone, rowIndices, text }) => {
-      const r1  = INNER_R + rowIndices[0] * ROW_SPACING;
-      const r2  = INNER_R + rowIndices[1] * ROW_SPACING;
+      const r1   = INNER_R + rowIndices[0] * ROW_SPACING;
+      const r2   = INNER_R + rowIndices[1] * ROW_SPACING;
       const midR = (r1 + r2) / 2;
       const ang  = halfRad + 0.1;
       const tx   = cx + midR * Math.sin(ang) + 6;
@@ -320,51 +300,48 @@ export default function SeatSelectionPage() {
     if (s.state === 'selected') {
       setSelected(prev => { const next = { ...prev }; delete next[s.key]; return next; });
     } else if (s.state === 'avail') {
-      if (Object.keys(selected).length >= 4) {
-        showToast('Tối đa 4 ghế mỗi lần đặt');
-        return;
-      }
+      if (Object.keys(selected).length >= 4) { showToast('Tối đa 4 ghế mỗi lần đặt'); return; }
       const row = rows[s.rowIdx];
+      // s.col là 1-based từ canvas, DB col là 0-based
+      const seatDbId = row.seatByRowCol?.[`${row.rowInZone}-${s.col - 1}`];
       setSelected(prev => ({
         ...prev,
-        [s.key]: { rowIdx: s.rowIdx, col: s.col, seatId: s.seatId, zoneKey: row.zone, zoneId: row.zoneId, price: row.price },
+        [s.key]: { rowIdx: s.rowIdx, col: s.col, seatDbId, zoneKey: row.zone, zoneId: row.zoneId, price: row.price },
       }));
     }
   }
 
-  // ── Toast ────────────────────────────────────────────────────────────────
   function showToast(msg) {
-    setToast(msg);
-    setTimeout(() => setToast(''), 2200);
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 2200);
   }
 
-  // ── Payment ──────────────────────────────────────────────────────────────
   async function handlePay() {
     const keys = Object.keys(selected);
     if (keys.length === 0) return;
 
-    // Use the first selected seat's zoneId (all seats in same zone ideally)
-    const firstSeat = selected[keys[0]];
-    const zoneIdToBook = firstSeat.zoneId || preselectedZoneId;
-
-    if (!zoneIdToBook) {
-      showToast('Không tìm thấy khu vé. Vui lòng thử lại.');
-      return;
-    }
+    const missingId = keys.find(k => !selected[k].seatDbId);
+    if (missingId) { showToast('Không tìm thấy thông tin ghế. Vui lòng thử lại.'); return; }
 
     setBooking(true);
     try {
-      const res = await bookingService.createBooking({
-        zoneId: zoneIdToBook,
-        quantity: keys.length,
-      });
-      const bookingId = res.data?.booking?.id || res.data?.id;
-      if (bookingId) {
-        navigate(`/checkout/${bookingId}`);
-      } else {
-        showToast('Đặt vé thành công! Chuyển đến thanh toán...');
-        navigate('/my-tickets');
+      const lockResults = await Promise.all(
+        keys.map(k => bookingService.lockSeat(selected[k].seatDbId))
+      );
+      const bookings = lockResults.map(r => r.data).filter(Boolean);
+      if (bookings.length === 0) {
+        showToast('Không thể giữ ghế. Vui lòng thử lại.');
+        return;
       }
+      navigate('/checkout', {
+        state: {
+          bookings,
+          eventId,
+          eventTitle: event?.title,
+          eventVenue: event?.venue,
+          eventDate:  event?.date,
+        },
+      });
     } catch (err) {
       showToast(err.response?.data?.message || 'Đặt vé thất bại. Vui lòng thử lại.');
     } finally {
@@ -372,7 +349,6 @@ export default function SeatSelectionPage() {
     }
   }
 
-  // ── Derived totals ───────────────────────────────────────────────────────
   const selKeys  = Object.keys(selected);
   const subtotal = selKeys.reduce((acc, k) => acc + (selected[k].price || 0), 0);
   const fee      = Math.round(subtotal * 0.05);
@@ -389,41 +365,44 @@ export default function SeatSelectionPage() {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div>
+    <div className="ss">
+
       {/* Tooltip */}
-      <div ref={tooltipRef} style={{
-        position:'fixed', pointerEvents:'none', zIndex:200,
-        background:'#111', border:'1px solid #333333', borderRadius:7,
-        padding:'5px 10px', fontSize:12, fontWeight:600, color:'#fff',
-        whiteSpace:'nowrap', display:'none', transform:'translate(-50%,-120%)',
-        fontFamily:"'Be Vietnam Pro', sans-serif",
-      }} />
+      <div ref={tooltipRef} className="ss-tooltip" />
 
       {/* Toast */}
-      {toast && (
-        <div style={{
-          position:'fixed', bottom:32, left:'50%', transform:'translateX(-50%)',
-          background:'#1e1e1e', border:'1px solid #FF6B35', borderRadius:8,
-          padding:'10px 20px', color:'#fff', fontSize:13, fontWeight:600,
-          zIndex:9999, pointerEvents:'none',
-        }}>{toast}</div>
-      )}
+      {toastMsg && <div className="ss-toast">{toastMsg}</div>}
 
-      {/* Event info bar */}
-      <div style={{
-        background:'#111111', borderBottom:'1px solid #333333',
-        padding:'12px 60px', display:'flex', alignItems:'center', justifyContent:'space-between',
-      }}>
-        <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-          <span style={{ fontSize:14, fontWeight:700 }}>
-            {event?.title || 'Sự kiện'}
-          </span>
+      {/* ── HEADER ── */}
+      <header className="ss-header">
+        <Link to="/" className="ss-logo">
+          <span className="ss-logo__icon">⚡</span>
+          <span className="ss-logo__text">TicketRush</span>
+        </Link>
+        <div className="ss-search">
+          <input className="ss-search__input" type="text" placeholder="Tìm kiếm sự kiện, nghệ sĩ..." />
+          <button className="ss-search__btn">
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4 4" />
+            </svg>
+          </button>
+        </div>
+        <div className="ss-header__actions">
+          <button className="ss-btn-ghost">Đăng nhập</button>
+          <button className="ss-btn-accent">Đăng ký</button>
+        </div>
+      </header>
+
+      {/* ── EVENT INFO BAR ── */}
+      <div className="ss-event-bar">
+        <div className="ss-event-bar__left">
+          <span className="ss-event-bar__name">{event?.title || 'Sự kiện'}</span>
           {dateStr && (
             <>
-              <div style={{ width:1, height:16, background:'#333333' }} />
-              <span style={{ fontSize:13, color:'#AAAAAA', display:'flex', alignItems:'center', gap:5 }}>
+              <div className="ss-bar-sep" />
+              <span className="ss-bar-detail">
                 <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                  <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
                 </svg>
                 {dateStr}{timeStr && ` · ${timeStr}`}
               </span>
@@ -431,99 +410,65 @@ export default function SeatSelectionPage() {
           )}
           {event?.venue && (
             <>
-              <div style={{ width:1, height:16, background:'#333333' }} />
-              <span style={{ fontSize:13, color:'#AAAAAA', display:'flex', alignItems:'center', gap:5 }}>
+              <div className="ss-bar-sep" />
+              <span className="ss-bar-detail">
                 <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-                  <circle cx="12" cy="9" r="2.5"/>
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                  <circle cx="12" cy="9" r="2.5" />
                 </svg>
                 {event.venue}
               </span>
             </>
           )}
         </div>
-        <div style={{
-          display:'flex', alignItems:'center', gap:7, color:'#FF6B35',
-          fontSize:14, fontWeight:700,
-          background:'rgba(255,107,53,.1)', border:'1px solid rgba(255,107,53,.3)',
-          padding:'6px 14px', borderRadius:8,
-        }}>
+        <div className="ss-countdown">
           <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+            <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
           </svg>
-          Phiên giữ chỗ còn:&nbsp;
-          <Countdown seconds={timerSecs} id1="timer-bar" />
+          Phiên giữ chỗ còn:&nbsp;<Countdown seconds={LOCK_SECONDS} />
         </div>
       </div>
 
-      {/* Breadcrumb */}
-      <div style={{ background:'#1A1A1A', padding:'10px 60px', fontSize:13, color:'#AAAAAA' }}>
-        <Link to="/" style={{ color:'#AAAAAA', textDecoration:'none' }}>Trang chủ</Link>
-        {' / '}
-        <Link to={`/event/${eventId}`} style={{ color:'#AAAAAA', textDecoration:'none' }}>
-          {event?.title || 'Sự kiện'}
-        </Link>
-        {' / '}
-        <span style={{ color:'#FF6B35' }}>Chọn ghế</span>
-      </div>
+      {/* ── MAIN ── */}
+      <div className="ss-main">
 
-      {/* Main grid */}
-      <div style={{ display:'grid', gridTemplateColumns:'68% 32%', gap:28, padding:'32px 60px', alignItems:'start', maxWidth:1400, margin:'0 auto' }}>
+        {/* LEFT — stage + canvas */}
+        <div className="ss-left">
 
-        {/* Left — stage + canvas */}
-        <div>
           {/* Stage */}
-          <div style={{ textAlign:'center', marginBottom:16, position:'relative' }}>
-            <div style={{
-              position:'absolute', top:0, left:'50%', transform:'translateX(-50%)',
-              width:'70%', height:70,
-              background:'radial-gradient(ellipse at 50% 0%, rgba(255,107,53,.3), transparent 70%)',
-              pointerEvents:'none', borderRadius:'50%', filter:'blur(10px)',
-            }} />
-            <div style={{
-              background:'#111111', border:'1px solid #333333', borderRadius:8,
-              padding:'13px 0', fontSize:13, fontWeight:700, letterSpacing:2,
-              color:'rgba(255,255,255,.7)', position:'relative', overflow:'hidden',
-            }}>
-              <div style={{
-                position:'absolute', top:0, left:0, right:0, height:3,
-                background:'linear-gradient(90deg, transparent, rgba(255,107,53,.6), transparent)',
-              }} />
+          <div className="ss-stage-wrap">
+            <div className="ss-stage-glow" />
+            <div className="ss-stage-box">
+              <div className="ss-stage-box__line" />
               SÂN KHẤU &nbsp;/&nbsp; STAGE
             </div>
           </div>
 
           {/* Zone legend tabs */}
-          <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap' }}>
+          <div className="ss-zone-legend">
             {(['vip','a','b']).map(zKey => {
-              const meta  = ZONE_META[zKey];
+              const meta   = ZONE_META[zKey];
               const active = filterActive[zKey];
               const zoneRows = rows.filter(r => r.zone === zKey);
               const price = zoneRows[0]?.price;
               return (
                 <button
                   key={zKey}
+                  className={`ss-legend-item${active ? ' ss-legend-item--active' : ''}`}
+                  style={{ borderColor: active ? meta.borderColor : '#333333' }}
                   onClick={() => setFilter(prev => ({ ...prev, [zKey]: !prev[zKey] }))}
-                  style={{
-                    display:'flex', alignItems:'center', gap:7, padding:'6px 14px',
-                    borderRadius:100, border:`1.5px solid ${active ? meta.borderColor : '#333333'}`,
-                    fontSize:12, fontWeight:700, cursor:'pointer',
-                    background:'#242424', color:'#FFFFFF',
-                    opacity: active ? 1 : 0.4,
-                    transition:'opacity .2s, border-color .2s',
-                  }}
                 >
-                  <div style={{ width:10, height:10, borderRadius:3, background: active ? meta.color : '#555', flexShrink:0 }} />
-                  <span>{meta.name}</span>
-                  {price > 0 && <span style={{ color:'#AAAAAA', fontWeight:500 }}>· {fmt(price)}</span>}
+                  <div className="ss-legend-dot" style={{ background: active ? meta.color : '#555' }} />
+                  <span className="ss-legend-name">{meta.name}</span>
+                  {price > 0 && <span className="ss-legend-price">· {fmt(price)}</span>}
                 </button>
               );
             })}
           </div>
 
-          {/* Seat canvas area */}
-          <div style={{ background:'#242424', border:'1px solid #333333', borderRadius:12, padding:'20px 16px 16px', overflow:'hidden' }}>
-            <div ref={wrapRef} id="arc-canvas-wrap" style={{ width:'100%', position:'relative' }}>
+          {/* Seat canvas */}
+          <div className="ss-seat-area">
+            <div ref={wrapRef} className="ss-canvas-wrap">
               <canvas
                 ref={canvasRef}
                 style={{ display:'block', width:'100%', cursor:'default' }}
@@ -534,7 +479,7 @@ export default function SeatSelectionPage() {
             </div>
 
             {/* Legend */}
-            <div style={{ display:'flex', gap:16, flexWrap:'wrap', marginTop:14, paddingTop:14, borderTop:'1px solid #333333', justifyContent:'center' }}>
+            <div className="ss-legend-bar">
               {[
                 { color:'#c8860a', label:'VIP còn trống' },
                 { color:'#3d6828', label:'Khu A còn trống' },
@@ -543,8 +488,8 @@ export default function SeatSelectionPage() {
                 { color:'#4A1A1A', label:'Đã bán' },
                 { color:'#FF6B35', label:'Đang chọn' },
               ].map(item => (
-                <div key={item.label} style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'#AAAAAA' }}>
-                  <div style={{ width:13, height:13, borderRadius:3, background:item.color, opacity: item.opacity ?? 1, flexShrink:0 }} />
+                <div key={item.label} className="ss-legend-bar__item">
+                  <div className="ss-legend-bar__sq" style={{ background: item.color, opacity: item.opacity ?? 1 }} />
                   {item.label}
                 </div>
               ))}
@@ -552,37 +497,29 @@ export default function SeatSelectionPage() {
           </div>
         </div>
 
-        {/* Right — order panel */}
-        <div>
-          <div style={{ background:'#242424', border:'1px solid #333333', borderRadius:12, padding:20, position:'sticky', top:130 }}>
-            <div style={{ fontSize:16, fontWeight:700, marginBottom:14 }}>Ghế đang chọn</div>
+        {/* RIGHT — order panel */}
+        <div className="ss-right">
+          <div className="ss-panel">
+            <div className="ss-panel__title">Ghế đang chọn</div>
 
             {/* Seat list */}
-            <div style={{ display:'flex', flexDirection:'column', gap:8, minHeight:48, marginBottom:14 }}>
+            <div className="ss-seat-list">
               {selKeys.length === 0 ? (
-                <div style={{ color:'#AAAAAA', fontSize:13, textAlign:'center', padding:'12px 0', opacity:.6 }}>
-                  Chưa chọn ghế nào
-                </div>
+                <div className="ss-seat-list__empty">Chưa chọn ghế nào</div>
               ) : (
                 selKeys.map(key => {
                   const s   = selected[key];
                   const row = rows[s.rowIdx];
                   return (
-                    <div key={key} style={{ background:'#1A1A1A', borderRadius:8, padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
-                      <div style={{
-                        background:'rgba(255,107,53,.15)', border:'1px solid rgba(255,107,53,.3)',
-                        color:'#FF6B35', fontSize:11, fontWeight:700, padding:'3px 8px',
-                        borderRadius:5, flexShrink:0,
-                      }}>
+                    <div key={key} className="ss-seat-item">
+                      <div className="ss-seat-item__pill">
                         {ZONE_META[row.zone]?.name} · {row.label}{s.col}
                       </div>
-                      <span style={{ fontSize:13, fontWeight:600, flex:1 }}>Hàng {row.label} · Ghế {s.col}</span>
-                      <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>{fmt(row.price)}</span>
+                      <span className="ss-seat-item__name">Hàng {row.label} · Ghế {s.col}</span>
+                      <span className="ss-seat-item__price">{fmt(row.price)}</span>
                       <button
+                        className="ss-seat-item__remove"
                         onClick={() => setSelected(prev => { const next = { ...prev }; delete next[key]; return next; })}
-                        style={{ width:24, height:24, border:'none', background:'transparent', color:'#AAAAAA', cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:4, transition:'color .2s' }}
-                        onMouseEnter={e => e.currentTarget.style.color='#fff'}
-                        onMouseLeave={e => e.currentTarget.style.color='#AAAAAA'}
                       >×</button>
                     </div>
                   );
@@ -590,66 +527,55 @@ export default function SeatSelectionPage() {
               )}
             </div>
 
-            {/* Timer box */}
-            <div style={{ background:'#2D1F0A', borderLeft:'3px solid #FF6B35', borderRadius:'0 8px 8px 0', padding:'12px 14px', marginBottom:16 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, color:'#FF6B35', fontSize:13, fontWeight:700, marginBottom:4 }}>
+            {/* Timer */}
+            <div className="ss-timer-box">
+              <div className="ss-timer-box__top">
                 <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+                  <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
                 </svg>
-                Vui lòng thanh toán trong&nbsp;
-                <Countdown seconds={timerSecs} id1="timer-panel" />
+                Vui lòng thanh toán trong&nbsp;<Countdown seconds={LOCK_SECONDS} />
               </div>
-              <div style={{ fontSize:11, color:'#AAAAAA', lineHeight:1.5 }}>
-                Ghế sẽ được nhả nếu không thanh toán đúng hạn
-              </div>
+              <div className="ss-timer-box__note">Ghế sẽ được nhả nếu không thanh toán đúng hạn</div>
             </div>
 
             {/* Price rows */}
-            <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:16 }}>
-              <div style={{ display:'flex', justifyContent:'space-between', fontSize:13 }}>
-                <span style={{ color:'#AAAAAA' }}>Số ghế đã chọn</span>
-                <span style={{ fontWeight:600 }}>{selKeys.length} ghế</span>
+            <div className="ss-price-rows">
+              <div className="ss-price-row">
+                <span className="ss-price-row__label">Số ghế đã chọn</span>
+                <span className="ss-price-row__val">{selKeys.length} ghế</span>
               </div>
-              <div style={{ display:'flex', justifyContent:'space-between', fontSize:13 }}>
-                <span style={{ color:'#AAAAAA' }}>Đơn giá</span>
-                <span style={{ fontWeight:600 }}>{firstRow ? fmt(firstRow.price) : '—'}</span>
+              <div className="ss-price-row">
+                <span className="ss-price-row__label">Đơn giá</span>
+                <span className="ss-price-row__val">{firstRow ? fmt(firstRow.price) : '—'}</span>
               </div>
-              <div style={{ display:'flex', justifyContent:'space-between', fontSize:13 }}>
-                <span style={{ color:'#AAAAAA' }}>Phí dịch vụ (5%)</span>
-                <span style={{ fontWeight:600 }}>{selKeys.length > 0 ? fmt(fee) : '—'}</span>
+              <div className="ss-price-row">
+                <span className="ss-price-row__label">Phí dịch vụ (5%)</span>
+                <span className="ss-price-row__val">{selKeys.length > 0 ? fmt(fee) : '—'}</span>
               </div>
             </div>
-            <div style={{ height:1, background:'#333333', margin:'10px 0' }} />
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <span style={{ fontSize:14, fontWeight:700 }}>Tổng cộng</span>
-              <span style={{ fontSize:22, fontWeight:800, color:'#FF6B35' }}>
-                {selKeys.length > 0 ? fmt(total) : '0đ'}
-              </span>
+
+            <div className="ss-price-divider" />
+
+            <div className="ss-total-row">
+              <span className="ss-total-row__label">Tổng cộng</span>
+              <span className="ss-total-row__val">{selKeys.length > 0 ? fmt(total) : '0đ'}</span>
             </div>
 
             <button
+              className="ss-pay-btn"
               onClick={handlePay}
               disabled={selKeys.length === 0 || booking}
-              style={{
-                width:'100%', height:48, background: selKeys.length === 0 || booking ? '#444' : '#FF6B35',
-                border:'none', borderRadius:8, color:'#fff', fontFamily:"'Be Vietnam Pro', sans-serif",
-                fontSize:15, fontWeight:700, cursor: selKeys.length === 0 || booking ? 'not-allowed' : 'pointer',
-                marginTop:16, display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-                transition:'background .2s, transform .15s',
-                boxShadow: selKeys.length > 0 && !booking ? '0 4px 20px rgba(255,107,53,.3)' : 'none',
-              }}
-              onMouseEnter={e => { if (selKeys.length > 0 && !booking) e.currentTarget.style.background = '#e85a24'; }}
-              onMouseLeave={e => { if (selKeys.length > 0 && !booking) e.currentTarget.style.background = '#FF6B35'; }}
             >
               {booking ? 'Đang xử lý...' : 'Tiến hành thanh toán'}
               {!booking && (
                 <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                  <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
               )}
             </button>
           </div>
         </div>
+
       </div>
     </div>
   );

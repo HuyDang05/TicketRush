@@ -1,103 +1,81 @@
-import { useNavigate } from 'react-router-dom';
 import SeatGrid from './SeatGrid';
-import ZoneLegend from './ZoneLegend';
-import { useCountdown } from '../../hooks/useCountdown';
-import { toast } from '../../utils/toast';
+import './seat-map.css';
 
-export default function SeatMap({ zones, selectedSeats, onSelectSeat, onRemoveSeat }) {
-  const navigate = useNavigate();
+const LEGEND = [
+  { color: '#22c55e', label: 'Còn trống' },
+  { color: '#555555', label: 'Đang giữ' },
+  { color: '#ef4444', label: 'Đã bán' },
+  { color: '#3b82f6', label: 'Đang chọn' },
+];
 
-  function SeatCountdown({ expiresAt, onExpire }) {
-    const { minutes, seconds, isExpired } = useCountdown(expiresAt, onExpire);
-    return (
-      <span className="text-sm text-gray-600">
-        {isExpired ? '00:00' : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`}
-      </span>
-    );
+const ZONE_COLORS = ['#FF6B35', '#3b82f6', '#a855f7', '#22c55e', '#f59e0b', '#ec4899'];
+
+export default function SeatMap({ zones, selectedSeats, onSelectSeat }) {
+  if (!zones || zones.length === 0) {
+    return <div className="seat-map__empty">Không có dữ liệu sơ đồ ghế</div>;
   }
 
-  const total = selectedSeats.reduce((sum, seat) => {
-    const price = seat.zone?.price || seat.price || 0;
-    return sum + Number(price);
-  }, 0);
-
   return (
-    <div className="grid grid-cols-3 gap-8">
-      <div className="col-span-2">
-        <h2 className="font-bold text-lg mb-4">Chọn ghế</h2>
-        <div className="bg-white rounded-lg border border-gray-200 overflow-auto">
-          {zones.map((zone) => (
-            <div key={zone.id} className="border-b last:border-b-0">
-              <div className="bg-gray-50 px-4 py-2">
-                <h3 className="font-semibold">
-                  {zone.name} - {zone.price.toLocaleString()}đ
-                </h3>
-              </div>
-              <SeatGrid
-                seats={zone.seats}
-                selectedSeats={selectedSeats}
-                onSelectSeat={onSelectSeat}
-              />
-            </div>
-          ))}
-        </div>
+    <div className="seat-map">
+      <div className="seat-map__stage">
+        <div className="seat-map__stage-bar">SÂN KHẤU / STAGE</div>
       </div>
 
-      <div>
-        <ZoneLegend />
-        <div className="mt-4 bg-white p-4 rounded-lg border border-gray-200">
-          <h3 className="font-bold mb-3">Ghế đã chọn</h3>
-          {selectedSeats.length > 0 ? (
-            <div className="space-y-2">
-              {selectedSeats.map((seat) => (
-                <div
-                  key={seat.id}
-                  className="flex justify-between items-center text-sm"
-                >
-                  <div className="flex items-center gap-3">
-                    <button
-                      className="text-xs text-gray-400 hover:text-gray-600"
-                      onClick={() => onRemoveSeat && onRemoveSeat(seat.id)}
-                      aria-label={`Bỏ chọn ${seat.label}`}
-                    >
-                      ✕
-                    </button>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{seat.label}</span>
-                      <span className="text-xs text-gray-500">{seat.zone?.name || seat.zone?.id}</span>
-                    </div>
-                  </div>
+      <div className="seat-map__legend">
+        {LEGEND.map((item) => (
+          <div key={item.label} className="seat-map__legend-item">
+            <div className="seat-map__legend-dot" style={{ background: item.color }} />
+            {item.label}
+          </div>
+        ))}
+      </div>
 
-                  <div className="flex items-center gap-4">
-                    <span className="font-semibold">{(seat.zone?.price || seat.price || 0).toLocaleString()}đ</span>
-                    <SeatCountdown
-                      expiresAt={seat.expiresAt || seat.lockExpiresAt || seat.lockedUntil}
-                      onExpire={() => {
-                        toast('Phiên giữ chỗ đã hết hạn', 'warning');
-                        onRemoveSeat && onRemoveSeat(seat.id);
-                      }}
-                    />
-                  </div>
+      <div className="seat-map__zones">
+        {zones.map((zone, idx) => {
+          const accentColor = ZONE_COLORS[idx % ZONE_COLORS.length];
+          const availableCount = (zone.seats || []).filter(s => s.status === 'AVAILABLE').length;
+
+          return (
+            <div
+              key={zone.id}
+              className="seat-zone"
+              style={{
+                background: '#0D0D0D',
+                borderColor: `${accentColor}33`,
+              }}
+            >
+              <div
+                className="seat-zone__header"
+                style={{ borderBottom: `1px solid ${accentColor}22`, background: `${accentColor}0D` }}
+              >
+                <div className="seat-zone__header-left">
+                  <div className="seat-zone__dot" style={{ background: accentColor }} />
+                  <span className="seat-zone__name">{zone.name}</span>
                 </div>
-              ))}
-
-              <div className="border-t pt-2 font-bold">
-                Tổng: {total.toLocaleString()}đ
+                <div className="seat-zone__header-right">
+                  <span className="seat-zone__available">{availableCount} ghế trống</span>
+                  <span className="seat-zone__price" style={{ color: accentColor }}>
+                    {Number(zone.price).toLocaleString('vi-VN')}đ
+                  </span>
+                </div>
               </div>
 
-              <div className="pt-2">
-                <button
-                  onClick={() => navigate('/checkout')}
-                  className="w-full bg-primary text-white py-2 rounded"
-                >
-                  Tiến hành thanh toán
-                </button>
+              <div className="seat-zone__body">
+                {zone.seats && zone.seats.length > 0 ? (
+                  <SeatGrid
+                    seats={zone.seats}
+                    selectedSeats={selectedSeats}
+                    onSelectSeat={onSelectSeat}
+                    zonePrice={zone.price}
+                    accentColor={accentColor}
+                  />
+                ) : (
+                  <div className="seat-zone__no-seats">Không có ghế trong khu vực này</div>
+                )}
               </div>
             </div>
-          ) : (
-            <p className="text-gray-500 text-sm">Chưa chọn ghế</p>
-          )}
-        </div>
+          );
+        })}
       </div>
     </div>
   );

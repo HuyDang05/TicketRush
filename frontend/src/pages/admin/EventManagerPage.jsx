@@ -2,28 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import eventService from '../../services/event.service';
 import AdminLayout from '../../components/shared/AdminLayout';
+import './admin.css';
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({ msg, onDone }) {
   useEffect(() => { const id = setTimeout(onDone, 2600); return () => clearTimeout(id); }, [onDone]);
-  return (
-    <div style={{
-      position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
-      background: '#1e1e1e', border: '1px solid #FF6B35', borderRadius: 8,
-      padding: '11px 22px', color: '#fff', fontSize: 13, fontWeight: 600,
-      zIndex: 9999, whiteSpace: 'nowrap', boxShadow: '0 4px 20px rgba(0,0,0,.5)',
-    }}>{msg}</div>
-  );
+  return <div className="admin-toast">{msg}</div>;
 }
 
-// ─── Create/Edit Modal ────────────────────────────────────────────────────────
 function EventModal({ event, onClose, onSaved }) {
   const isEdit = !!event;
   const [form, setForm] = useState({
-    name: event?.name || '',
+    name: event?.title || event?.name || '',
     date: event?.date ? event.date.slice(0, 10) : '',
     time: event?.date ? event.date.slice(11, 16) : '',
-    location: event?.location || '',
+    location: event?.venue || event?.location || '',
     category: event?.category || 'Âm nhạc',
     description: event?.description || '',
   });
@@ -43,9 +35,9 @@ function EventModal({ event, onClose, onSaved }) {
     setSaving(true);
     try {
       const payload = {
-        name: form.name.trim(),
+        title: form.name.trim(),
         date: form.date && form.time ? `${form.date}T${form.time}:00` : form.date,
-        location: form.location.trim(),
+        venue: form.location.trim(),
         category: form.category,
         description: form.description.trim(),
       };
@@ -63,109 +55,79 @@ function EventModal({ event, onClose, onSaved }) {
     }
   };
 
-  const inputStyle = {
-    width: '100%', background: '#1A1A1A', border: '1px solid #333333',
-    borderRadius: 8, padding: '10px 14px', color: '#fff',
-    fontFamily: 'inherit', fontSize: 13, outline: 'none',
-  };
-  const labelStyle = { display: 'block', fontSize: 12, color: '#AAAAAA', fontWeight: 700, marginBottom: 6, letterSpacing: .3 };
-
   return (
-    <div
-      onClick={e => e.target === e.currentTarget && onClose()}
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)', zIndex: 200,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}
-    >
-      <div style={{
-        background: '#242424', border: '1px solid #333333', borderRadius: 16,
-        width: 520, maxHeight: '90vh', overflowY: 'auto', padding: '28px 28px 24px',
-        position: 'relative', boxShadow: '0 20px 60px rgba(0,0,0,.6)',
-      }}>
-        <button
-          onClick={onClose}
-          style={{ position: 'absolute', top: 16, right: 16, width: 28, height: 28, background: 'transparent', border: 'none', cursor: 'pointer', color: '#AAAAAA', fontSize: 17, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}
-          onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-          onMouseLeave={e => e.currentTarget.style.color = '#AAAAAA'}
-        >✕</button>
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box">
+        <button className="modal-close" onClick={onClose}>✕</button>
 
-        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 20, paddingRight: 24 }}>
+        <div className="modal-title">
           {isEdit ? '✦ Chỉnh sửa sự kiện' : '✦ Tạo sự kiện mới'}
         </div>
 
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>Tên sự kiện</label>
-          <input style={inputStyle} placeholder="Vd: Đêm nhạc Mỹ Tâm 2026" value={form.name} onChange={e => set('name', e.target.value)}
+        <div className="event-form-field">
+          <label className="event-form-label">Tên sự kiện</label>
+          <input className="event-form-input" placeholder="Vd: Đêm nhạc Mỹ Tâm 2026" value={form.name} onChange={e => set('name', e.target.value)}
             onFocus={e => e.target.style.borderColor = '#FF6B35'} onBlur={e => e.target.style.borderColor = '#333333'} />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-          <div>
-            <label style={labelStyle}>Ngày tổ chức</label>
-            <input style={{ ...inputStyle, colorScheme: 'dark' }} type="date" value={form.date} onChange={e => set('date', e.target.value)}
+        <div className="event-form-grid">
+          <div className="event-form-field">
+            <label className="event-form-label">Ngày tổ chức</label>
+            <input className="event-form-input" style={{ colorScheme: 'dark' }} type="date" value={form.date} onChange={e => set('date', e.target.value)}
               onFocus={e => e.target.style.borderColor = '#FF6B35'} onBlur={e => e.target.style.borderColor = '#333333'} />
           </div>
-          <div>
-            <label style={labelStyle}>Giờ bắt đầu</label>
-            <input style={{ ...inputStyle, colorScheme: 'dark' }} type="time" value={form.time} onChange={e => set('time', e.target.value)}
+          <div className="event-form-field">
+            <label className="event-form-label">Giờ bắt đầu</label>
+            <input className="event-form-input" style={{ colorScheme: 'dark' }} type="time" value={form.time} onChange={e => set('time', e.target.value)}
               onFocus={e => e.target.style.borderColor = '#FF6B35'} onBlur={e => e.target.style.borderColor = '#333333'} />
           </div>
         </div>
 
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>Địa điểm</label>
-          <input style={inputStyle} placeholder="Vd: SVĐ Mỹ Đình, Hà Nội" value={form.location} onChange={e => set('location', e.target.value)}
+        <div className="event-form-field">
+          <label className="event-form-label">Địa điểm</label>
+          <input className="event-form-input" placeholder="Vd: SVĐ Mỹ Đình, Hà Nội" value={form.location} onChange={e => set('location', e.target.value)}
             onFocus={e => e.target.style.borderColor = '#FF6B35'} onBlur={e => e.target.style.borderColor = '#333333'} />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-          <div>
-            <label style={labelStyle}>Thể loại</label>
-            <select style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }} value={form.category} onChange={e => set('category', e.target.value)}
+        <div className="event-form-grid">
+          <div className="event-form-field">
+            <label className="event-form-label">Thể loại</label>
+            <select className="event-form-input event-form-select" value={form.category} onChange={e => set('category', e.target.value)}
               onFocus={e => e.target.style.borderColor = '#FF6B35'} onBlur={e => e.target.style.borderColor = '#333333'}>
               {['Âm nhạc', 'Thể thao', 'Sân khấu', 'Hội thảo', 'Lễ hội'].map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
-          <div>
-            <label style={labelStyle}>Mô tả ngắn</label>
-            <input style={inputStyle} placeholder="Mô tả sự kiện..." value={form.description} onChange={e => set('description', e.target.value)}
+          <div className="event-form-field">
+            <label className="event-form-label">Mô tả ngắn</label>
+            <input className="event-form-input" placeholder="Mô tả sự kiện..." value={form.description} onChange={e => set('description', e.target.value)}
               onFocus={e => e.target.style.borderColor = '#FF6B35'} onBlur={e => e.target.style.borderColor = '#333333'} />
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+        <div className="event-form-actions">
+          <button className="btn-ghost" onClick={onClose}>Hủy</button>
           <button
-            onClick={onClose}
-            style={{ flex: 1, padding: 11, background: 'transparent', border: '1px solid #333333', borderRadius: 8, color: '#AAAAAA', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.2)'; e.currentTarget.style.color = '#fff'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#333333'; e.currentTarget.style.color = '#AAAAAA'; }}
-          >Hủy</button>
-          <button
+            className="btn-primary"
             onClick={handleSave}
             disabled={saving}
-            style={{ flex: 2, padding: 11, background: saving ? '#c45a2a' : '#FF6B35', border: 'none', borderRadius: 8, color: '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}
-            onMouseEnter={e => { if (!saving) e.currentTarget.style.background = '#e85a24'; }}
-            onMouseLeave={e => { if (!saving) e.currentTarget.style.background = '#FF6B35'; }}
-          >{saving ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi →' : 'Tạo sự kiện →'}</button>
+            style={{ flex: 2, opacity: saving ? 0.7 : 1 }}
+          >
+            {saving ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi →' : 'Tạo sự kiện →'}
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, valueColor, change, changeUp }) {
   return (
-    <div style={{ background: '#242424', border: '1px solid #333333', borderRadius: 12, padding: 20, position: 'relative', overflow: 'hidden' }}>
-      <div style={{
-        position: 'absolute', top: -30, right: -20, width: 80, height: 80, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(255,107,53,.08), transparent 70%)',
-      }} />
-      <div style={{ fontSize: 12, color: '#AAAAAA', fontWeight: 600, marginBottom: 10, letterSpacing: .3 }}>{label}</div>
-      <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1, marginBottom: 8, color: valueColor || '#fff' }}>{value}</div>
+    <div className="admin-stat-card">
+      <div className="admin-stat-card__glow" />
+      <div className="admin-stat-card__label">{label}</div>
+      <div className="admin-stat-card__value" style={{ color: valueColor || '#fff' }}>{value}</div>
       {change && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: changeUp ? '#22c55e' : '#AAAAAA' }}>
+        <div className="admin-stat-card__change" style={{ color: changeUp ? '#22c55e' : '#AAAAAA' }}>
           {changeUp && <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>}
           {change}
         </div>
@@ -174,7 +136,6 @@ function StatCard({ label, value, valueColor, change, changeUp }) {
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
 const THUMB_GRADIENTS = [
   'linear-gradient(135deg,#2d1000,#8b3500)',
   'linear-gradient(135deg,#0d2200,#1a4400)',
@@ -191,14 +152,14 @@ export default function EventManagerPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [modal, setModal] = useState(null); // null | 'create' | event-object
+  const [modal, setModal] = useState(null);
   const [toast, setToast] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
   const fetchEvents = useCallback(() => {
     setLoading(true);
     eventService.getEvents()
-      .then(res => setEvents(res.data || []))
+      .then(res => setEvents(res.data?.events || res.data || []))
       .catch(() => setEvents([]))
       .finally(() => setLoading(false));
   }, []);
@@ -223,7 +184,6 @@ export default function EventManagerPage() {
 
   const handlePublish = async (id) => {
     if (!confirm('Bạn có chắc muốn xuất bản sự kiện này?')) return;
-
     try {
       await eventService.publishEvent(id);
       showToast('✓ Đã xuất bản sự kiện');
@@ -235,7 +195,6 @@ export default function EventManagerPage() {
 
   const handleEnd = async (id) => {
     if (!confirm('Bạn có chắc muốn kết thúc sự kiện này?')) return;
-
     try {
       await eventService.endEvent(id);
       showToast('✓ Đã kết thúc sự kiện');
@@ -246,7 +205,7 @@ export default function EventManagerPage() {
   };
 
   const filtered = events.filter(ev => {
-    const matchSearch = !search || (ev.name || ev.title || '').toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || (ev.title || ev.name || '').toLowerCase().includes(search.toLowerCase());
     const evStatus = ev.status === 'PUBLISHED' ? 'pub' : ev.status === 'DRAFT' ? 'draft' : 'ended';
     const matchStatus = !statusFilter || evStatus === statusFilter;
     return matchSearch && matchStatus;
@@ -256,43 +215,16 @@ export default function EventManagerPage() {
   const totalSold = events.reduce((s, e) => s + (e._count?.bookings ?? 0), 0);
 
   const getStatusBadge = (status) => {
-    if (status === 'DRAFT') {
-      return {
-        label: 'DRAFT',
-        cls: {
-          background: 'rgba(156, 163, 175, 0.15)',
-          color: '#9CA3AF',
-          border: '1px solid rgba(156, 163, 175, 0.35)',
-        },
-      };
-    }
-
-    if (status === 'PUBLISHED') {
-      return {
-        label: 'PUBLISHED',
-        cls: {
-          background: 'rgba(34, 197, 94, 0.15)',
-          color: '#22C55E',
-          border: '1px solid rgba(34, 197, 94, 0.35)',
-        },
-      };
-    }
-
-    return {
-      label: 'ENDED',
-      cls: {
-        background: 'rgba(239, 68, 68, 0.15)',
-        color: '#EF4444',
-        border: '1px solid rgba(239, 68, 68, 0.35)',
-      },
-    };
+    if (status === 'DRAFT') return { label: 'DRAFT', style: { background: 'rgba(156,163,175,.15)', color: '#9CA3AF', border: '1px solid rgba(156,163,175,.35)' } };
+    if (status === 'PUBLISHED') return { label: 'PUBLISHED', style: { background: 'rgba(34,197,94,.15)', color: '#22C55E', border: '1px solid rgba(34,197,94,.35)' } };
+    return { label: 'ENDED', style: { background: 'rgba(239,68,68,.15)', color: '#EF4444', border: '1px solid rgba(239,68,68,.35)' } };
   };
 
   const ActBtn = ({ title, hoverStyle, onClick, children }) => (
     <button
       title={title}
       onClick={onClick}
-      style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid #333333', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#AAAAAA', transition: 'all .2s' }}
+      className="act-btn"
       onMouseEnter={e => Object.assign(e.currentTarget.style, hoverStyle)}
       onMouseLeave={e => { e.currentTarget.style.borderColor = '#333333'; e.currentTarget.style.color = '#AAAAAA'; e.currentTarget.style.background = 'transparent'; }}
     >{children}</button>
@@ -300,62 +232,50 @@ export default function EventManagerPage() {
 
   return (
     <AdminLayout>
-      {/* Top bar */}
-      <div style={{ background: '#111111', borderBottom: '1px solid #333333', padding: '18px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <div style={{ fontSize: 13, color: '#AAAAAA', display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div className="dash-topbar">
+        <div className="dash-topbar__breadcrumb">
           Admin <span style={{ opacity: .4 }}>/</span> <span style={{ color: '#fff', fontWeight: 600 }}>Quản lý sự kiện</span>
         </div>
         <button
+          className="btn-primary"
           onClick={() => setModal('create')}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#FF6B35', border: 'none', borderRadius: 8, color: '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, padding: '9px 18px', cursor: 'pointer', boxShadow: '0 2px 12px rgba(255,107,53,.3)', transition: 'background .2s, transform .15s' }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#e85a24'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#FF6B35'; e.currentTarget.style.transform = 'none'; }}
+          style={{ display: 'flex', alignItems: 'center', gap: 7 }}
         >
           <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
           Tạo sự kiện mới
         </button>
       </div>
 
-      {/* Scroll area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px' }}>
+      <div className="event-manager-scroll">
 
-        {/* Stats row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+        <div className="event-manager-stats">
           <StatCard label="Tổng sự kiện" value={events.length} change="+2 tháng này" changeUp />
           <StatCard label="Đang mở bán" value={pubCount} valueColor="#FF6B35" change="Đang hoạt động" />
           <StatCard label="Vé đã bán" value={totalSold.toLocaleString()} change="+18% so với tháng trước" changeUp />
           <StatCard label="Doanh thu tháng" value="624tr đ" valueColor="#FF6B35" change="+24% so với T5" changeUp />
         </div>
 
-        {/* Table card */}
-        <div style={{ background: '#242424', border: '1px solid #333333', borderRadius: 12, overflow: 'hidden' }}>
-          {/* Table header */}
-          <div style={{ padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #333333' }}>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Danh sách sự kiện</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="event-manager-table-card">
+          <div className="event-manager-table-header">
+            <div className="event-manager-table-title">Danh sách sự kiện</div>
+            <div className="event-manager-table-controls">
               <div style={{ position: 'relative' }}>
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Tìm sự kiện..."
-                  style={{ background: '#1A1A1A', border: '1px solid #333333', borderRadius: 8, padding: '8px 36px 8px 14px', color: '#fff', fontFamily: 'inherit', fontSize: 13, outline: 'none', width: 200 }}
+                  className="event-manager-search"
                   onFocus={e => e.target.style.borderColor = '#FF6B35'}
                   onBlur={e => e.target.style.borderColor = '#333333'}
                 />
-                <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#AAAAAA', pointerEvents: 'none' }}>
+                <span className="event-manager-search-icon">
                   <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
                 </span>
               </div>
               <select
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value)}
-                style={{
-                  background: '#1A1A1A', border: '1px solid #333333', borderRadius: 8,
-                  padding: '8px 30px 8px 14px', color: '#fff', fontFamily: 'inherit', fontSize: 13,
-                  outline: 'none', cursor: 'pointer', appearance: 'none',
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23AAAAAA' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
-                }}
+                className="event-manager-filter"
               >
                 <option value="">Tất cả</option>
                 <option value="pub">Đang mở bán</option>
@@ -365,23 +285,22 @@ export default function EventManagerPage() {
             </div>
           </div>
 
-          {/* Table */}
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
+            <table className="admin-table">
               <thead>
-                <tr style={{ background: '#1A1A1A' }}>
+                <tr>
                   {['Tên sự kiện', 'Địa điểm', 'Ngày diễn', 'Trạng thái', 'Tổng ghế', 'Số ghế đã bán', 'Thao tác'].map(h => (
-                    <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#AAAAAA', letterSpacing: .8, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="7" style={{ textAlign: 'center', padding: 40, color: '#AAAAAA', fontSize: 13 }}>Đang tải...</td></tr>
+                  <tr><td colSpan="7" className="admin-table__empty">Đang tải...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan="7" style={{ textAlign: 'center', padding: 40, color: '#AAAAAA', fontSize: 13 }}>Không tìm thấy sự kiện nào</td></tr>
+                  <tr><td colSpan="7" className="admin-table__empty">Không tìm thấy sự kiện nào</td></tr>
                 ) : filtered.map((ev, i) => {
-                  const name = ev.name || ev.title || 'Sự kiện';
+                  const name = ev.title || ev.name || 'Sự kiện';
                   const totalSeats = ev.capacity ?? ev.totalSeats ?? 0;
                   const soldSeats = ev._count?.bookings ?? ev.soldSeats ?? 0;
                   const badge = getStatusBadge(ev.status);
@@ -390,11 +309,11 @@ export default function EventManagerPage() {
                   return (
                     <tr
                       key={ev.id}
-                      style={{ borderTop: '1px solid rgba(255,255,255,.04)', cursor: 'pointer', transition: 'background .15s', opacity: isDeleting ? 0.4 : 1 }}
+                      style={{ opacity: isDeleting ? 0.4 : 1 }}
                       onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.03)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
-                      <td style={{ padding: '14px 16px', fontSize: 13, verticalAlign: 'middle' }}>
+                      <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           <div style={{ width: 44, height: 44, borderRadius: 8, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, background: THUMB_GRADIENTS[i % THUMB_GRADIENTS.length] }}>
                             {THUMB_EMOJIS[i % THUMB_EMOJIS.length]}
@@ -405,45 +324,35 @@ export default function EventManagerPage() {
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: '14px 16px', color: '#AAAAAA', fontSize: 12, whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
-                        {ev.location || '—'}
+                      <td style={{ color: '#AAAAAA', fontSize: 12, whiteSpace: 'nowrap' }}>
+                        {ev.venue || ev.location || '—'}
                       </td>
-
-                      <td style={{ padding: '14px 16px', color: '#AAAAAA', whiteSpace: 'nowrap', fontSize: 12, verticalAlign: 'middle' }}>
+                      <td style={{ color: '#AAAAAA', whiteSpace: 'nowrap', fontSize: 12 }}>
                         {ev.date ? new Date(ev.date).toLocaleDateString('vi-VN') : '—'}
                       </td>
-
-                      <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 5, letterSpacing: .3, whiteSpace: 'nowrap', ...badge.cls }}>
-                            {badge.label}
-                          </span>
+                      <td>
+                        <span className="admin-status-badge" style={badge.style}>{badge.label}</span>
                       </td>
-
-                      <td style={{ padding: '14px 16px', verticalAlign: 'middle', fontWeight: 700 }}>
+                      <td style={{ fontWeight: 700 }}>
                         {totalSeats > 0 ? totalSeats.toLocaleString('vi-VN') : '—'}
                       </td>
-
-                      <td style={{ padding: '14px 16px', verticalAlign: 'middle', fontWeight: 700 }}>
+                      <td style={{ fontWeight: 700 }}>
                         {soldSeats.toLocaleString('vi-VN')}
                       </td>
-                      <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
+                      <td>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
                           <ActBtn
                             title="Xem Dashboard"
                             hoverStyle={{ borderColor: 'rgba(255,255,255,.25)', color: '#fff', background: 'rgba(255,255,255,.05)' }}
                             onClick={() => navigate(`/admin?eventId=${ev.id}`)}
-                          >
-                            📊
-                          </ActBtn>
+                          >📊</ActBtn>
 
                           {ev.status === 'DRAFT' && (
                             <ActBtn
                               title="Chỉnh sửa"
                               hoverStyle={{ borderColor: '#FF6B35', color: '#FF6B35', background: 'rgba(255,107,53,.08)' }}
                               onClick={() => setModal(ev)}
-                            >
-                              ✏️
-                            </ActBtn>
+                            >✏️</ActBtn>
                           )}
 
                           {ev.status === 'DRAFT' && (
@@ -451,9 +360,7 @@ export default function EventManagerPage() {
                               title="Xuất bản"
                               hoverStyle={{ borderColor: '#22C55E', color: '#22C55E', background: 'rgba(34,197,94,.08)' }}
                               onClick={() => handlePublish(ev.id)}
-                            >
-                              🚀
-                            </ActBtn>
+                            >🚀</ActBtn>
                           )}
 
                           {ev.status === 'PUBLISHED' && (
@@ -461,9 +368,7 @@ export default function EventManagerPage() {
                               title="Kết thúc"
                               hoverStyle={{ borderColor: '#EF4444', color: '#EF4444', background: 'rgba(239,68,68,.08)' }}
                               onClick={() => handleEnd(ev.id)}
-                            >
-                              ⛔
-                            </ActBtn>
+                            >⛔</ActBtn>
                           )}
                         </div>
                       </td>
@@ -474,25 +379,17 @@ export default function EventManagerPage() {
             </table>
           </div>
 
-          {/* Footer */}
-          <div style={{ padding: '14px 24px', borderTop: '1px solid #333333', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="event-manager-table-footer">
             <div style={{ fontSize: 12, color: '#AAAAAA' }}>Hiển thị {filtered.length} trong {events.length} sự kiện</div>
             <div style={{ display: 'flex', gap: 6 }}>
               {[1, 2, '›'].map((p, i) => (
-                <button key={i} style={{
-                  width: 32, height: 32, borderRadius: 6, border: `1px solid ${i === 0 ? '#FF6B35' : '#333333'}`,
-                  background: i === 0 ? '#FF6B35' : 'transparent', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: 'inherit', fontSize: 13, fontWeight: i === 0 ? 700 : 400,
-                  color: i === 0 ? '#fff' : '#AAAAAA',
-                }}>{p}</button>
+                <button key={i} className={`page-btn${i === 0 ? ' page-btn--active' : ''}`}>{p}</button>
               ))}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Modal */}
       {modal && (
         <EventModal
           event={modal === 'create' ? null : modal}
@@ -501,7 +398,6 @@ export default function EventManagerPage() {
         />
       )}
 
-      {/* Toast */}
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
     </AdminLayout>
   );

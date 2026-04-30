@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Calendar } from 'lucide-react';
-import { formatDate, formatPrice } from '../../lib/utils';
+import './event.css';
 
 const CARD_GRADIENTS = [
   'linear-gradient(135deg,#2d1200,#8b3a00)',
@@ -22,56 +20,69 @@ function hashCode(str) {
 }
 
 export default function EventCard({ event }) {
-  const [hovered, setHovered] = useState(false);
   const idx = hashCode(event.id || event.title) % CARD_GRADIENTS.length;
   const gradient = CARD_GRADIENTS[idx];
   const emoji = CARD_EMOJIS[idx];
 
-  const dateStr = event.date
+  const dateShort = event.date
     ? new Date(event.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
     : '';
 
-  const minPrice = event.zones?.length
-    ? Math.min(...event.zones.map((z) => z.price))
-    : null;
+  const dateLong = event.date
+    ? (() => {
+        const d = new Date(event.date);
+        const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+        const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        return `${days[d.getDay()]}, ${dateShort} · ${timeStr}`;
+      })()
+    : '';
+
+  const minPrice = event.minPrice ?? (event.zones?.length
+    ? Math.min(...event.zones.map(z => Number(z.price)))
+    : null);
 
   return (
-    <Link to={`/event/${event.id}`} className="block">
-      <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 h-full hover:-translate-y-1 cursor-pointer">
-        {/* Thumbnail */}
-        <div className="relative overflow-hidden bg-gray-200 h-48">
-          <img
-            src={event.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'}
-            alt={event.title}
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-          />
-        </div>
-
-        {/* Content */}
-        <div className="p-4 flex flex-col h-full">
-          {/* Event Title */}
-          <h3 className="font-bold text-lg mb-2 line-clamp-2 text-gray-900">
-            {event.title}
-          </h3>
-
-          {/* Venue */}
-          <div className="flex items-start gap-2 mb-3 text-gray-600">
-            <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <p className="text-sm line-clamp-2">{event.venue}</p>
+    <Link to={`/events/${event.id}`} className="event-card">
+      <div className="event-card__thumb">
+        {event.imageUrl ? (
+          <img src={event.imageUrl} alt={event.title} className="event-card__thumb-img" />
+        ) : (
+          <div className="event-card__thumb-placeholder" style={{ background: gradient }}>
+            {emoji}
           </div>
+        )}
+        {dateShort && <div className="event-card__date-badge">{dateShort}</div>}
+        <div className="event-card__cat-badge">Âm nhạc</div>
+      </div>
 
-          {/* Date */}
-          <div className="flex items-center gap-2 mb-4 text-gray-600">
-            <Calendar className="w-4 h-4 flex-shrink-0" />
-            <p className="text-sm font-medium">{formatDate(event.date)}</p>
-          </div>
+      <div className="event-card__body">
+        <div className="event-card__title">{event.title}</div>
 
-          {/* Price - always at bottom */}
-          <div className="mt-auto pt-4 border-t border-gray-200">
-            <p className="text-lg font-bold text-primary">
-              Từ {formatPrice(event.minPrice)}
-            </p>
+        {event.venue && (
+          <div className="event-card__meta">
+            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.5" />
+            </svg>
+            <span>{event.venue}</span>
           </div>
+        )}
+
+        {dateLong && (
+          <div className="event-card__meta">
+            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+              <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+            {dateLong}
+          </div>
+        )}
+
+        <div className="event-card__footer">
+          <span className="event-card__price">
+            {minPrice != null ? `Từ ${minPrice.toLocaleString('vi-VN')}đ` : 'Liên hệ'}
+          </span>
+          <button onClick={e => e.preventDefault()} className="event-card__btn">
+            Đặt vé →
+          </button>
         </div>
       </div>
     </Link>

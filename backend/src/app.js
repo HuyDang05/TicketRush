@@ -37,5 +37,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminDashboardRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 module.exports = app;

@@ -1,34 +1,41 @@
 import SeatItem from './SeatItem';
+import './seat-map.css';
 
-export default function SeatGrid({ seats, selectedSeats, onSelectSeat }) {
-  // Group seats by row
-  const seatsByRow = {};
+export default function SeatGrid({ seats, selectedSeats, onSelectSeat, zonePrice, accentColor }) {
+  const rowMap = {};
   seats.forEach((seat) => {
-    if (!seatsByRow[seat.row]) {
-      seatsByRow[seat.row] = [];
-    }
-    seatsByRow[seat.row].push(seat);
+    const rowKey = seat.row ?? seat.label?.[0] ?? '?';
+    if (!rowMap[rowKey]) rowMap[rowKey] = [];
+    rowMap[rowKey].push(seat);
   });
 
+  const rowKeys = Object.keys(rowMap).sort();
+
   return (
-    <div className="flex flex-col gap-4 p-4">
-      {Object.entries(seatsByRow).map(([rowIndex, rowSeats]) => (
-        <div key={rowIndex} className="flex gap-2 items-center">
-          <span className="w-8 font-bold text-gray-600">
-            {rowSeats[0]?.label[0]}
-          </span>
-          <div className="flex gap-2">
-            {rowSeats.map((seat) => (
-              <SeatItem
-                key={seat.id}
-                seat={seat}
-                onSelect={onSelectSeat}
-                isSelected={selectedSeats.some((s) => s.id === seat.id)}
-              />
-            ))}
+    <div className="seat-grid">
+      {rowKeys.map((rowKey) => {
+        const rowSeats = rowMap[rowKey].sort((a, b) => {
+          const na = a.col ?? parseInt(a.label?.replace(/^[A-Za-z]+/, '')) ?? 0;
+          const nb = b.col ?? parseInt(b.label?.replace(/^[A-Za-z]+/, '')) ?? 0;
+          return na - nb;
+        });
+        return (
+          <div key={rowKey} className="seat-grid__row">
+            <span className="seat-grid__row-label">{rowKey}</span>
+            <div className="seat-grid__seats">
+              {rowSeats.map((seat) => (
+                <SeatItem
+                  key={seat.id}
+                  seat={{ ...seat, price: seat.price ?? zonePrice ?? 0 }}
+                  isSelected={selectedSeats.some((s) => s.id === seat.id)}
+                  onSelect={onSelectSeat}
+                  accentColor={accentColor}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

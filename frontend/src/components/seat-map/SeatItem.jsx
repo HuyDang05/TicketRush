@@ -1,37 +1,31 @@
-export default function SeatItem({ seat, onSelect, isSelected }) {
-  const getStatusClasses = (status) => {
-    if (isSelected) return 'bg-blue-500 hover:bg-blue-600 cursor-pointer text-white';
+import './seat-map.css';
 
-    switch (status) {
-      case 'AVAILABLE':
-        return 'bg-green-500 hover:bg-green-600 cursor-pointer text-white';
-      case 'LOCKED':
-        return 'bg-gray-400 cursor-not-allowed text-white';
-      case 'SOLD':
-        return 'bg-red-500 cursor-not-allowed text-white';
-      default:
-        return 'bg-gray-300';
+export default function SeatItem({ seat, onSelect, isSelected, accentColor }) {
+  const getClass = () => {
+    if (isSelected) return 'seat-item seat-item--selected';
+    switch (seat.status) {
+      case 'AVAILABLE': return 'seat-item seat-item--available';
+      case 'LOCKED':    return 'seat-item seat-item--locked';
+      case 'SOLD':      return 'seat-item seat-item--sold';
+      default:          return 'seat-item seat-item--default';
     }
   };
 
-  const priceLabel = seat.zone?.price
-    ? `${seat.zone.price.toLocaleString()}đ`
-    : seat.price
-    ? `${seat.price.toLocaleString()}đ`
-    : '—';
+  const bgStyle = (seat.status === 'AVAILABLE' && !isSelected)
+    ? { background: accentColor || '#22c55e' }
+    : {};
 
-  const title = `${seat.label} • ${priceLabel} • ${seat.status}`;
+  const num = seat.label?.replace(/^[A-Za-z]+/, '') || seat.label;
 
   return (
     <button
-      onClick={() => seat.status === 'AVAILABLE' && onSelect(seat)}
-      disabled={seat.status !== 'AVAILABLE'}
-      title={title}
-      className={`w-8 h-8 rounded text-xs font-semibold transition ${getStatusClasses(
-        seat.status
-      )} ${isSelected ? 'ring-2 ring-blue-400' : ''}`}
+      onClick={() => seat.status === 'AVAILABLE' && onSelect && onSelect(seat)}
+      disabled={seat.status !== 'AVAILABLE' && !isSelected}
+      title={`${seat.label} · ${Number(seat.price || 0).toLocaleString('vi-VN')}đ`}
+      className={getClass()}
+      style={bgStyle}
     >
-      {seat.label.replace(/^./, '')}
+      {num}
     </button>
   );
 }

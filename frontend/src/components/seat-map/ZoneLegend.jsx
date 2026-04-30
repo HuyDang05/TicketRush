@@ -1,3 +1,10 @@
+const ITEMS = [
+  { color: '#22c55e', label: 'Còn trống' },
+  { color: '#555555', label: 'Đang giữ' },
+  { color: '#ef4444', label: 'Đã bán' },
+  { color: '#3b82f6', label: 'Đang chọn' },
+];
+
 export default function ZoneLegend() {
   return (
     <div className="bg-white p-4 rounded-lg border border-gray-200">
