@@ -41,14 +41,6 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/events/:id" element={<EventDetailPage />} />
           <Route
-            path="/events/:id/seats"
-            element={
-              <ProtectedRoute>
-                <SeatSelectionPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/checkout"
             element={
               <ProtectedRoute>
@@ -66,6 +58,16 @@ function App() {
           />
         </Route>
 
+        {/* Seat Selection — has its own header, no CustomerLayout */}
+        <Route
+          path="/events/:id/seats"
+          element={
+            <ProtectedRoute>
+              <SeatSelectionPage />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Auth Routes — no Header/Footer */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -76,6 +78,14 @@ function App() {
         {/* Admin Routes — full-screen layout, no Header/Footer */}
         <Route
           path="/admin"
+          element={
+            <ProtectedRoute requiredRole="ADMIN">
+              <AdminDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/dashboard"
           element={
             <ProtectedRoute requiredRole="ADMIN">
               <AdminDashboardPage />

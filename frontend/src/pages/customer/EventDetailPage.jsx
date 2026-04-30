@@ -1,12 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import eventService from '../../services/event.service';
-import bookingService from '../../services/booking.service';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
-import SeatMap from '../../components/seat-map/SeatMap';
-import { useSocket } from '../../hooks/useSocket';
-import { useCountdown } from '../../hooks/useCountdown';
 import './event-detail.css';
 
 const TERMS = [
@@ -22,26 +18,6 @@ function fmt(n) {
   return n.toLocaleString('vi-VN') + 'đ';
 }
 
-function CountdownBadge({ expiresAt, onExpired }) {
-  const { minutes, seconds, isExpired } = useCountdown(expiresAt);
-  const expiredRef = useRef(false);
-
-  useEffect(() => {
-    if (isExpired && !expiredRef.current) {
-      expiredRef.current = true;
-      onExpired?.();
-    }
-  }, [isExpired, onExpired]);
-
-  const color = isExpired ? '#ef4444' : minutes < 3 ? '#f59e0b' : '#FF6B35';
-
-  return (
-    <span style={{ color, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-      {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
-    </span>
-  );
-}
-
 export default function EventDetailPage() {
   const { id: eventId } = useParams();
   const navigate = useNavigate();
@@ -49,10 +25,8 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState(null);
   const [zones, setZones] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [booking, setBooking] = useState(false);
-  const [selectedSeats, setSelectedSeats] = useState([]);
-
-  const { on } = useSocket(eventId);
+  const [selectedZone, setSelectedZone] = useState(null);
+  const [qty, setQty] = useState(1);
 
   useEffect(() => {
     if (!eventId) return;
@@ -61,113 +35,28 @@ export default function EventDetailPage() {
       .then((res) => {
         const raw = res.data?.event ?? res.data;
         setEvent(raw && raw.id ? raw : null);
-        setZones(raw?.zones || []);
+        const fetchedZones = (raw?.zones || []).map(z => ({
+          ...z,
+          availableSeats: z.seats
+            ? z.seats.filter(s => s.status === 'AVAILABLE').length
+            : (z.availableSeats ?? z.rows * z.cols ?? 0),
+        }));
+        setZones(fetchedZones);
+        const firstAvail = fetchedZones.find(z => z.availableSeats > 0);
+        if (firstAvail) setSelectedZone(firstAvail);
       })
-      .catch((err) => {
-        console.error('EventDetailPage load error:', err);
-        toast.error('Không thể tải thông tin sự kiện');
-      })
+      .catch(() => toast.error('Không thể tải thông tin sự kiện'))
       .finally(() => setIsLoading(false));
   }, [eventId]);
 
-  const updateSeatStatus = useCallback((seatId, newStatus) => {
-    setZones((prev) =>
-      prev.map((zone) => ({
-        ...zone,
-        seats: zone.seats.map((seat) =>
-          seat.id === seatId ? { ...seat, status: newStatus } : seat
-        ),
-      }))
-    );
-  }, []);
-
-  useEffect(() => {
-    const offLocked = on('seat_locked', ({ seatId }) => {
-      updateSeatStatus(seatId, 'LOCKED');
-    });
-
-    const offReleased = on('seat_released', ({ seatId }) => {
-      updateSeatStatus(seatId, 'AVAILABLE');
-      setSelectedSeats((prev) => {
-        const wasMine = prev.some((s) => s.id === seatId);
-        if (wasMine) {
-          toast.warning('Phiên giữ chỗ đã hết hạn', { description: 'Một ghế bạn đang giữ đã được nhả về.' });
-          return prev.filter((s) => s.id !== seatId);
-        }
-        return prev;
-      });
-    });
-
-    const offSold = on('seat_sold', ({ seatId }) => {
-      updateSeatStatus(seatId, 'SOLD');
-      setSelectedSeats((prev) => prev.filter((s) => s.id !== seatId));
-    });
-
-    return () => {
-      offLocked();
-      offReleased();
-      offSold();
-    };
-  }, [on, updateSeatStatus]);
-
-  function handleSelectSeat(seat) {
-    setSelectedSeats((prev) => {
-      const alreadySelected = prev.some((s) => s.id === seat.id);
-      if (alreadySelected) return prev.filter((s) => s.id !== seat.id);
-      if (prev.length >= 4) {
-        toast.error('Tối đa 4 ghế mỗi lần đặt');
-        return prev;
-      }
-      const zone = zones.find((z) => z.seats.some((s) => s.id === seat.id));
-      return [
-        ...prev,
-        {
-          id: seat.id,
-          label: seat.label,
-          zoneId: zone?.id,
-          zoneName: zone?.name,
-          price: zone?.price ?? 0,
-          expiresAt: Date.now() + 10 * 60 * 1000,
-        },
-      ];
+  function handleBook() {
+    if (!selectedZone) return;
+    navigate(`/events/${eventId}/seats`, {
+      state: { zoneId: selectedZone.id, zoneName: selectedZone.name, qty },
     });
   }
 
-  function handleRemoveSeat(seatId) {
-    setSelectedSeats((prev) => prev.filter((s) => s.id !== seatId));
-  }
-
-  function handleSeatExpired(seatId) {
-    toast.warning('Phiên giữ chỗ đã hết hạn', { description: 'Ghế đã được nhả về do quá 10 phút.' });
-    setSelectedSeats((prev) => prev.filter((s) => s.id !== seatId));
-  }
-
-  async function handleCheckout() {
-    if (selectedSeats.length === 0) return;
-    setBooking(true);
-    try {
-      const lockResults = await Promise.all(
-        selectedSeats.map((s) => bookingService.lockSeat(s.id))
-      );
-      const lockedBookings = lockResults.map((res) => res.data);
-      navigate('/checkout', {
-        state: {
-          bookings: lockedBookings,
-          eventId,
-          eventTitle: event?.title,
-          eventVenue: event?.venue,
-          eventDate: event?.date,
-        },
-      });
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Không thể giữ ghế. Ghế có thể đã được người khác chọn.');
-    } finally {
-      setBooking(false);
-    }
-  }
-
-  const total = selectedSeats.reduce((sum, s) => sum + s.price, 0);
-  const fee = Math.round(total * 0.05);
+  const total = selectedZone ? (selectedZone.price ?? 0) * qty : 0;
 
   const dateStr = event?.date
     ? new Date(event.date).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -178,54 +67,39 @@ export default function EventDetailPage() {
 
   if (isLoading) return <LoadingSpinner />;
   if (!event) return (
-    <div style={{ textAlign: 'center', padding: '60px 0', color: '#AAAAAA' }}>
-      Không tìm thấy sự kiện
-    </div>
+    <div className="ed-not-found">Không tìm thấy sự kiện</div>
   );
 
   return (
-    <div className="event-detail">
-      {/* HERO */}
-      <section className="event-detail__hero">
-        <div className="event-detail__hero-bg" />
+    <div className="ed">
 
-        {[
-          { left: '20%', transform: 'rotate(-18deg)', color: '#FF6B35' },
-          { left: '38%', transform: 'rotate(-5deg)', color: '#fff' },
-          { left: '54%', transform: 'rotate(10deg)', color: '#FF6B35' },
-          { left: '70%', transform: 'rotate(22deg)', color: '#fff' },
-        ].map((l, i) => (
-          <div key={i} style={{
-            position: 'absolute', top: 0, left: l.left, width: 180, height: 260,
-            opacity: .14, transformOrigin: 'top center', transform: l.transform,
-            background: `linear-gradient(to bottom, ${l.color}, transparent)`, zIndex: 0,
-          }} />
-        ))}
-
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 160, zIndex: 1, overflow: 'hidden' }}>
+      {/* ── HERO ── */}
+      <section className="ed-hero">
+        <div className="ed-hero__bg" />
+        <div className="ed-hero__sl ed-hero__sl--1" />
+        <div className="ed-hero__sl ed-hero__sl--2" />
+        <div className="ed-hero__sl ed-hero__sl--3" />
+        <div className="ed-hero__sl ed-hero__sl--4" />
+        <div className="ed-hero__crowd">
           <svg viewBox="0 0 1440 160" preserveAspectRatio="none" width="100%" height="100%">
             <path d="M0,130 Q50,100 100,118 Q150,100 200,115 Q250,100 300,115 Q350,102 400,116 Q450,102 500,116 Q550,104 600,115 Q650,104 700,116 Q750,104 800,116 Q850,104 900,115 Q950,104 1000,116 Q1050,104 1100,115 Q1150,104 1200,116 Q1250,104 1300,115 Q1350,104 1400,116 Q1420,110 1440,115 L1440,160 L0,160 Z" fill="rgba(15,5,0,0.92)" />
           </svg>
         </div>
-
-        {event.imageUrl && (
-          <img src={event.imageUrl} alt={event.title} className="event-detail__hero-img" />
-        )}
-        <div className="event-detail__hero-overlay" />
-
-        <div className="event-detail__hero-content">
-          <div className="event-detail__hero-tag">Sự kiện âm nhạc</div>
-          <h1 className="event-detail__hero-title">{event.title}</h1>
-          <div className="event-detail__hero-meta">
+        <div className="ed-hero__overlay" />
+        {event.imageUrl && <img src={event.imageUrl} alt={event.title} className="ed-hero__img" />}
+        <div className="ed-hero__content">
+          <div className="ed-pill">🎵&nbsp; Âm nhạc</div>
+          <h1 className="ed-hero__title">{event.title}</h1>
+          <div className="ed-hero__meta">
             {dateStr && (
-              <span className="event-detail__hero-meta-item">
-                <svg width="13" height="13" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+              <span className="ed-hero__meta-item">
+                <svg width="15" height="15" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
                 {dateStr}{timeStr && ` · ${timeStr}`}
               </span>
             )}
             {event.venue && (
-              <span className="event-detail__hero-meta-item">
-                <svg width="13" height="13" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.5" /></svg>
+              <span className="ed-hero__meta-item">
+                <svg width="15" height="15" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.5" /></svg>
                 {event.venue}
               </span>
             )}
@@ -233,162 +107,144 @@ export default function EventDetailPage() {
         </div>
       </section>
 
-      {/* BREADCRUMB */}
-      <div className="event-detail__breadcrumb">
-        <Link to="/">Trang chủ</Link>
-        <span className="event-detail__breadcrumb-sep">/</span>
-        <Link to="/">Sự kiện</Link>
-        <span className="event-detail__breadcrumb-sep">/</span>
-        <span className="event-detail__breadcrumb-current">{event.title}</span>
+      {/* ── BREADCRUMB ── */}
+      <div className="ed-breadcrumb">
+        <Link to="/" className="ed-breadcrumb__link">Trang chủ</Link>
+        <span className="ed-breadcrumb__sep">/</span>
+        <Link to="/" className="ed-breadcrumb__link">Âm nhạc</Link>
+        <span className="ed-breadcrumb__sep">/</span>
+        <span className="ed-breadcrumb__current">{event.title}</span>
       </div>
 
-      {/* MAIN LAYOUT */}
-      <div className="event-detail__layout">
+      {/* ── MAIN ── */}
+      <div className="ed-layout">
 
         {/* LEFT */}
-        <div className="event-detail__left">
+        <div className="ed-left">
 
-          <div className="event-detail__card">
-            <h2 className="event-detail__card-title">Về sự kiện</h2>
-            <p className="event-detail__desc">
+          {/* About */}
+          <div className="ed-card">
+            <h2 className="ed-card__title">Về sự kiện</h2>
+            <p className="ed-card__body">
               {event.description || `${event.title} — sự kiện âm nhạc được mong chờ nhất năm, quy tụ hàng chục nghìn khán giả với sân khấu hoành tráng và màn trình diễn không thể bỏ lỡ.`}
             </p>
-            {event.venue && (
-              <div className="event-detail__meta-row">
-                <div className="event-detail__meta-item">
-                  <svg width="14" height="14" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.5" /></svg>
-                  {event.venue}
-                </div>
-                {dateStr && (
-                  <div className="event-detail__meta-item">
-                    <svg width="14" height="14" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
-                    {dateStr}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
-          <div className="event-detail__card">
-            <h2 className="event-detail__card-title">Sơ đồ ghế</h2>
-            {zones.length > 0 ? (
-              <SeatMap
-                zones={zones}
-                selectedSeats={selectedSeats}
-                onSelectSeat={handleSelectSeat}
-                onRemoveSeat={handleRemoveSeat}
-              />
-            ) : (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: '#AAAAAA', fontSize: 14 }}>
-                Đang tải sơ đồ ghế...
+          {/* Venue */}
+          {event.venue && (
+            <div className="ed-card">
+              <h2 className="ed-card__title">Địa điểm</h2>
+              <div className="ed-venue__name">{event.venue}</div>
+              <div className="ed-venue__addr">Vui lòng kiểm tra thông tin địa điểm trước khi đến</div>
+              <div className="ed-map">
+                <div className="ed-map__grid" />
+                <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', opacity:.3 }} viewBox="0 0 400 180" preserveAspectRatio="none">
+                  <line x1="0" y1="90" x2="400" y2="90" stroke="#555" strokeWidth="6" />
+                  <line x1="200" y1="0" x2="200" y2="180" stroke="#555" strokeWidth="6" />
+                  <line x1="0" y1="50" x2="400" y2="130" stroke="#444" strokeWidth="3" />
+                  <rect x="155" y="65" width="90" height="50" rx="4" fill="rgba(255,107,53,.15)" stroke="#FF6B35" strokeWidth="1.5" />
+                </svg>
+                <span className="ed-map__pin">📍</span>
+                <span className="ed-map__label">{event.venue}</span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          <div className="event-detail__card">
-            <h2 className="event-detail__card-title">Điều khoản & Lưu ý</h2>
-            <ul className="event-detail__terms">
+          {/* Terms */}
+          <div className="ed-card">
+            <h2 className="ed-card__title">Điều khoản & Lưu ý</h2>
+            <ul className="ed-terms">
               {TERMS.map((t, i) => (
-                <li key={i}>
-                  <span className="event-detail__terms-dot">•</span>
-                  {t}
+                <li key={i} className="ed-terms__item">
+                  <span className="ed-terms__dot">•</span>
+                  <span>{t}</span>
                 </li>
               ))}
             </ul>
           </div>
+
         </div>
 
-        {/* RIGHT */}
-        <div className="event-detail__sidebar">
-          <div className="event-detail__sidebar-card">
-            <div className="event-detail__sidebar-title">Ghế đã chọn</div>
+        {/* RIGHT — ticket sidebar */}
+        <div className="ed-sidebar">
+          <div className="ed-ticket">
+            <div className="ed-ticket__title">Chọn loại vé</div>
 
-            <div className="event-detail__seat-list">
-              {selectedSeats.length === 0 ? (
-                <div className="event-detail__seat-empty">
-                  Nhấn vào ghế xanh lá để chọn
-                </div>
-              ) : (
-                selectedSeats.map((seat) => (
-                  <SelectedSeatRow
-                    key={seat.id}
-                    seat={seat}
-                    onRemove={() => handleRemoveSeat(seat.id)}
-                    onExpired={() => handleSeatExpired(seat.id)}
-                  />
-                ))
-              )}
-            </div>
-
-            {selectedSeats.length > 0 && (
-              <>
-                <div className="event-detail__divider" />
-                <div className="event-detail__price-row">
-                  <div className="event-detail__price-line">
-                    <span className="event-detail__price-label">Số ghế</span>
-                    <span className="event-detail__price-value">{selectedSeats.length} ghế</span>
+            {zones.length === 0 ? (
+              <div className="ed-ticket__empty">Chưa có thông tin vé</div>
+            ) : (
+              zones.map((zone) => {
+                const avail = zone.availableSeats ?? zone.capacity ?? 0;
+                const isSoldOut = avail === 0;
+                const isSelected = selectedZone?.id === zone.id;
+                return (
+                  <div
+                    key={zone.id}
+                    className={`ed-zone${isSelected ? ' ed-zone--selected' : ''}${isSoldOut ? ' ed-zone--sold' : ''}`}
+                    onClick={() => !isSoldOut && setSelectedZone(zone)}
+                  >
+                    <div className="ed-zone__radio">
+                      {isSelected && <div className="ed-zone__radio-dot" />}
+                    </div>
+                    <div className="ed-zone__info">
+                      <div className="ed-zone__name">{zone.name}</div>
+                      <div className="ed-zone__desc">{avail > 0 ? `Còn ${avail} ghế` : 'Hết vé'}</div>
+                    </div>
+                    <div className="ed-zone__right">
+                      <div className="ed-zone__price">{fmt(zone.price ?? 0)}</div>
+                      {isSoldOut
+                        ? <span className="ed-badge ed-badge--gray">Hết vé</span>
+                        : avail < 20
+                          ? <span className="ed-badge ed-badge--low">Sắp hết</span>
+                          : <span className="ed-badge ed-badge--green">Còn vé</span>
+                      }
+                    </div>
                   </div>
-                  <div className="event-detail__price-line">
-                    <span className="event-detail__price-label">Tạm tính</span>
-                    <span className="event-detail__price-value">{fmt(total)}</span>
-                  </div>
-                  <div className="event-detail__price-line">
-                    <span className="event-detail__price-label">Phí dịch vụ (5%)</span>
-                    <span className="event-detail__price-value">{fmt(fee)}</span>
-                  </div>
-                </div>
-                <div className="event-detail__total-row">
-                  <span className="event-detail__total-label">Tổng cộng</span>
-                  <span className="event-detail__total-value">{fmt(total + fee)}</span>
-                </div>
-              </>
+                );
+              })
             )}
 
+            <div className="ed-ticket__divider" />
+
+            {/* Quantity */}
+            <div className="ed-qty">
+              <span className="ed-qty__label">Số lượng vé</span>
+              <div className="ed-qty__ctrl">
+                <button className="ed-qty__btn" onClick={() => setQty(q => Math.max(1, q - 1))}>−</button>
+                <div className="ed-qty__num">{qty}</div>
+                <button className="ed-qty__btn" onClick={() => setQty(q => Math.min(4, q + 1))}>+</button>
+              </div>
+            </div>
+
+            {/* Total */}
+            <div className="ed-total">
+              <span className="ed-total__label">Tổng cộng</span>
+              <span className="ed-total__value">{fmt(total)}</span>
+            </div>
+
             <button
-              className="event-detail__checkout-btn"
-              onClick={handleCheckout}
-              disabled={selectedSeats.length === 0 || booking}
+              className="ed-book-btn"
+              disabled={!selectedZone || zones.length === 0}
+              onClick={handleBook}
             >
-              {booking ? 'Đang xử lý...' : 'Tiến hành thanh toán'}
-              {!booking && (
-                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              )}
+              Chọn ghế &amp; Đặt vé
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
             </button>
 
-            <div className="event-detail__timer-note">
-              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>
-              Mỗi ghế được giữ tối đa <strong style={{ color: '#fff', margin: '0 3px' }}>10 phút</strong>
+            <div className="ed-ticket__note">
+              <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>
+              Bạn có <strong>10 phút</strong> để hoàn tất thanh toán
+            </div>
+
+            <div className="ed-share">
+              <button className="ed-share__btn">🔗 Sao chép link</button>
+              <button className="ed-share__btn">📤 Chia sẻ</button>
+              <button className="ed-share__btn">❤️ Yêu thích</button>
             </div>
           </div>
         </div>
+
       </div>
-    </div>
-  );
-}
-
-function SelectedSeatRow({ seat, onRemove, onExpired }) {
-  return (
-    <div className="selected-seat-row">
-      <div className="selected-seat-row__badge">
-        {seat.zoneName} · {seat.label}
-      </div>
-
-      <div className="selected-seat-row__timer">
-        <div className="selected-seat-row__timer-label">Hết hạn sau</div>
-        <CountdownBadge expiresAt={seat.expiresAt} onExpired={onExpired} />
-      </div>
-
-      <span className="selected-seat-row__price">
-        {seat.price.toLocaleString('vi-VN')}đ
-      </span>
-
-      <button
-        className="selected-seat-row__remove"
-        onClick={onRemove}
-        title="Bỏ chọn ghế"
-      >×</button>
     </div>
   );
 }
