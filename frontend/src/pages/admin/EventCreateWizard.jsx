@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/shared/AdminLayout';
 import './admin.css';
-import provinces from '../../data/vietnam';
+import provinces from '../../data/vietnam.json';
 
 export default function EventCreateWizard() {
   const navigate = useNavigate();
@@ -34,10 +34,13 @@ export default function EventCreateWizard() {
   const currentProvince = provinces.find(p => p.name === form.province);
   const currentDistrict = currentProvince?.districts?.find(d => d.name === form.district);
 
+  // Basic validation before moving to next step
+  const canNext = form.name.trim() && form.venue.trim();
+
   return (
     <AdminLayout>
       <div className="dash-topbar">
-        <div className="dash-topbar__breadcrumb">Admin <span style={{ opacity: .4 }}>/</span> <span style={{ color: '#fff', fontWeight: 600 }}>Tạo sự kiện</span></div>
+        <div className="dash-topbar__breadcrumb">Admin <span style={{ opacity: .4 }}>/</span> <span style={{ color: '#fff', fontWeight: 600 }}>Quy trình tạo sự kiện</span></div>
         <div />
       </div>
 
@@ -45,19 +48,22 @@ export default function EventCreateWizard() {
         {step === 1 ? (
           <div className="event-form-card">
             <div style={{ display: 'flex', gap: 20 }}>
-              <div style={{ width: 220 }}>
-                <div style={{ marginBottom: 8, color: '#AAAAAA', fontSize: 13 }}>Ảnh đại diện</div>
-                <div style={{ width: 220, height: 140, borderRadius: 8, background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              <aside style={{ width: 240 }}>
+                <div style={{ marginBottom: 8, color: '#AAAAAA', fontSize: 13 }}>Ảnh sự kiện</div>
+                <div style={{ width: 240, height: 160, borderRadius: 8, background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   {imagePreview ? (
                     <img src={imagePreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <div style={{ color: '#777', fontSize: 13 }}>Chưa có ảnh</div>
                   )}
                 </div>
-                <input type="file" accept="image/*" style={{ marginTop: 10 }} onChange={e => setImageFile(e.target.files?.[0] || null)} />
-              </div>
+                <label style={{ display: 'block', marginTop: 10 }}>
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setImageFile(e.target.files?.[0] || null)} />
+                  <button className="btn-ghost" type="button">Tải ảnh lên</button>
+                </label>
+              </aside>
 
-              <div style={{ flex: 1 }}>
+              <main style={{ flex: 1 }}>
                 <div className="event-form-field">
                   <label className="event-form-label">Tên sự kiện</label>
                   <input className="event-form-input" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Vd: Đêm nhạc..." />
@@ -73,7 +79,7 @@ export default function EventCreateWizard() {
                     <label className="event-form-label">Tỉnh/Thành</label>
                     <select className="event-form-input event-form-select" value={form.province} onChange={e => { set('province', e.target.value); set('district', ''); set('ward', ''); set('street', ''); }}>
                       <option value="">Chọn tỉnh/thành</option>
-                      {provinces.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+                      {provinces.map(p => <option key={p.Code} value={p.FullName}>{p.FullName}</option>)}
                     </select>
                   </div>
 
@@ -125,9 +131,9 @@ export default function EventCreateWizard() {
 
                 <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
                   <button className="btn-ghost" onClick={() => navigate('/admin/events')}>Hủy</button>
-                  <button className="btn-primary" onClick={() => setStep(2)}>Tiếp theo →</button>
+                  <button className="btn-primary" onClick={() => canNext && setStep(2)} disabled={!canNext}>Tiếp theo →</button>
                 </div>
-              </div>
+              </main>
             </div>
           </div>
         ) : (
