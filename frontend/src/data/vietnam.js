@@ -1,4 +1,4 @@
-export const provinces = [
+const provinces = [
   {
     name: 'Hà Nội',
     districts: [

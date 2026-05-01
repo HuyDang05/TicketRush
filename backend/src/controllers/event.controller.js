@@ -96,23 +96,41 @@ const getEventById = async (req, res) => {
 
 const createEvent = async (req, res) => {
   try {
-    const { title, description, venue, date, imageUrl, zones } = req.body;
+    const { title, description, venue, startDate, endDate, imageUrl, rows, cols, zones } = req.body;
     const createdBy = req.user.id;
 
-    // Validate event date is in future
-    const eventDate = new Date(date);
-    if (eventDate <= new Date()) {
-      return res.status(400).json({ message: 'Ngày sự kiện phải trong tương lai' });
+    if (!startDate) {
+      return res.status(400).json({ message: 'Ngày bắt đầu là bắt buộc' });
+    }
+
+    const eventStartDate = new Date(startDate);
+    if (eventStartDate <= new Date()) {
+      return res.status(400).json({ message: 'Ngày bắt đầu phải trong tương lai' });
+    }
+
+    let eventEndDate = null;
+    if (endDate) {
+      eventEndDate = new Date(endDate);
+      if (eventEndDate <= eventStartDate) {
+        return res.status(400).json({ message: 'Ngày kết thúc phải sau ngày bắt đầu' });
+      }
+    }
+
+    // Validate seat layout
+    const numRows = parseInt(rows);
+    const numCols = parseInt(cols);
+    if (!numRows || numRows < 1 || !numCols || numCols < 1) {
+      return res.status(400).json({ message: 'Số hàng ghế và số cột ghế phải ≥ 1' });
     }
 
     // Validate zones
     if (!Array.isArray(zones) || zones.length === 0) {
-      return res.status(400).json({ message: 'Phải có ít nhất một khu vực' });
+      return res.status(400).json({ message: 'Phải có ít nhất một loại vé' });
     }
 
     for (const zone of zones) {
-      if (!zone.name || zone.rows < 1 || zone.cols < 1 || !zone.price || zone.price <= 0) {
-        return res.status(400).json({ message: 'Khu vực phải có tên, hàng ≥ 1, cột ≥ 1, giá > 0' });
+      if (!zone.name || !zone.price || zone.price <= 0) {
+        return res.status(400).json({ message: 'Loại vé phải có tên và giá > 0' });
       }
     }
 
@@ -123,7 +141,8 @@ const createEvent = async (req, res) => {
           title,
           description,
           venue,
-          date: eventDate,
+          date: eventStartDate,
+          endDate: eventEndDate,
           imageUrl,
           status: 'DRAFT',
           createdBy,
@@ -135,16 +154,16 @@ const createEvent = async (req, res) => {
           data: {
             eventId: createdEvent.id,
             name: zone.name,
-            rows: zone.rows,
-            cols: zone.cols,
+            rows: numRows,
+            cols: numCols,
             price: parseFloat(zone.price),
           },
         });
 
         // Generate seats
         const seats = [];
-        for (let row = 0; row < zone.rows; row++) {
-          for (let col = 0; col < zone.cols; col++) {
+        for (let row = 0; row < numRows; row++) {
+          for (let col = 0; col < numCols; col++) {
             const label = String.fromCharCode(65 + row) + (col + 1);
             seats.push({
               zoneId: createdZone.id,
@@ -156,9 +175,7 @@ const createEvent = async (req, res) => {
           }
         }
 
-        await tx.seat.createMany({
-          data: seats,
-        });
+        await tx.seat.createMany({ data: seats });
       }
 
       return createdEvent;
@@ -326,9 +343,92 @@ const deleteEvent = async (req, res) => {
   }
 };
 
+const getAdminEvents = async (req, res) => {
+  try {
+    const { search, status } = req.query;
+
+    const whereCondition = {};
+
+    if (status) {
+      whereCondition.status = status;
+    }
+
+    if (search) {
+      whereCondition.title = {
+        contains: search,
+        mode: 'insensitive',
+      };
+    }
+
+    const events = await prisma.event.findMany({
+      where: whereCondition,
+      include: {
+        zones: {
+          select: {
+            price: true,
+            rows: true,
+            cols: true,
+            _count: { select: { seats: true } },
+          },
+        },
+        _count: {
+          select: { zones: true },
+        },
+      },
+      orderBy: { date: 'asc' },
+    });
+
+    const formatted = events.map(event => {
+      const totalSeats = event.zones.reduce((s, z) => s + (z.rows * z.cols), 0);
+      const minPrice = event.zones.length > 0
+        ? Math.min(...event.zones.map(z => Number(z.price)))
+        : null;
+      const { zones, ...rest } = event;
+      return { ...rest, totalSeats, minPrice };
+    });
+
+    return res.status(200).json({ events: formatted });
+  } catch (error) {
+    console.error('[Event][getAdminEvents] Error:', error);
+    return res.status(500).json({ message: 'Đã có lỗi xảy ra' });
+  }
+};
+
+const getAdminEventById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const event = await prisma.event.findUnique({
+      where: { id },
+      include: {
+        zones: {
+          select: {
+            id: true,
+            name: true,
+            rows: true,
+            cols: true,
+            price: true,
+          },
+        },
+      },
+    });
+
+    if (!event) {
+      return res.status(404).json({ message: 'Sự kiện không tồn tại' });
+    }
+
+    return res.status(200).json({ event });
+  } catch (error) {
+    console.error('[Event][getAdminEventById] Error:', error);
+    return res.status(500).json({ message: 'Đã có lỗi xảy ra' });
+  }
+};
+
 module.exports = {
   getEvents,
   getEventById,
+  getAdminEvents,
+  getAdminEventById,
   createEvent,
   updateEvent,
   publishEvent,

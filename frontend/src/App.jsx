@@ -17,8 +17,8 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import EventManagerPage from './pages/admin/EventManagerPage';
-import EventFormPage from './pages/admin/EventFormPage';
 import EventCreateWizard from './pages/admin/EventCreateWizard';
+import EventFormPage from './pages/admin/EventFormPage';
 
 function CustomerLayout() {
   return (
@@ -101,7 +101,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/events/create"
           element={
@@ -122,7 +121,7 @@ function App() {
           path="/admin/events/:id/edit"
           element={
             <ProtectedRoute requiredRole="ADMIN">
-              <EventFormPage />
+              <EventCreateWizard />
             </ProtectedRoute>
           }
         />

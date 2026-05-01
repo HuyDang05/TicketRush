@@ -158,7 +158,7 @@ export default function EventManagerPage() {
 
   const fetchEvents = useCallback(() => {
     setLoading(true);
-    eventService.getEvents()
+    eventService.getAdminEvents()
       .then(res => setEvents(res.data?.events || res.data || []))
       .catch(() => setEvents([]))
       .finally(() => setLoading(false));
@@ -351,7 +351,7 @@ export default function EventManagerPage() {
                             <ActBtn
                               title="Chỉnh sửa"
                               hoverStyle={{ borderColor: '#FF6B35', color: '#FF6B35', background: 'rgba(255,107,53,.08)' }}
-                              onClick={() => setModal(ev)}
+                              onClick={() => navigate(`/admin/events/${ev.id}/edit`)}
                             >✏️</ActBtn>
                           )}
 
