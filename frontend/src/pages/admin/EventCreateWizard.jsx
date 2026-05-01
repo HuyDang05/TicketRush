@@ -79,24 +79,18 @@ export default function EventCreateWizard() {
                     <label className="event-form-label">Tỉnh/Thành</label>
                     <select className="event-form-input event-form-select" value={form.province} onChange={e => { set('province', e.target.value); set('district', ''); set('ward', ''); set('street', ''); }}>
                       <option value="">Chọn tỉnh/thành</option>
-                      {provinces.map(p => <option key={p.Code} value={p.FullName}>{p.FullName}</option>)}
+                      {provinces.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
                     </select>
                   </div>
 
                   <div className="event-form-field">
                     <label className="event-form-label">Quận/Huyện</label>
-                    <select className="event-form-input event-form-select" value={form.district} onChange={e => { set('district', e.target.value); set('ward', ''); }}>
-                      <option value="">Chọn quận/huyện</option>
-                      {currentProvince?.districts?.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
-                    </select>
+                    <input className="event-form-input" value={form.district} onChange={e => { set('district', e.target.value); set('ward', ''); }} placeholder="Nhập quận/huyện (ví dụ: Quận Ba Đình)" />
                   </div>
 
                   <div className="event-form-field">
                     <label className="event-form-label">Phường/Xã</label>
-                    <select className="event-form-input event-form-select" value={form.ward} onChange={e => set('ward', e.target.value)}>
-                      <option value="">Chọn phường/xã</option>
-                      {currentDistrict?.wards?.map(w => <option key={w} value={w}>{w}</option>)}
-                    </select>
+                    <input className="event-form-input" value={form.ward} onChange={e => set('ward', e.target.value)} placeholder="Nhập phường/xã (ví dụ: Phường Ba Đình)" />
                   </div>
                 </div>
 
