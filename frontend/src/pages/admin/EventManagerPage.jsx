@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import eventService from '../../services/event.service';
 import AdminLayout from '../../components/shared/AdminLayout';
 import './admin.css';
+import api from '../../services/api';
+import { io } from 'socket.io-client';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const id = setTimeout(onDone, 2600); return () => clearTimeout(id); }, [onDone]);
@@ -149,6 +151,7 @@ const THUMB_EMOJIS = ['🎤', '⚽', '🎷', '🎹', '🎪', '🎭'];
 export default function EventManagerPage() {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
+  const [eventStats, setEventStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -156,15 +159,69 @@ export default function EventManagerPage() {
   const [toast, setToast] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
-  const fetchEvents = useCallback(() => {
+  const fetchEvents = useCallback(async () => {
     setLoading(true);
-    eventService.getEvents()
-      .then(res => setEvents(res.data?.events || res.data || []))
-      .catch(() => setEvents([]))
-      .finally(() => setLoading(false));
+
+    try {
+      const res = await eventService.getEvents();
+      const eventList = res.data?.events || res.data?.data || res.data || [];
+      const safeEvents = Array.isArray(eventList) ? eventList : [];
+
+      setEvents(safeEvents);
+
+      const statsEntries = await Promise.all(
+        safeEvents.map(async (ev) => {
+          try {
+            const dashRes = await api.get(`/admin/dashboard/${ev.id}`);
+            return [ev.id, dashRes.data?.data?.summary || {}];
+          } catch {
+            return [ev.id, {}];
+          }
+        })
+      );
+
+      setEventStats(Object.fromEntries(statsEntries));
+    } catch {
+      setEvents([]);
+      setEventStats({});
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
+
+  useEffect(() => {
+    if (events.length === 0) return;
+
+    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+      withCredentials: true,
+    });
+
+    events.forEach(ev => {
+      socket.emit('join_event', ev.id);
+    });
+
+    const refreshEvents = () => {
+      fetchEvents();
+    };
+
+    socket.on('seat_locked', refreshEvents);
+    socket.on('seat_sold', refreshEvents);
+    socket.on('seat_released', refreshEvents);
+
+    return () => {
+      events.forEach(ev => {
+        socket.emit('leave_event', ev.id);
+      });
+
+      socket.off('seat_locked', refreshEvents);
+      socket.off('seat_sold', refreshEvents);
+      socket.off('seat_released', refreshEvents);
+
+      socket.disconnect();
+    };
+  }, [events, fetchEvents]);
 
   const showToast = msg => { setToast(msg); };
 
@@ -212,7 +269,23 @@ export default function EventManagerPage() {
   });
 
   const pubCount = events.filter(e => e.status === 'PUBLISHED').length;
-  const totalSold = events.reduce((s, e) => s + (e._count?.bookings ?? 0), 0);
+
+  const totalSold = Object.values(eventStats).reduce(
+    (sum, stat) => sum + Number(stat.soldSeats || 0),
+    0
+  );
+
+  const totalRevenue = Object.values(eventStats).reduce(
+    (sum, stat) => sum + Number(stat.revenue || 0),
+    0
+  );
+
+  const formatRevenue = (n) => {
+    if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1) + 'tỷ đ';
+    if (n >= 1_000_000) return Math.round(n / 1_000_000) + 'tr đ';
+    if (n >= 1_000) return Math.round(n / 1_000) + 'k đ';
+    return Number(n || 0).toLocaleString('vi-VN') + 'đ';
+  };
 
   const getStatusBadge = (status) => {
     if (status === 'DRAFT') return { label: 'DRAFT', style: { background: 'rgba(156,163,175,.15)', color: '#9CA3AF', border: '1px solid rgba(156,163,175,.35)' } };
@@ -251,8 +324,8 @@ export default function EventManagerPage() {
         <div className="event-manager-stats">
           <StatCard label="Tổng sự kiện" value={events.length} change="+2 tháng này" changeUp />
           <StatCard label="Đang mở bán" value={pubCount} valueColor="#FF6B35" change="Đang hoạt động" />
-          <StatCard label="Vé đã bán" value={totalSold.toLocaleString()} change="+18% so với tháng trước" changeUp />
-          <StatCard label="Doanh thu tháng" value="624tr đ" valueColor="#FF6B35" change="+24% so với T5" changeUp />
+          <StatCard label="Vé đã bán" value={totalSold.toLocaleString('vi-VN')} change="+18% so với tháng trước" changeUp />
+          <StatCard label="Doanh thu tháng" value={formatRevenue(totalRevenue)} valueColor="#FF6B35" change="+24% so với T5" changeUp />
         </div>
 
         <div className="event-manager-table-card">
@@ -301,8 +374,9 @@ export default function EventManagerPage() {
                   <tr><td colSpan="7" className="admin-table__empty">Không tìm thấy sự kiện nào</td></tr>
                 ) : filtered.map((ev, i) => {
                   const name = ev.title || ev.name || 'Sự kiện';
-                  const totalSeats = ev.capacity ?? ev.totalSeats ?? 0;
-                  const soldSeats = ev._count?.bookings ?? ev.soldSeats ?? 0;
+                  const stat = eventStats[ev.id] || {};
+                  const totalSeats = Number(stat.totalSeats || ev.capacity || ev.totalSeats || 0);
+                  const soldSeats = Number(stat.soldSeats || ev.soldSeats || 0);
                   const badge = getStatusBadge(ev.status);
                   const isDeleting = deletingId === ev.id;
 

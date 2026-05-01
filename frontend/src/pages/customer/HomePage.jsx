@@ -181,24 +181,6 @@ export default function HomePage() {
 
       {/* ── SEARCH + EVENTS ── */}
       <section className="home-events">
-        <div className="home-search">
-          <input
-            type="text"
-            className="home-search__input"
-            placeholder="Tìm kiếm sự kiện, nghệ sĩ..."
-            value={searchQuery}
-            onChange={handleSearchChange}
-            onKeyDown={handleSearchKeyDown}
-          />
-          <button
-            className="home-search__btn"
-            onClick={() => setDebouncedQuery(searchQuery)}
-          >
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-              <circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4 4" />
-            </svg>
-          </button>
-        </div>
 
         <div className="home-section-header">
           <h2 className="home-section-title">
