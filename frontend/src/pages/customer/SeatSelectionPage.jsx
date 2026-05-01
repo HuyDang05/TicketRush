@@ -28,7 +28,14 @@ const ZONE_META = {
   b:   { name:'Khu B', color:'#1a4a7a', borderColor:'#1a4a7a' },
 };
 
-function fmt(n) { return n.toLocaleString('vi-VN') + 'đ'; }
+function toNumberPrice(value) {
+  if (value === null || value === undefined) return 0;
+  return Number(String(value).replace(/[^\d]/g, '')) || 0;
+}
+
+function fmt(n) {
+  return toNumberPrice(n).toLocaleString('vi-VN') + 'đ';
+}
 
 function Countdown({ seconds }) {
   const [secs, setSecs] = useState(seconds);
@@ -96,7 +103,7 @@ export default function SeatSelectionPage() {
             const lockedSet = new Set(zoneSeatList.filter(s => s.status === 'LOCKED').map(s => `${s.row}-${s.col}`));
             return {
               ...staticRow,
-              price:        zone?.price ?? staticRow.price,
+              price:        toNumberPrice(zone?.price ?? staticRow.price),
               zoneId:       zone?.id,
               soldSet,
               lockedSet,
@@ -350,9 +357,14 @@ export default function SeatSelectionPage() {
   }
 
   const selKeys  = Object.keys(selected);
-  const subtotal = selKeys.reduce((acc, k) => acc + (selected[k].price || 0), 0);
+
+  const subtotal = selKeys.reduce(
+    (acc, k) => acc + toNumberPrice(selected[k].price),
+    0
+  );
   const fee      = Math.round(subtotal * 0.05);
   const total    = subtotal + fee;
+
   const firstRow = selKeys.length > 0 ? rows[selected[selKeys[0]].rowIdx] : null;
 
   const dateStr = event?.date
