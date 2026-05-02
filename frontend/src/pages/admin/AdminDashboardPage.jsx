@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import AdminLayout from '../../components/shared/AdminLayout';
 import api from '../../services/api';
 import eventService from '../../services/event.service';
+import { io } from 'socket.io-client';
 
 import {
   PieChart,
@@ -18,7 +19,6 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-import { useSocket } from '../../hooks/useSocket';
 import './admin.css';
 
 // ── canvas helpers ────────────────────────────────────────────────────────────
@@ -181,7 +181,6 @@ export default function AdminDashboardPage() {
   const [lastUpdate, setLastUpdate] = useState('vừa xong');
   const [revOffset, setRevOffset] = useState(0);
 
-  const { on } = useSocket(selectedId);
 
   const sparkRef = useRef(null);
   const revRef   = useRef(null);
@@ -189,7 +188,7 @@ export default function AdminDashboardPage() {
   // load event list
   useEffect(() => {
     eventService.getEvents({ limit: 50 }).then(res => {
-      const list = res.data?.data || res.data || [];
+      const list = res.data?.events || res.data?.data || res.data || [];
       const eventList = Array.isArray(list) ? list : [];
 
       setEvents(eventList);
@@ -218,24 +217,34 @@ export default function AdminDashboardPage() {
 
   useEffect(() => { fetchDash(selectedId); }, [selectedId, fetchDash]);
 
-  // realtime refresh when seat status changes
+  // realtime refresh when customer locks / buys / releases seats
   useEffect(() => {
     if (!selectedId) return;
+
+    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+      withCredentials: true,
+    });
+
+    socket.emit('join_event', selectedId);
 
     const refreshDashboard = () => {
       fetchDash(selectedId);
     };
 
-    const offSold = on('seat_sold', refreshDashboard);
-    const offLocked = on('seat_locked', refreshDashboard);
-    const offReleased = on('seat_released', refreshDashboard);
+    socket.on('seat_locked', refreshDashboard);
+    socket.on('seat_sold', refreshDashboard);
+    socket.on('seat_released', refreshDashboard);
 
     return () => {
-      if (offSold) offSold();
-      if (offLocked) offLocked();
-      if (offReleased) offReleased();
+      socket.emit('leave_event', selectedId);
+
+      socket.off('seat_locked', refreshDashboard);
+      socket.off('seat_sold', refreshDashboard);
+      socket.off('seat_released', refreshDashboard);
+
+      socket.disconnect();
     };
-  }, [selectedId, on, fetchDash]);
+  }, [selectedId, fetchDash]);
 
   // auto-refresh every 8s
   useEffect(() => {

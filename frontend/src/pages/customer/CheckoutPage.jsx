@@ -7,7 +7,8 @@ import { useCountdown } from '../../hooks/useCountdown';
 import './checkout.css';
 
 function fmtVND(n) {
-  return (n ?? 0).toLocaleString('vi-VN') + 'đ';
+  const value = Number(n) || 0;
+  return value.toLocaleString('vi-VN') + ' đ';
 }
 
 function CheckoutCountdown({ expiresAt }) {
@@ -65,9 +66,14 @@ export default function CheckoutPage() {
     ...bookings.map((b) => new Date(b.expiresAt).getTime())
   );
 
-  const subtotal = bookings.reduce((sum, b) => sum + (b.totalPrice ?? 0), 0);
-  const serviceFee = Math.round(subtotal * 0.05);
-  const grandTotal = subtotal + serviceFee;
+  const subtotal = bookings.reduce(
+    (sum, b) => sum + Number(b.totalPrice || 0),
+    0
+  );
+
+  const serviceFee = Math.round(Number(subtotal) * 0.05);
+
+  const grandTotal = Number(subtotal) + Number(serviceFee);
 
   const dateStr = eventDate
     ? new Date(eventDate).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -232,7 +238,7 @@ export default function CheckoutPage() {
 
             <div className="checkout-price-rows">
               <div className="checkout-price-row">
-                <span className="checkout-price-row__label">Tạm tính ({bookings.length} vé)</span>
+                <span className="checkout-price-row__label">Tạm tính</span>
                 <span className="checkout-price-row__value">{fmtVND(subtotal)}</span>
               </div>
               <div className="checkout-price-row">
@@ -242,11 +248,6 @@ export default function CheckoutPage() {
             </div>
 
             <div className="checkout-divider" />
-
-            <div className="checkout-total-row">
-              <span className="checkout-total-row__label">Tổng thanh toán</span>
-              <span className="checkout-total-row__value">{fmtVND(grandTotal)}</span>
-            </div>
 
             <button
               className={`checkout-confirm-btn${success ? ' checkout-confirm-btn--success' : ''}`}

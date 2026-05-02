@@ -206,22 +206,6 @@ export default function EventDetailPage() {
 
             <div className="ed-ticket__divider" />
 
-            {/* Quantity */}
-            <div className="ed-qty">
-              <span className="ed-qty__label">Số lượng vé</span>
-              <div className="ed-qty__ctrl">
-                <button className="ed-qty__btn" onClick={() => setQty(q => Math.max(1, q - 1))}>−</button>
-                <div className="ed-qty__num">{qty}</div>
-                <button className="ed-qty__btn" onClick={() => setQty(q => Math.min(4, q + 1))}>+</button>
-              </div>
-            </div>
-
-            {/* Total */}
-            <div className="ed-total">
-              <span className="ed-total__label">Tổng cộng</span>
-              <span className="ed-total__value">{fmt(total)}</span>
-            </div>
-
             <button
               className="ed-book-btn"
               disabled={!selectedZone || zones.length === 0}
