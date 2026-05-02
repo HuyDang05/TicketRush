@@ -131,7 +131,7 @@ export default function Header() {
                     className="header__dropdown-item"
                     onClick={() => {
                       setOpenUserMenu(false);
-                      alert('Trang tài khoản cá nhân đang phát triển');
+                      navigate('/account');
                     }}
                   >
                     Tài khoản cá nhân

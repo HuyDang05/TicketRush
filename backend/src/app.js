@@ -9,7 +9,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth.routes');
 const adminRoutes = require('./routes/admin.routes');
 const eventRoutes = require('./routes/event.routes');
-
+const userRoutes = require('./routes/user.routes');
 const bookingRoutes = require('./routes/booking.routes');
 
 const app = express();
@@ -38,5 +38,6 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminDashboardRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/users', userRoutes);
 
 module.exports = app;
