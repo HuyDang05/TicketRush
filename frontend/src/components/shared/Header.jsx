@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import './Header.css';
@@ -7,11 +7,29 @@ export default function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [openUserMenu, setOpenUserMenu] = useState(false);
+  const userMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setOpenUserMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSearch = (e) => {
     if (e.key === 'Enter' && search.trim()) {
       navigate(`/?search=${encodeURIComponent(search.trim())}`);
     }
+  };
+
+  const handleLogout = () => {
+    setOpenUserMenu(false);
+    logout();
   };
 
   return (
@@ -32,11 +50,22 @@ export default function Header() {
             className="header__search-input"
           />
           <button
-            onClick={() => search.trim() && navigate(`/?search=${encodeURIComponent(search.trim())}`)}
+            onClick={() =>
+              search.trim() &&
+              navigate(`/?search=${encodeURIComponent(search.trim())}`)
+            }
             className="header__search-btn"
           >
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-              <circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/>
+            <svg
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m16.5 16.5 4 4" />
             </svg>
           </button>
         </div>
@@ -44,28 +73,80 @@ export default function Header() {
         <div className="header__actions">
           {!user ? (
             <>
-              <Link to="/login" className="header__btn header__btn--outline">Đăng nhập</Link>
-              <Link to="/register" className="header__btn header__btn--accent">Đăng ký</Link>
+              <Link to="/login" className="header__btn header__btn--outline">
+                Đăng nhập
+              </Link>
+              <Link to="/register" className="header__btn header__btn--accent">
+                Đăng ký
+              </Link>
             </>
           ) : (
-            <>
-              <span className="header__avatar">
+            <div className="header__user-menu" ref={userMenuRef}>
+              <button
+                type="button"
+                className="header__account-btn"
+                onClick={() => setOpenUserMenu((prev) => !prev)}
+              >
                 <span className="header__avatar-circle">
-                  {user.fullName?.charAt(0).toUpperCase()}
+                  {user.fullName?.charAt(0).toUpperCase() || 'U'}
                 </span>
-                <span className="header__avatar-name">{user.fullName}</span>
-              </span>
-              {user.role === 'CUSTOMER' && (
-                <Link to="/my-tickets" className="header__btn header__btn--ghost">Vé của tôi</Link>
+
+                <span className="header__account-name">
+                  {user.fullName || 'Tài khoản'}
+                </span>
+
+                <span className="header__account-arrow">▾</span>
+              </button>
+
+              {openUserMenu && (
+                <div className="header__dropdown">
+                  {user.role === 'CUSTOMER' && (
+                    <button
+                      type="button"
+                      className="header__dropdown-item"
+                      onClick={() => {
+                        setOpenUserMenu(false);
+                        navigate('/my-tickets');
+                      }}
+                    >
+                      Vé của tôi
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className="header__dropdown-item"
+                    onClick={() => {
+                      setOpenUserMenu(false);
+                      alert('Trang tài khoản cá nhân đang phát triển');
+                    }}
+                  >
+                    Tài khoản cá nhân
+                  </button>
+
+                  {user.role === 'ADMIN' && (
+                    <button
+                      type="button"
+                      className="header__dropdown-item"
+                      onClick={() => {
+                        setOpenUserMenu(false);
+                        navigate('/admin');
+                      }}
+                    >
+                      Admin Dashboard
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className="header__dropdown-item header__dropdown-item--danger"
+                    onClick={handleLogout}
+                  >
+                    Đăng xuất
+                  </button>
+                </div>
               )}
-              {user.role === 'ADMIN' && (
-                <Link to="/admin" className="header__btn header__btn--admin">
-                  <span className="header__admin-badge">ADMIN</span>
-                  Dashboard
-                </Link>
-              )}
-              <button onClick={logout} className="header__btn header__btn--outline">Đăng xuất</button>
-            </>
+            </div>
           )}
         </div>
       </header>
@@ -78,7 +159,9 @@ export default function Header() {
           { label: 'Hội thảo', path: '/?cat=conference' },
           { label: 'Khác', path: '/?cat=other' },
         ].map(({ label, path }) => (
-          <Link key={label} to={path} className="header-nav__link">{label}</Link>
+          <Link key={label} to={path} className="header-nav__link">
+            {label}
+          </Link>
         ))}
       </nav>
     </>

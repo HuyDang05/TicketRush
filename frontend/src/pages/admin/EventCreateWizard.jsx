@@ -606,9 +606,7 @@ export default function EventCreateWizard() {
           </div>
         )}
 
-        {/* Navigation bottom bar – Step 3 */}
-        {step === 3 && null}
-        </div> {/* end padding wrapper */}
+        </div>
       )} {/* end loadingEvent ternary */}
 
       {/* Toast */}
