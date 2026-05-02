@@ -11,14 +11,13 @@ const uploadImage = async (req, res) => {
       return res.status(400).json({ message: 'Không có file ảnh được gửi lên' });
     }
 
-    // Upload buffer lên Cloudinary
+    // Upload buffer lên Cloudinary — lưu ảnh gốc (frontend đã validate kích thước)
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
           folder: 'ticketrush/events',
-          transformation: [
-            { width: 1280, height: 720, crop: 'fill', quality: 'auto', fetch_format: 'auto' },
-          ],
+          quality: 'auto',
+          fetch_format: 'auto',
         },
         (error, result) => {
           if (error) reject(error);

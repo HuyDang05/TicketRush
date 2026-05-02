@@ -32,6 +32,7 @@ model Event {
   venue          String
   date           DateTime
   imageUrl       String?
+  cardImageUrl   String?
   status         EventStatus @default(DRAFT)
   createdAt      DateTime    @default(now())
   seatmapJson    Json?

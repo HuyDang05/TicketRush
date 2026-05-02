@@ -96,7 +96,7 @@ const getEventById = async (req, res) => {
 
 const createEvent = async (req, res) => {
   try {
-    const { title, description, venue, startDate, endDate, imageUrl, rows, cols, zones } = req.body;
+    const { title, description, venue, startDate, endDate, imageUrl, cardImageUrl, rows, cols, zones } = req.body;
     const createdBy = req.user.id;
 
     if (!startDate) {
@@ -116,21 +116,19 @@ const createEvent = async (req, res) => {
       }
     }
 
-    // Validate seat layout
+    // Validate seat layout (chỉ khi có zones)
     const numRows = parseInt(rows);
     const numCols = parseInt(cols);
-    if (!numRows || numRows < 1 || !numCols || numCols < 1) {
-      return res.status(400).json({ message: 'Số hàng ghế và số cột ghế phải ≥ 1' });
-    }
+    const hasZones = Array.isArray(zones) && zones.length > 0;
 
-    // Validate zones
-    if (!Array.isArray(zones) || zones.length === 0) {
-      return res.status(400).json({ message: 'Phải có ít nhất một loại vé' });
-    }
-
-    for (const zone of zones) {
-      if (!zone.name || !zone.price || zone.price <= 0) {
-        return res.status(400).json({ message: 'Loại vé phải có tên và giá > 0' });
+    if (hasZones) {
+      if (!numRows || numRows < 1 || !numCols || numCols < 1) {
+        return res.status(400).json({ message: 'Số hàng ghế và số cột ghế phải ≥ 1' });
+      }
+      for (const zone of zones) {
+        if (!zone.name || !zone.price || zone.price <= 0) {
+          return res.status(400).json({ message: 'Loại vé phải có tên và giá > 0' });
+        }
       }
     }
 
@@ -144,38 +142,33 @@ const createEvent = async (req, res) => {
           date: eventStartDate,
           endDate: eventEndDate,
           imageUrl,
+          cardImageUrl,
           status: 'DRAFT',
           createdBy,
         },
       });
 
-      for (const zone of zones) {
-        const createdZone = await tx.zone.create({
-          data: {
-            eventId: createdEvent.id,
-            name: zone.name,
-            rows: numRows,
-            cols: numCols,
-            price: parseFloat(zone.price),
-          },
-        });
+      if (hasZones) {
+        for (const zone of zones) {
+          const createdZone = await tx.zone.create({
+            data: {
+              eventId: createdEvent.id,
+              name: zone.name,
+              rows: numRows,
+              cols: numCols,
+              price: parseFloat(zone.price),
+            },
+          });
 
-        // Generate seats
-        const seats = [];
-        for (let row = 0; row < numRows; row++) {
-          for (let col = 0; col < numCols; col++) {
-            const label = String.fromCharCode(65 + row) + (col + 1);
-            seats.push({
-              zoneId: createdZone.id,
-              row,
-              col,
-              label,
-              status: 'AVAILABLE',
-            });
+          const seats = [];
+          for (let row = 0; row < numRows; row++) {
+            for (let col = 0; col < numCols; col++) {
+              const label = String.fromCharCode(65 + row) + (col + 1);
+              seats.push({ zoneId: createdZone.id, row, col, label, status: 'AVAILABLE' });
+            }
           }
+          await tx.seat.createMany({ data: seats });
         }
-
-        await tx.seat.createMany({ data: seats });
       }
 
       return createdEvent;
@@ -194,7 +187,7 @@ const createEvent = async (req, res) => {
 const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, venue, date, imageUrl } = req.body;
+    const { title, description, venue, date, imageUrl, cardImageUrl, startDate, endDate } = req.body;
 
     // Check event exists and is DRAFT
     const event = await prisma.event.findUnique({
@@ -241,8 +234,10 @@ const updateEvent = async (req, res) => {
         title: title || event.title,
         description: description !== undefined ? description : event.description,
         venue: venue || event.venue,
-        date: date ? new Date(date) : event.date,
         imageUrl: imageUrl !== undefined ? imageUrl : event.imageUrl,
+        cardImageUrl: cardImageUrl !== undefined ? cardImageUrl : event.cardImageUrl,
+        date: startDate ? new Date(startDate) : (date ? new Date(date) : event.date),
+        endDate: endDate !== undefined ? (endDate ? new Date(endDate) : null) : event.endDate,
       },
     });
 
