@@ -40,11 +40,13 @@ const facebookCallback = async (req, res) => {
     // Fetch user profile
     const profileRes = await axios.get('https://graph.facebook.com/me', {
       params: {
-        fields: 'id,name,email',
+        fields: 'id,name,email,picture.type(large)',
         access_token: accessToken,
       },
     });
-    const { email, name } = profileRes.data;
+
+    const { email, name, picture } = profileRes.data;
+    const avatarUrl = picture?.data?.url || null;
 
     if (!email) {
       // Facebook có thể không trả email nếu user chưa xác minh email
@@ -57,9 +59,17 @@ const facebookCallback = async (req, res) => {
         data: {
           email,
           fullName: name || email.split('@')[0],
+          avatarUrl,
           password: '',
           role: 'CUSTOMER',
         },
+      });
+    }
+
+    if (user && avatarUrl && user.avatarUrl !== avatarUrl) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { avatarUrl },
       });
     }
 

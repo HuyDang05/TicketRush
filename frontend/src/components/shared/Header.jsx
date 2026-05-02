@@ -5,6 +5,7 @@ import './Header.css';
 
 export default function Header() {
   const { user, logout } = useAuth();
+  const avatarUrl = user?.avatarUrl;
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [openUserMenu, setOpenUserMenu] = useState(false);
@@ -87,12 +88,24 @@ export default function Header() {
                 className="header__account-btn"
                 onClick={() => setOpenUserMenu((prev) => !prev)}
               >
-                <span className="header__avatar-circle">
-                  {user.fullName?.charAt(0).toUpperCase() || 'U'}
-                </span>
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt="avatar"
+                    className="header__avatar-img"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                ) : (
+                  <span className="header__avatar-circle">
+                    {user.fullName?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                )}
 
                 <span className="header__account-name">
-                  {user.fullName || 'Tài khoản'}
+                  Tài khoản
                 </span>
 
                 <span className="header__account-arrow">▾</span>
