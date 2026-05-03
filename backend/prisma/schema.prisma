@@ -13,6 +13,8 @@ model User {
   email       String               @unique
   password    String
   fullName    String
+  avatarUrl   String?
+
   role        Role                 @default(CUSTOMER)
   dob         DateTime?
   gender      Gender?
@@ -39,6 +41,7 @@ model Event {
   endDate        DateTime?   @map("end_date") @db.Timestamp(6)
   admin          User        @relation("AdminEvents", fields: [createdBy], references: [id])
   zones          Zone[]
+  cardImageUrl   String?
 
   @@map("events")
 }
