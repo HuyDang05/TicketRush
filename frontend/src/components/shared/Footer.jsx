@@ -1,41 +1,46 @@
+import { Link } from 'react-router-dom';
+import './Footer.css';
+
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-white mt-12">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-4 gap-8 mb-8">
-          <div>
-            <h3 className="font-bold mb-4">Về TicketRush</h3>
-            <ul className="text-gray-400 space-y-2">
-              <li><a href="#" className="hover:text-white">Giới thiệu</a></li>
-              <li><a href="#" className="hover:text-white">Liên hệ</a></li>
-              <li><a href="#" className="hover:text-white">Blog</a></li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-bold mb-4">Hỗ trợ</h3>
-            <ul className="text-gray-400 space-y-2">
-              <li><a href="#" className="hover:text-white">FAQ</a></li>
-              <li><a href="#" className="hover:text-white">Điều khoản</a></li>
-              <li><a href="#" className="hover:text-white">Chính sách</a></li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-bold mb-4">Mạng xã hội</h3>
-            <ul className="text-gray-400 space-y-2">
-              <li><a href="#" className="hover:text-white">Facebook</a></li>
-              <li><a href="#" className="hover:text-white">Instagram</a></li>
-              <li><a href="#" className="hover:text-white">Twitter</a></li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-bold mb-4">Liên hệ</h3>
-            <p className="text-gray-400">Email: support@ticketrush.com</p>
-            <p className="text-gray-400">Phone: (84) 123-456-789</p>
+    <footer className="footer">
+      <div className="footer__grid">
+        <div>
+          <Link to="/" className="footer__logo">
+            <span className="footer__logo-icon">⚡</span>
+            <span className="footer__logo-text">TicketRush</span>
+          </Link>
+          <p className="footer__desc">
+            Nền tảng đặt vé sự kiện hàng đầu Việt Nam. Nhanh chóng, an toàn và tiện lợi — mọi lúc mọi nơi.
+          </p>
+          <div className="footer__socials">
+            {['f', 'in', 'yt', 'tk'].map((s) => (
+              <a key={s} href="#" className="footer__social-btn">{s}</a>
+            ))}
           </div>
         </div>
-        <div className="border-t border-gray-700 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 TicketRush. All rights reserved.</p>
+
+        <div>
+          <h4 className="footer__col-title">Hỗ trợ</h4>
+          <ul className="footer__list">
+            {['Trung tâm hỗ trợ', 'Chính sách hoàn tiền', 'Điều khoản sử dụng', 'Chính sách bảo mật', 'Liên hệ'].map((l) => (
+              <li key={l}><a href="#" className="footer__list-link">{l}</a></li>
+            ))}
+          </ul>
         </div>
+
+        <div>
+          <h4 className="footer__col-title">Khám phá</h4>
+          <ul className="footer__list">
+            {['Nhạc sống', 'Sân khấu & Nghệ thuật', 'Thể thao', 'Hội thảo & Workshop', 'Lễ hội'].map((l) => (
+              <li key={l}><a href="#" className="footer__list-link">{l}</a></li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <div className="footer__bottom">
+        © 2026 TicketRush. Tất cả quyền được bảo lưu. · Được xây dựng với ❤️ tại Việt Nam
       </div>
     </footer>
   );

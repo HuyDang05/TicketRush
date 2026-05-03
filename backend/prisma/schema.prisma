@@ -9,46 +9,51 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  password  String
-  fullName  String
-  role      Role      @default(CUSTOMER)
-  dob       DateTime?
-  gender    Gender?
-  bookings  Booking[]
-  events    Event[]   @relation("AdminEvents")
-  createdAt DateTime  @default(now())
+  id          String               @id @default(uuid())
+  email       String               @unique
+  password    String
+  fullName    String
+  role        Role                 @default(CUSTOMER)
+  dob         DateTime?
+  gender      Gender?
+  createdAt   DateTime             @default(now())
+  bookings    Booking[]
+  events      Event[]              @relation("AdminEvents")
+  resetTokens PasswordResetToken[]
 
   @@map("users")
 }
 
 model Event {
-  id          String      @id @default(uuid())
-  createdBy   String
-  admin       User        @relation("AdminEvents", fields: [createdBy], references: [id])
-  title       String
-  description String?
-  venue       String
-  date        DateTime
-  imageUrl    String?
-  status      EventStatus @default(DRAFT)
-  zones       Zone[]
-  createdAt   DateTime    @default(now())
+  id             String      @id @default(uuid())
+  createdBy      String
+  title          String
+  description    String?
+  venue          String
+  date           DateTime
+  imageUrl       String?
+  cardImageUrl   String?
+  status         EventStatus @default(DRAFT)
+  createdAt      DateTime    @default(now())
+  seatmapJson    Json?
+  seatmapVersion Int         @default(1)
+  endDate        DateTime?   @map("end_date") @db.Timestamp(6)
+  admin          User        @relation("AdminEvents", fields: [createdBy], references: [id])
+  zones          Zone[]
 
   @@map("events")
 }
 
 model Zone {
-  id      String    @id @default(uuid())
-  eventId String
-  event   Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  name    String
-  rows    Int
-  cols    Int
-  price   Decimal
-  seats   Seat[]
+  id        String   @id @default(uuid())
+  eventId   String
+  name      String
+  rows      Int
+  cols      Int
+  price     Decimal
   createdAt DateTime @default(now())
+  seats     Seat[]
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@map("zones")
 }
@@ -56,13 +61,13 @@ model Zone {
 model Seat {
   id       String     @id @default(uuid())
   zoneId   String
-  zone     Zone       @relation(fields: [zoneId], references: [id], onDelete: Cascade)
   row      Int
   col      Int
   label    String
   status   SeatStatus @default(AVAILABLE)
   lockedAt DateTime?
   booking  Booking?
+  zone     Zone       @relation(fields: [zoneId], references: [id], onDelete: Cascade)
 
   @@unique([zoneId, row, col])
   @@map("seats")
@@ -71,17 +76,27 @@ model Seat {
 model Booking {
   id         String        @id @default(uuid())
   userId     String
-  user       User          @relation(fields: [userId], references: [id])
   seatId     String        @unique
-  seat       Seat          @relation(fields: [seatId], references: [id], onDelete: Cascade)
   status     BookingStatus @default(PENDING)
   totalPrice Decimal
   qrCode     String?
   jobId      String?
   createdAt  DateTime      @default(now())
   paidAt     DateTime?
+  seat       Seat          @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id])
 
   @@map("bookings")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
 }
 
 enum Role {

@@ -1,26 +1,38 @@
 require('dotenv').config();
 const { Worker } = require('bullmq');
+const { PrismaClient } = require('@prisma/client');
 const { redisConnectionOptions } = require('../config/redis');
+const { emitSeatEvent } = require('../config/socket');
 
-// Worker dùng connection instance riêng — tách khỏi Queue instance
+const prisma = new PrismaClient();
+
+// BullMQ requires a separate connection instance from the Queue
 const workerConnection = { ...redisConnectionOptions };
 
 const seatWorker = new Worker(
   'seat-release',
   async (job) => {
     const { bookingId, seatId } = job.data;
-    console.log(`[Worker] Processing job ${job.id}: release seat ${seatId} for booking ${bookingId}`);
-
-    const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
+    console.log(`[Worker] job ${job.id} — releasing seat ${seatId} for booking ${bookingId}`);
 
     try {
-      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        include: {
+          seat: {
+            include: { zone: true },
+          },
+        },
+      });
 
+      // Idempotent: if already PAID or CANCELLED (or missing), do nothing
       if (!booking || booking.status !== 'PENDING') {
-        console.log(`[Worker] Job ${job.id} skipped — booking not pending`);
+        console.log(`[Worker] job ${job.id} skipped — booking status: ${booking?.status ?? 'not found'}`);
         return;
       }
+
+      const eventId = booking.seat.zone.eventId;
+      const seatLabel = booking.seat.label;
 
       await prisma.$transaction([
         prisma.booking.update({
@@ -33,20 +45,27 @@ const seatWorker = new Worker(
         }),
       ]);
 
-      console.log(`[Worker] Job ${job.id} done — seat ${seatId} released`);
-    } finally {
-      await prisma.$disconnect();
+      console.log(`[Worker] job ${job.id} done — seat ${seatId} (${seatLabel}) released`);
+
+      try {
+        emitSeatEvent(eventId, 'seat_released', { seatId, label: seatLabel });
+      } catch {
+        // Socket failure must not cause job retry
+      }
+    } catch (err) {
+      console.error(`[Worker] job ${job.id} error:`, err.message);
+      throw err; // re-throw so BullMQ retries per defaultJobOptions
     }
   },
   { connection: workerConnection }
 );
 
 seatWorker.on('completed', (job) => {
-  console.log(`[Worker] Job ${job.id} completed`);
+  console.log(`[Worker] job ${job.id} completed`);
 });
 
 seatWorker.on('failed', (job, err) => {
-  console.error(`[Worker] Job ${job?.id} failed:`, err.message);
+  console.error(`[Worker] job ${job?.id} failed:`, err.message);
 });
 
 console.log('[Worker] seat-release worker started');

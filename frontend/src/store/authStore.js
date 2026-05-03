@@ -3,32 +3,45 @@ import { create } from 'zustand';
 const useAuthStore = create((set) => ({
   user: null,
   token: null,
+  isAuthenticated: false,
   isLoading: false,
   error: null,
 
-  setUser: (user, token) =>
-    set({ user, token, error: null }),
-
-  logout: () =>
-    set({ user: null, token: null, error: null }),
-
-  setLoading: (isLoading) =>
-    set({ isLoading }),
-
-  setError: (error) =>
-    set({ error }),
-
-  clearError: () =>
-    set({ error: null }),
-
-  isAuthenticated: () => {
-    const state = useAuthStore.getState();
-    return !!state.token;
+  setUser: (user, token) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    set({ user, token, isAuthenticated: true });
   },
 
-  hasRole: (role) => {
-    const state = useAuthStore.getState();
-    return state.user?.role === role;
+  setLoading: (isLoading) => set({ isLoading }),
+
+  setError: (error) => set({ error }),
+
+  login: (user, token) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    set({ user, token, isAuthenticated: true });
+  },
+
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    set({ user: null, token: null, isAuthenticated: false });
+    window.location.href = '/login';
+  },
+
+  initAuth: () => {
+    const token = localStorage.getItem('token');
+    const userRaw = localStorage.getItem('user');
+    if (token && userRaw) {
+      try {
+        const user = JSON.parse(userRaw);
+        set({ user, token, isAuthenticated: true });
+      } catch {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    }
   },
 }));
 

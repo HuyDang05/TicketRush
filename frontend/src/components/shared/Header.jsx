@@ -1,62 +1,86 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import './Header.css';
 
 export default function Header() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [search, setSearch] = useState('');
+
+  const handleSearch = (e) => {
+    if (e.key === 'Enter' && search.trim()) {
+      navigate(`/?search=${encodeURIComponent(search.trim())}`);
+    }
+  };
 
   return (
-    <header className="bg-white shadow">
-      <nav className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-        <Link to="/" className="text-2xl font-bold text-primary">
-          🎫 TicketRush
+    <>
+      <header className="header">
+        <Link to="/" className="header__logo">
+          <span className="header__logo-icon">⚡</span>
+          <span className="header__logo-text">TicketRush</span>
         </Link>
 
-        <div className="flex gap-6">
-          <Link to="/" className="text-gray-600 hover:text-primary">
-            Trang chủ
-          </Link>
-
-          {user?.role === 'ADMIN' && (
-            <>
-              <Link to="/admin/dashboard" className="text-gray-600 hover:text-primary">
-                Dashboard
-              </Link>
-              <Link to="/admin/events" className="text-gray-600 hover:text-primary">
-                Quản lý sự kiện
-              </Link>
-            </>
-          )}
-
-          {user && user.role === 'CUSTOMER' && (
-            <Link to="/my-tickets" className="text-gray-600 hover:text-primary">
-              Vé của tôi
-            </Link>
-          )}
+        <div className="header__search">
+          <input
+            type="text"
+            placeholder="Tìm kiếm sự kiện, nghệ sĩ..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={handleSearch}
+            className="header__search-input"
+          />
+          <button
+            onClick={() => search.trim() && navigate(`/?search=${encodeURIComponent(search.trim())}`)}
+            className="header__search-btn"
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/>
+            </svg>
+          </button>
         </div>
 
-        <div className="flex gap-4">
+        <div className="header__actions">
           {!user ? (
             <>
-              <Link to="/login" className="text-gray-600 hover:text-primary">
-                Đăng nhập
-              </Link>
-              <Link to="/register" className="text-gray-600 hover:text-primary">
-                Đăng ký
-              </Link>
+              <Link to="/login" className="header__btn header__btn--outline">Đăng nhập</Link>
+              <Link to="/register" className="header__btn header__btn--accent">Đăng ký</Link>
             </>
           ) : (
             <>
-              <span className="text-gray-600">{user.fullName}</span>
-              <button
-                onClick={logout}
-                className="text-gray-600 hover:text-primary"
-              >
-                Đăng xuất
-              </button>
+              <span className="header__avatar">
+                <span className="header__avatar-circle">
+                  {user.fullName?.charAt(0).toUpperCase()}
+                </span>
+                <span className="header__avatar-name">{user.fullName}</span>
+              </span>
+              {user.role === 'CUSTOMER' && (
+                <Link to="/my-tickets" className="header__btn header__btn--ghost">Vé của tôi</Link>
+              )}
+              {user.role === 'ADMIN' && (
+                <Link to="/admin" className="header__btn header__btn--admin">
+                  <span className="header__admin-badge">ADMIN</span>
+                  Dashboard
+                </Link>
+              )}
+              <button onClick={logout} className="header__btn header__btn--outline">Đăng xuất</button>
             </>
           )}
         </div>
+      </header>
+
+      <nav className="header-nav">
+        {[
+          { label: 'Nhạc sống', path: '/?cat=music' },
+          { label: 'Sân khấu & Nghệ thuật', path: '/?cat=theater' },
+          { label: 'Thể Thao', path: '/?cat=sports' },
+          { label: 'Hội thảo', path: '/?cat=conference' },
+          { label: 'Khác', path: '/?cat=other' },
+        ].map(({ label, path }) => (
+          <Link key={label} to={path} className="header-nav__link">{label}</Link>
+        ))}
       </nav>
-    </header>
+    </>
   );
 }

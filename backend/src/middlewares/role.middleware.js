@@ -1,13 +1,17 @@
-const roleMiddleware = (requiredRoles) => {
+const requireRole = (allowedRoles) => {
   return (req, res, next) => {
     const userRole = req.user?.role;
 
-    if (!userRole || !requiredRoles.includes(userRole)) {
-      return res.status(403).json({ error: 'Forbidden' });
+    if (!userRole || !allowedRoles.includes(userRole)) {
+      return res.status(403).json({ message: 'Kh\u00f4ng c\u00f3 quy\u1ec1n truy c\u1eadp' });
     }
 
-    next();
+    return next();
   };
 };
 
-module.exports = roleMiddleware;
+const requireAdmin = requireRole(['ADMIN']);
+
+module.exports = requireRole;
+module.exports.requireRole = requireRole;
+module.exports.requireAdmin = requireAdmin;

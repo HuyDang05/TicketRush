@@ -1,26 +1,31 @@
-export default function SeatItem({ seat, onSelect, isSelected }) {
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'AVAILABLE':
-        return 'bg-blue-400 hover:bg-blue-500 cursor-pointer';
-      case 'LOCKED':
-        return 'bg-yellow-400 cursor-not-allowed';
-      case 'SOLD':
-        return 'bg-red-400 cursor-not-allowed';
-      default:
-        return 'bg-gray-300';
+import './seat-map.css';
+
+export default function SeatItem({ seat, onSelect, isSelected, accentColor }) {
+  const getClass = () => {
+    if (isSelected) return 'seat-item seat-item--selected';
+    switch (seat.status) {
+      case 'AVAILABLE': return 'seat-item seat-item--available';
+      case 'LOCKED':    return 'seat-item seat-item--locked';
+      case 'SOLD':      return 'seat-item seat-item--sold';
+      default:          return 'seat-item seat-item--default';
     }
   };
 
+  const bgStyle = (seat.status === 'AVAILABLE' && !isSelected)
+    ? { background: accentColor || '#22c55e' }
+    : {};
+
+  const num = seat.label?.replace(/^[A-Za-z]+/, '') || seat.label;
+
   return (
     <button
-      onClick={() => seat.status === 'AVAILABLE' && onSelect(seat)}
-      disabled={seat.status !== 'AVAILABLE'}
-      className={`w-8 h-8 rounded text-xs font-semibold transition ${getStatusColor(
-        seat.status
-      )} ${isSelected ? 'ring-2 ring-green-500' : ''}`}
+      onClick={() => seat.status === 'AVAILABLE' && onSelect && onSelect(seat)}
+      disabled={seat.status !== 'AVAILABLE' && !isSelected}
+      title={`${seat.label} · ${Number(seat.price || 0).toLocaleString('vi-VN')}đ`}
+      className={getClass()}
+      style={bgStyle}
     >
-      {seat.label.replace(/^./, '')}
+      {num}
     </button>
   );
 }

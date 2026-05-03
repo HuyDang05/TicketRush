@@ -4,8 +4,8 @@ const authService = {
   login: (email, password) =>
     api.post('/auth/login', { email, password }),
 
-  register: (email, password, fullName) =>
-    api.post('/auth/register', { email, password, fullName }),
+  register: (payload) =>
+    api.post('/auth/register', payload),
 
   logout: () => {
     localStorage.removeItem('token');

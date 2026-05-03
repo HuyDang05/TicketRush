@@ -1,31 +1,90 @@
 import { Link } from 'react-router-dom';
+import './event.css';
+
+const CARD_GRADIENTS = [
+  'linear-gradient(135deg,#2d1200,#8b3a00)',
+  'linear-gradient(135deg,#0a1a2d,#0a3d6b)',
+  'linear-gradient(135deg,#0d2200,#1a4400)',
+  'linear-gradient(135deg,#1a0a2d,#4a1a7a)',
+  'linear-gradient(135deg,#1a1000,#5a3a00)',
+  'linear-gradient(135deg,#001a1a,#006666)',
+  'linear-gradient(135deg,#1a0010,#6a0040)',
+  'linear-gradient(135deg,#001a0a,#004d20)',
+];
+const CARD_EMOJIS = ['🎸', '🎹', '⚽', '🎪', '🎷', '🏊', '🎭', '🎤'];
+
+function hashCode(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
 
 export default function EventCard({ event }) {
+  const idx = hashCode(event.id || event.title) % CARD_GRADIENTS.length;
+  const gradient = CARD_GRADIENTS[idx];
+  const emoji = CARD_EMOJIS[idx];
+
+  const dateShort = event.date
+    ? new Date(event.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
+    : '';
+
+  const dateLong = event.date
+    ? (() => {
+        const d = new Date(event.date);
+        const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+        const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        return `${days[d.getDay()]}, ${dateShort} · ${timeStr}`;
+      })()
+    : '';
+
+  const minPrice = event.minPrice ?? (event.zones?.length
+    ? Math.min(...event.zones.map(z => Number(z.price)))
+    : null);
+
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
-      <img
-        src={event.imageUrl || 'https://via.placeholder.com/300x200'}
-        alt={event.title}
-        className="w-full h-48 object-cover"
-      />
-      <div className="p-4">
-        <h3 className="font-bold text-lg mb-2">{event.title}</h3>
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-          {event.description}
-        </p>
-        <p className="text-gray-500 text-sm mb-4">{event.venue}</p>
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-semibold text-primary">
-            {new Date(event.date).toLocaleDateString('vi-VN')}
+    <Link to={`/events/${event.id}`} className="event-card">
+      <div className="event-card__thumb">
+        {event.imageUrl ? (
+          <img src={event.imageUrl} alt={event.title} className="event-card__thumb-img" />
+        ) : (
+          <div className="event-card__thumb-placeholder" style={{ background: gradient }}>
+            {emoji}
+          </div>
+        )}
+        {dateShort && <div className="event-card__date-badge">{dateShort}</div>}
+        <div className="event-card__cat-badge">Âm nhạc</div>
+      </div>
+
+      <div className="event-card__body">
+        <div className="event-card__title">{event.title}</div>
+
+        {event.venue && (
+          <div className="event-card__meta">
+            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.5" />
+            </svg>
+            <span>{event.venue}</span>
+          </div>
+        )}
+
+        {dateLong && (
+          <div className="event-card__meta">
+            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+              <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+            {dateLong}
+          </div>
+        )}
+
+        <div className="event-card__footer">
+          <span className="event-card__price">
+            {minPrice != null ? `Từ ${minPrice.toLocaleString('vi-VN')}đ` : 'Liên hệ'}
           </span>
-          <Link
-            to={`/event/${event.id}`}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
-          >
-            Chi tiết
-          </Link>
+          <button onClick={e => e.preventDefault()} className="event-card__btn">
+            Đặt vé →
+          </button>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
