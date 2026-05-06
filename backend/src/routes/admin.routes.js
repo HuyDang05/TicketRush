@@ -2,7 +2,9 @@ const express = require('express');
 
 const authenticate = require('../middlewares/auth.middleware');
 const { requireAdmin } = require('../middlewares/role.middleware');
-const { createEvent, updateEvent, publishEvent, endEvent, deleteEvent, getSeatmap, saveSeatmap, getAdminEventById } = require('../controllers/event.controller');
+const { createEvent, updateEvent, publishEvent, endEvent, deleteEvent, getAdminEvents, getAdminEventById } = require('../controllers/event.controller');
+const { uploadImage } = require('../controllers/upload.controller');
+const upload = require('../config/multer');
 
 const router = express.Router();
 
@@ -12,7 +14,11 @@ router.get('/profile', authenticate, requireAdmin, (req, res) => {
   });
 });
 
+// Upload ảnh sự kiện lên Cloudinary
+router.post('/upload', authenticate, requireAdmin, upload.single('image'), uploadImage);
+
 // Event management endpoints (Admin only)
+router.get('/events', authenticate, requireAdmin, getAdminEvents);
 router.get('/events/:id', authenticate, requireAdmin, getAdminEventById);
 router.post('/events', authenticate, requireAdmin, createEvent);
 router.put('/events/:id', authenticate, requireAdmin, updateEvent);

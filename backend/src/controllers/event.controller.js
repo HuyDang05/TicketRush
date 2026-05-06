@@ -129,26 +129,89 @@ const getEventById = async (req, res) => {
 
 const createEvent = async (req, res) => {
   try {
-    const { title, description, venue, date, imageUrl } = req.body;
+    const { title, description, venue, startDate, endDate, imageUrl, rows, cols, zones } = req.body;
     const createdBy = req.user.id;
 
-    // Validate event date is in future
-    const eventDate = new Date(date);
-    if (eventDate <= new Date()) {
-      return res.status(400).json({ message: 'Ngày sự kiện phải trong tương lai' });
+    if (!startDate) {
+      return res.status(400).json({ message: 'Ngày bắt đầu là bắt buộc' });
     }
 
-    // Zones are optional at creation time — the seatmap editor handles them via saveSeatmap
-    const event = await prisma.event.create({
-      data: {
-        title,
-        description,
-        venue,
-        date: eventDate,
-        imageUrl,
-        status: 'DRAFT',
-        createdBy,
-      },
+    const eventStartDate = new Date(startDate);
+    if (eventStartDate <= new Date()) {
+      return res.status(400).json({ message: 'Ngày bắt đầu phải trong tương lai' });
+    }
+
+    let eventEndDate = null;
+    if (endDate) {
+      eventEndDate = new Date(endDate);
+      if (eventEndDate <= eventStartDate) {
+        return res.status(400).json({ message: 'Ngày kết thúc phải sau ngày bắt đầu' });
+      }
+    }
+
+    // Validate seat layout
+    const numRows = parseInt(rows);
+    const numCols = parseInt(cols);
+    if (!numRows || numRows < 1 || !numCols || numCols < 1) {
+      return res.status(400).json({ message: 'Số hàng ghế và số cột ghế phải ≥ 1' });
+    }
+
+    // Validate zones
+    if (!Array.isArray(zones) || zones.length === 0) {
+      return res.status(400).json({ message: 'Phải có ít nhất một loại vé' });
+    }
+
+    for (const zone of zones) {
+      if (!zone.name || !zone.price || zone.price <= 0) {
+        return res.status(400).json({ message: 'Loại vé phải có tên và giá > 0' });
+      }
+    }
+
+    // Transaction: create event + zones + seats
+    const event = await prisma.$transaction(async (tx) => {
+      const createdEvent = await tx.event.create({
+        data: {
+          title,
+          description,
+          venue,
+          date: eventStartDate,
+          endDate: eventEndDate,
+          imageUrl,
+          status: 'DRAFT',
+          createdBy,
+        },
+      });
+
+      for (const zone of zones) {
+        const createdZone = await tx.zone.create({
+          data: {
+            eventId: createdEvent.id,
+            name: zone.name,
+            rows: numRows,
+            cols: numCols,
+            price: parseFloat(zone.price),
+          },
+        });
+
+        // Generate seats
+        const seats = [];
+        for (let row = 0; row < numRows; row++) {
+          for (let col = 0; col < numCols; col++) {
+            const label = String.fromCharCode(65 + row) + (col + 1);
+            seats.push({
+              zoneId: createdZone.id,
+              row,
+              col,
+              label,
+              status: 'AVAILABLE',
+            });
+          }
+        }
+
+        await tx.seat.createMany({ data: seats });
+      }
+
+      return createdEvent;
     });
 
     return res.status(201).json({
@@ -313,80 +376,71 @@ const deleteEvent = async (req, res) => {
   }
 };
 
-// GET /api/admin/events/:id  (admin — no status filter)
+const getAdminEvents = async (req, res) => {
+  try {
+    const { search, status } = req.query;
+
+    const whereCondition = {};
+
+    if (status) {
+      whereCondition.status = status;
+    }
+
+    if (search) {
+      whereCondition.title = {
+        contains: search,
+        mode: 'insensitive',
+      };
+    }
+
+    const events = await prisma.event.findMany({
+      where: whereCondition,
+      include: {
+        zones: {
+          select: {
+            price: true,
+            rows: true,
+            cols: true,
+            _count: { select: { seats: true } },
+          },
+        },
+        _count: {
+          select: { zones: true },
+        },
+      },
+      orderBy: { date: 'asc' },
+    });
+
+    const formatted = events.map(event => {
+      const totalSeats = event.zones.reduce((s, z) => s + (z.rows * z.cols), 0);
+      const minPrice = event.zones.length > 0
+        ? Math.min(...event.zones.map(z => Number(z.price)))
+        : null;
+      const { zones, ...rest } = event;
+      return { ...rest, totalSeats, minPrice };
+    });
+
+    return res.status(200).json({ events: formatted });
+  } catch (error) {
+    console.error('[Event][getAdminEvents] Error:', error);
+    return res.status(500).json({ message: 'Đã có lỗi xảy ra' });
+  }
+};
+
 const getAdminEventById = async (req, res) => {
   try {
     const { id } = req.params;
-    const event = await prisma.event.findUnique({ where: { id } });
-    if (!event) return res.status(404).json({ message: 'Sự kiện không tồn tại' });
-    return res.status(200).json({ event });
-  } catch (error) {
-    console.error('[Event][getAdminEventById] Error:', error);
-    return res.status(500).json({ message: 'Đã có lỗi xảy ra' });
-  }
-};
-
-// GET /api/admin/events/:id/seatmap
-const getSeatmap = async (req, res) => {
-  try {
-    const { id } = req.params;
 
     const event = await prisma.event.findUnique({
       where: { id },
-      select: {
-        id: true,
-        status: true,
-        seatmapJson: true,
-        seatmapVersion: true,
-      },
-    });
-
-    if (!event) {
-      return res.status(404).json({ message: 'Sự kiện không tồn tại' });
-    }
-
-    return res.status(200).json({
-      seatmapJson: event.seatmapJson,
-      seatmapVersion: event.seatmapVersion,
-      status: event.status,
-    });
-  } catch (error) {
-    console.error('[Event][getSeatmap] Error:', error);
-    return res.status(500).json({ message: 'Đã có lỗi xảy ra' });
-  }
-};
-
-// PUT /api/admin/events/:id/seatmap
-const saveSeatmap = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { seatmapVersion, seatmap } = req.body;
-
-    // ── 1. Validate request body presence ───────────────────────────
-    if (seatmapVersion === undefined || seatmapVersion === null) {
-      return res.status(400).json({ message: 'seatmapVersion là bắt buộc' });
-    }
-    if (!seatmap) {
-      return res.status(400).json({ message: 'seatmap là bắt buộc' });
-    }
-
-    // ── 2. Validate JSON structure ───────────────────────────────────
-    const structureError = validateSeatmapStructure(seatmap);
-    if (structureError) {
-      return res.status(400).json({ message: structureError });
-    }
-
-    // ── 3. Load event ────────────────────────────────────────────────
-    const event = await prisma.event.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        status: true,
-        seatmapVersion: true,
+      include: {
         zones: {
           select: {
             id: true,
-            seats: { select: { status: true } },
+            name: true,
+            rows: true,
+            cols: true,
+            price: true,
           },
         },
       },
@@ -396,98 +450,17 @@ const saveSeatmap = async (req, res) => {
       return res.status(404).json({ message: 'Sự kiện không tồn tại' });
     }
 
-    // ── 4. Status guard: block edits when PUBLISHED and tickets sold ─
-    if (event.status === 'PUBLISHED') {
-      const hasSoldSeats = event.zones.some(z =>
-        z.seats.some(s => s.status === 'SOLD')
-      );
-      if (hasSoldSeats) {
-        return res.status(409).json({
-          message: 'Không thể sửa seatmap khi sự kiện đã công khai và có vé đã bán',
-        });
-      }
-    }
-
-    if (event.status === 'ENDED') {
-      return res.status(400).json({ message: 'Không thể sửa seatmap của sự kiện đã kết thúc' });
-    }
-
-    // ── 5. Optimistic locking ────────────────────────────────────────
-    if (Number(seatmapVersion) !== event.seatmapVersion) {
-      return res.status(409).json({
-        message: 'Seatmap đã được cập nhật bởi người khác. Vui lòng tải lại trang.',
-        currentVersion: event.seatmapVersion,
-      });
-    }
-
-    // ── 6. Persist seatmapJson + bump version + sync Zone/Seat ───────
-    const nextVersion = event.seatmapVersion + 1;
-
-    await prisma.$transaction(async (tx) => {
-      // 6a. Save the raw JSON and bump version
-      await tx.event.update({
-        where: { id },
-        data: {
-          seatmapJson: seatmap,
-          seatmapVersion: nextVersion,
-        },
-      });
-
-      // 6b. Collect existing zone DB ids keyed by seatmap zone id
-      //     We use the zone's seatmap-level id stored in seatmapJson to match.
-      //     Strategy: delete all current zones (cascade → seats) then recreate.
-      //     This is safe because we checked no SOLD seats above.
-      await tx.seat.deleteMany({ where: { zone: { eventId: id } } });
-      await tx.zone.deleteMany({ where: { eventId: id } });
-
-      // 6c. Recreate zones and seats from the parsed seatmap
-      for (const zoneData of seatmap.zones) {
-        const rows = zoneData.config?.rows ?? 0;
-        const cols = zoneData.config?.cols ?? (zoneData.seats.length > 0 ? zoneData.seats.length : 1);
-
-        const zoneCreateData = {
-          eventId: id,
-          name: zoneData.name,
-          rows,
-          cols,
-          price: parseFloat(zoneData.price),
-        };
-        if (zoneData.id) zoneCreateData.id = zoneData.id;
-
-        const createdZone = await tx.zone.create({ data: zoneCreateData });
-
-        if (zoneData.seats.length > 0) {
-          await tx.seat.createMany({
-            data: zoneData.seats.map((seat) => {
-              const seatData = {
-                zoneId: createdZone.id,
-                row: typeof seat.row === 'number' ? seat.row : 0,
-                col: typeof seat.col === 'number' ? seat.col : 0,
-                label: seat.label,
-                status: 'AVAILABLE',
-              };
-              if (seat.id) seatData.id = seat.id;
-              return seatData;
-            }),
-            skipDuplicates: true,
-          });
-        }
-      }
-    });
-
-    return res.status(200).json({
-      message: 'Đã lưu sơ đồ ghế thành công',
-      seatmapVersion: nextVersion,
-    });
+    return res.status(200).json({ event });
   } catch (error) {
-    console.error('[Event][saveSeatmap] Error:', error);
-    return res.status(500).json({ message: 'Đã có lỗi xảy ra khi lưu sơ đồ ghế' });
+    console.error('[Event][getAdminEventById] Error:', error);
+    return res.status(500).json({ message: 'Đã có lỗi xảy ra' });
   }
 };
 
 module.exports = {
   getEvents,
   getEventById,
+  getAdminEvents,
   getAdminEventById,
   createEvent,
   updateEvent,

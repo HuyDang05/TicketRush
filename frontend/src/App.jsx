@@ -17,8 +17,9 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import EventManagerPage from './pages/admin/EventManagerPage';
+import EventCreateWizard from './pages/admin/EventCreateWizard';
 import EventFormPage from './pages/admin/EventFormPage';
-import SeatmapEditorPage from './pages/admin/SeatmapEditorPage';
+import PersonalAccountPage from './pages/customer/PersonalAccountPage';
 
 function CustomerLayout() {
   return (
@@ -57,6 +58,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/account"
+            element={
+              <ProtectedRoute>
+                <PersonalAccountPage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* Seat Selection — has its own header, no CustomerLayout */}
@@ -68,6 +77,8 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        
 
         {/* Auth Routes — no Header/Footer */}
         <Route path="/login" element={<LoginPage />} />
@@ -102,6 +113,14 @@ function App() {
           }
         />
         <Route
+          path="/admin/events/create"
+          element={
+            <ProtectedRoute requiredRole="ADMIN">
+              <EventCreateWizard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin/events/new"
           element={
             <ProtectedRoute requiredRole="ADMIN">
@@ -113,7 +132,7 @@ function App() {
           path="/admin/events/:id/edit"
           element={
             <ProtectedRoute requiredRole="ADMIN">
-              <EventFormPage />
+              <EventCreateWizard />
             </ProtectedRoute>
           }
         />

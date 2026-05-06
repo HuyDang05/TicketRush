@@ -128,7 +128,7 @@ export default function AdminLayout({ children }) {
       </aside>
 
       {/* ── CONTENT ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#1A1A1A' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', background: '#1A1A1A' }}>
         {children}
       </div>
     </div>
