@@ -32,10 +32,12 @@ model Event {
   venue       String
   date        DateTime
   imageUrl    String?
-  status      EventStatus @default(DRAFT)
-  createdAt   DateTime    @default(now())
-  admin       User        @relation("AdminEvents", fields: [createdBy], references: [id])
-  zones       Zone[]
+  status          EventStatus @default(DRAFT)
+  createdAt       DateTime    @default(now())
+  seatmapJson     Json?
+  seatmapVersion  Int         @default(1)
+  admin           User        @relation("AdminEvents", fields: [createdBy], references: [id])
+  zones           Zone[]
 
   @@map("events")
 }
