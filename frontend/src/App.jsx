@@ -19,6 +19,7 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import EventManagerPage from './pages/admin/EventManagerPage';
 import EventCreateWizard from './pages/admin/EventCreateWizard';
 import EventFormPage from './pages/admin/EventFormPage';
+import SeatmapEditorPage from './pages/admin/SeatmapEditorPage';
 import PersonalAccountPage from './pages/customer/PersonalAccountPage';
 
 function CustomerLayout() {

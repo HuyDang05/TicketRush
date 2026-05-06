@@ -2,7 +2,7 @@ const express = require('express');
 
 const authenticate = require('../middlewares/auth.middleware');
 const { requireAdmin } = require('../middlewares/role.middleware');
-const { createEvent, updateEvent, publishEvent, endEvent, deleteEvent, getAdminEvents, getAdminEventById } = require('../controllers/event.controller');
+const { createEvent, updateEvent, publishEvent, endEvent, deleteEvent, getAdminEvents, getAdminEventById, getSeatmap, saveSeatmap } = require('../controllers/event.controller');
 const { uploadImage } = require('../controllers/upload.controller');
 const upload = require('../config/multer');
 
