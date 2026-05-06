@@ -18,6 +18,7 @@ import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import EventManagerPage from './pages/admin/EventManagerPage';
 import EventFormPage from './pages/admin/EventFormPage';
+import SeatmapEditorPage from './pages/admin/SeatmapEditorPage';
 
 function CustomerLayout() {
   return (
@@ -113,6 +114,14 @@ function App() {
           element={
             <ProtectedRoute requiredRole="ADMIN">
               <EventFormPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/events/:id/seatmap"
+          element={
+            <ProtectedRoute requiredRole="ADMIN">
+              <SeatmapEditorPage />
             </ProtectedRoute>
           }
         />

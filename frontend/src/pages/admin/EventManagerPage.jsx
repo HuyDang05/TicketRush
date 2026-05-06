@@ -9,7 +9,7 @@ function Toast({ msg, onDone }) {
   return <div className="admin-toast">{msg}</div>;
 }
 
-function EventModal({ event, onClose, onSaved }) {
+function EventModal({ event, onClose, onSaved, onCreated }) {
   const isEdit = !!event;
   const [form, setForm] = useState({
     name: event?.title || event?.name || '',
@@ -43,11 +43,15 @@ function EventModal({ event, onClose, onSaved }) {
       };
       if (isEdit) {
         await eventService.updateEvent(event.id, payload);
+        onSaved('✓ Đã cập nhật sự kiện!');
+        onClose();
       } else {
-        await eventService.createEvent(payload);
+        const res = await eventService.createEvent(payload);
+        const newId = res.data?.event?.id || res.data?.id;
+        onSaved('✓ Đã tạo sự kiện mới thành công!');
+        onClose();
+        if (newId && onCreated) onCreated(newId);
       }
-      onSaved(isEdit ? '✓ Đã cập nhật sự kiện!' : '✓ Đã tạo sự kiện mới thành công!');
-      onClose();
     } catch {
       // keep modal open on error
     } finally {
@@ -395,6 +399,7 @@ export default function EventManagerPage() {
           event={modal === 'create' ? null : modal}
           onClose={() => setModal(null)}
           onSaved={msg => { showToast(msg); fetchEvents(); }}
+          onCreated={newId => navigate(`/admin/events/${newId}/seatmap`)}
         />
       )}
 
