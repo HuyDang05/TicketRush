@@ -14,7 +14,10 @@ const eventService = {
   getZoneSeats: (zoneId) =>
     Promise.resolve({ data: [] }),
 
-  // Admin routes — POST/PUT/PATCH/DELETE /api/admin/events
+  // Admin routes
+  getAdminEventById: (id) =>
+    api.get(`/admin/events/${id}`),
+
   createEvent: (data) =>
     api.post('/admin/events', data),
 
@@ -29,6 +32,12 @@ const eventService = {
 
   deleteEvent: (id) =>
     api.delete(`/admin/events/${id}`),
+
+  getSeatmap: (id) =>
+    api.get(`/admin/events/${id}/seatmap`),
+
+  saveSeatmap: (id, seatmapVersion, seatmap) =>
+    api.put(`/admin/events/${id}/seatmap`, { seatmapVersion, seatmap }),
 };
 
 export default eventService;
