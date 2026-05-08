@@ -1,0 +1,311 @@
+/* ── Animations ─────────────────────────────────────────────────────────────── */
+@keyframes smPrevBg  { from { opacity: 0; }                         to { opacity: 1; }                       }
+@keyframes smPrevBox { from { opacity: 0; transform: scale(.97); }  to { opacity: 1; transform: scale(1); }  }
+
+/* ── Overlay backdrop ───────────────────────────────────────────────────────── */
+.sp-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.82);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: smPrevBg .2s ease;
+}
+
+/* ── Modal box ──────────────────────────────────────────────────────────────── */
+.sp-modal {
+  width: calc(100vw - 48px);
+  height: calc(100vh - 48px);
+  background: #111111;
+  border: 1px solid #2a2a2a;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: smPrevBox .2s ease;
+  box-shadow: 0 24px 80px rgba(0,0,0,.7);
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────────── */
+.sp-header {
+  height: 52px;
+  flex-shrink: 0;
+  background: #161616;
+  border-bottom: 1px solid #222;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+}
+
+.sp-header__badge {
+  background: rgba(255,107,53,.12);
+  border: 1px solid rgba(255,107,53,.3);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #FF6B35;
+  letter-spacing: 1px;
+}
+
+.sp-header__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.sp-header__subtitle {
+  font-size: 12px;
+  color: #555;
+}
+
+.sp-header__spacer { flex: 1; }
+
+/* ── Legend ─────────────────────────────────────────────────────────────────── */
+.sp-legend {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.sp-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sp-legend__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.sp-legend__label {
+  font-size: 11px;
+  color: #888;
+}
+
+/* ── Divider ────────────────────────────────────────────────────────────────── */
+.sp-divider {
+  width: 1px;
+  height: 20px;
+  background: #2a2a2a;
+  margin: 0 4px;
+}
+
+/* ── Zoom buttons ───────────────────────────────────────────────────────────── */
+.sp-zoom-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  color: #aaa;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  transition: color .12s, border-color .12s;
+}
+.sp-zoom-btn:hover { color: #fff; border-color: #555; }
+
+.sp-zoom-level {
+  font-size: 11px;
+  color: #444;
+  min-width: 34px;
+  text-align: center;
+}
+
+/* ── Fit button ─────────────────────────────────────────────────────────────── */
+.sp-fit-btn {
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  color: #888;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color .12s, border-color .12s;
+}
+.sp-fit-btn:hover { color: #fff; border-color: #555; }
+
+/* ── Close button ───────────────────────────────────────────────────────────── */
+.sp-close-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  color: #888;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  transition: all .12s;
+}
+.sp-close-btn:hover {
+  background: rgba(239,68,68,.1);
+  color: #f87171;
+  border-color: rgba(239,68,68,.4);
+}
+
+/* ── Canvas area ────────────────────────────────────────────────────────────── */
+.sp-canvas {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+}
+
+/* ── Stage label ────────────────────────────────────────────────────────────── */
+.sp-stage {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform-origin: top center;
+  background: #FF6B35;
+  border-radius: 0 0 8px 8px;
+  padding: 5px 40px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 2px;
+  pointer-events: none;
+  z-index: 5;
+  white-space: nowrap;
+}
+
+/* ── Empty state ────────────────────────────────────────────────────────────── */
+.sp-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #333;
+  pointer-events: none;
+}
+
+.sp-empty__text { font-size: 13px; }
+
+/* ── Footer ─────────────────────────────────────────────────────────────────── */
+.sp-footer {
+  height: 36px;
+  flex-shrink: 0;
+  background: #161616;
+  border-top: 1px solid #1e1e1e;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  font-size: 11px;
+  color: #444;
+}
+
+.sp-footer__spacer { flex: 1; }
+
+.sp-footer__count { color: #333; }
+
+/* ── Selection bar ──────────────────────────────────────────────────────────── */
+.sp-selbar {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.6);
+  z-index: 10;
+  pointer-events: auto;
+  max-width: calc(100% - 48px);
+}
+
+.sp-selbar__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+}
+
+.sp-selbar__count {
+  color: #888;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.sp-selbar__extra {
+  font-size: 11px;
+  color: #888;
+  align-self: center;
+}
+
+.sp-selbar__clear {
+  background: transparent;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #888;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color .15s, border-color .15s;
+  flex-shrink: 0;
+}
+.sp-selbar__clear:hover { color: #f87171; border-color: rgba(239,68,68,.4); }
+
+/* ── Zone label header ──────────────────────────────────────────────────────── */
+.pz-header {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pz-header__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.pz-header__count {
+  color: #555;
+  font-weight: 400;
+}
+
+/* ── Row label ──────────────────────────────────────────────────────────────── */
+.pz-row-label {
+  width: 14px;
+  font-size: 8px;
+  color: #444;
+  text-align: right;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* ── Seat ───────────────────────────────────────────────────────────────────── */
+.pz-seat {
+  border-radius: 3px;
+  transition: background .1s, border-color .1s, transform .1s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

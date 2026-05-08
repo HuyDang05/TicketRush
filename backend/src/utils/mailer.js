@@ -66,7 +66,14 @@ const sendTicketEmail = async (to, tickets) => {
       })
     : '';
 
-  const ticketRows = tickets.map((t) => `
+  // Build CID attachments from base64 data URLs (Gmail blocks inline data: URLs)
+  const attachments = tickets.map((t, i) => {
+    const cid = `qr_seat_${i}`;
+    const base64Data = t.qrCode.replace(/^data:image\/png;base64,/, '');
+    return { cid, filename: `qr_${t.seatLabel}.png`, content: Buffer.from(base64Data, 'base64'), contentType: 'image/png' };
+  });
+
+  const ticketRows = tickets.map((t, i) => `
     <tr>
       <td style="padding:12px 16px;border-bottom:1px solid #2a2a2a;color:#fff;font-weight:600;">${t.zoneName} · Ghế ${t.seatLabel}</td>
       <td style="padding:12px 16px;border-bottom:1px solid #2a2a2a;color:#FF6B35;font-weight:700;text-align:right;">
@@ -75,7 +82,7 @@ const sendTicketEmail = async (to, tickets) => {
     </tr>
     <tr>
       <td colspan="2" style="padding:8px 16px 20px;border-bottom:1px solid #333;text-align:center;">
-        <img src="${t.qrCode}" alt="QR Code ${t.seatLabel}" width="160" height="160"
+        <img src="cid:qr_seat_${i}" alt="QR Code ${t.seatLabel}" width="160" height="160"
           style="border-radius:8px;background:#fff;padding:8px;" />
         <div style="color:#888;font-size:11px;margin-top:6px;">Mã QR vào cổng · ${t.zoneName} · Ghế ${t.seatLabel}</div>
       </td>
@@ -141,6 +148,7 @@ const sendTicketEmail = async (to, tickets) => {
     to,
     subject: `🎟️ Vé của bạn: ${first.eventTitle}`,
     html,
+    attachments,
   });
 
   return info;
