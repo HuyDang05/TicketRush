@@ -123,6 +123,8 @@ export function generateTableSeats(config) {
       seats.push({
         id:         label,
         label,
+        row:        t,
+        col:        s,
         tableIndex: t,
         seatIndex:  s,
         angle:      (angleRad / DEG),

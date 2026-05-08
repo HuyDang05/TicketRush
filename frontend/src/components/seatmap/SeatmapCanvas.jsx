@@ -189,7 +189,7 @@ function useZoneGroup(zone, onChange) {
 }
 
 // ── Rows block ────────────────────────────────────────────────────────────────
-function RowsBlock({ zone, isSelected, onSelect, onChange }) {
+function RowsBlock({ zone, isSelected, onSelect, onChange, readOnly }) {
   const { groupRef, trRef, handleDragEnd, makeTransformEnd } = useZoneGroup(zone, onChange);
   const { seats, w, h } = genRowsSeats(zone);
   const scaleX = zone.width  ? zone.width  / w : 1;
@@ -199,7 +199,7 @@ function RowsBlock({ zone, isSelected, onSelect, onChange }) {
     <>
       <Group ref={groupRef} x={zone.x ?? 60} y={zone.y ?? 60} rotation={zone.rotation ?? 0}
         scaleX={scaleX} scaleY={scaleY}
-        draggable
+        draggable={!readOnly}
         onClick={e => { e.cancelBubble = true; onSelect(zone.id); }}
         onTap={e => { e.cancelBubble = true; onSelect(zone.id); }}
         onDragStart={e => { e.cancelBubble = true; }}
@@ -224,17 +224,15 @@ function RowsBlock({ zone, isSelected, onSelect, onChange }) {
             strokeWidth={0.8} cornerRadius={3} listening={false} />
         ))}
       </Group>
-      {isSelected && (
-        <Transformer ref={trRef} rotateEnabled
-          enabledAnchors={['top-left','top-right','bottom-left','bottom-right']}
-          boundBoxFunc={(o, n) => (n.width < 60 || n.height < 40 ? o : n)} />
+      {isSelected && !readOnly && (
+        <Transformer ref={trRef} rotateEnabled resizeEnabled={false} enabledAnchors={[]} />
       )}
     </>
   );
 }
 
 // ── Arc block ─────────────────────────────────────────────────────────────────
-function ArcBlock({ zone, isSelected, onSelect, onChange }) {
+function ArcBlock({ zone, isSelected, onSelect, onChange, readOnly }) {
   const { groupRef, trRef, handleDragEnd, makeTransformEnd } = useZoneGroup(zone, onChange);
   const { seats, w, h, cx, cy } = genArcSeats(zone);
   const scaleX = zone.width  ? zone.width  / w : 1;
@@ -253,7 +251,7 @@ function ArcBlock({ zone, isSelected, onSelect, onChange }) {
     <>
       <Group ref={groupRef} x={zone.x ?? 60} y={zone.y ?? 60} rotation={zone.rotation ?? 0}
         scaleX={scaleX} scaleY={scaleY}
-        draggable
+        draggable={!readOnly}
         onClick={e => { e.cancelBubble = true; onSelect(zone.id); }}
         onTap={e => { e.cancelBubble = true; onSelect(zone.id); }}
         onDragStart={e => { e.cancelBubble = true; }}
@@ -293,17 +291,15 @@ function ArcBlock({ zone, isSelected, onSelect, onChange }) {
             strokeWidth={0.8} cornerRadius={3} listening={false} />
         ))}
       </Group>
-      {isSelected && (
-        <Transformer ref={trRef} rotateEnabled
-          enabledAnchors={['top-left','top-right','bottom-left','bottom-right']}
-          boundBoxFunc={(o, n) => (n.width < 60 || n.height < 40 ? o : n)} />
+      {isSelected && !readOnly && (
+        <Transformer ref={trRef} rotateEnabled resizeEnabled={false} enabledAnchors={[]} />
       )}
     </>
   );
 }
 
 // ── Table block ───────────────────────────────────────────────────────────────
-function TableBlock({ zone, isSelected, onSelect, onChange }) {
+function TableBlock({ zone, isSelected, onSelect, onChange, readOnly }) {
   const { groupRef, trRef, handleDragEnd, makeTransformEnd } = useZoneGroup(zone, onChange);
   const { tables, w, h } = genTableSeats(zone);
   const scaleX = zone.width  ? zone.width  / w : 1;
@@ -315,7 +311,7 @@ function TableBlock({ zone, isSelected, onSelect, onChange }) {
     <>
       <Group ref={groupRef} x={zone.x ?? 60} y={zone.y ?? 60} rotation={zone.rotation ?? 0}
         scaleX={scaleX} scaleY={scaleY}
-        draggable
+        draggable={!readOnly}
         onClick={e => { e.cancelBubble = true; onSelect(zone.id); }}
         onTap={e => { e.cancelBubble = true; onSelect(zone.id); }}
         onDragStart={e => { e.cancelBubble = true; }}
@@ -350,10 +346,8 @@ function TableBlock({ zone, isSelected, onSelect, onChange }) {
           </Group>
         ))}
       </Group>
-      {isSelected && (
-        <Transformer ref={trRef} rotateEnabled
-          enabledAnchors={['top-left','top-right','bottom-left','bottom-right']}
-          boundBoxFunc={(o, n) => (n.width < 60 || n.height < 40 ? o : n)} />
+      {isSelected && !readOnly && (
+        <Transformer ref={trRef} rotateEnabled resizeEnabled={false} enabledAnchors={[]} />
       )}
     </>
   );
@@ -375,7 +369,7 @@ function childNaturalSize(child) {
 }
 
 // ── Floor (container) block ───────────────────────────────────────────────────
-function FloorBlock({ zone, isSelected, onSelect, onChange }) {
+function FloorBlock({ zone, isSelected, onSelect, onChange, readOnly }) {
   const { groupRef, trRef, handleDragEnd, makeTransformEnd } = useZoneGroup(zone, onChange);
   const children = zone.children || [];
   const isGrouped = zone.grouped !== false; // default true for legacy zones
@@ -387,7 +381,7 @@ function FloorBlock({ zone, isSelected, onSelect, onChange }) {
     return (
       <>
         <Group ref={groupRef} x={zone.x ?? 60} y={zone.y ?? 60} rotation={zone.rotation ?? 0}
-          draggable
+          draggable={!readOnly}
           onClick={e => { e.cancelBubble = true; onSelect(zone.id); }}
           onTap={e => { e.cancelBubble = true; onSelect(zone.id); }}
           onDragStart={e => { e.cancelBubble = true; }}
@@ -420,10 +414,10 @@ function FloorBlock({ zone, isSelected, onSelect, onChange }) {
           <Text x={w / 2 - 8} y={h / 2 + 4} text="⊞"
             fontSize={18} fill={hexToRgba(zone.color, 0.3)} align="center" listening={false} />
         </Group>
-        {isSelected && (
+        {isSelected && !readOnly && (
           <Transformer ref={trRef} rotateEnabled
-            enabledAnchors={['top-left','top-right','bottom-left','bottom-right']}
-            boundBoxFunc={(o, n) => (n.width < 60 || n.height < 40 ? o : n)} />
+            enabledAnchors={['top-left','top-right','bottom-left','bottom-right','middle-left','middle-right','top-center','bottom-center']}
+            boundBoxFunc={(o, n) => (n.width < 80 || n.height < 60 ? o : n)} />
         )}
       </>
     );
@@ -484,7 +478,7 @@ function FloorBlock({ zone, isSelected, onSelect, onChange }) {
   return (
     <>
       <Group ref={groupRef} x={zone.x ?? 60} y={zone.y ?? 60} rotation={zone.rotation ?? 0}
-        draggable
+        draggable={!readOnly}
         onClick={e => { e.cancelBubble = true; onSelect(zone.id); }}
         onTap={e => { e.cancelBubble = true; onSelect(zone.id); }}
         onDragStart={e => { e.cancelBubble = true; }}
@@ -568,10 +562,10 @@ function FloorBlock({ zone, isSelected, onSelect, onChange }) {
           return (
             <Group key={child.id} x={cx} y={cy} rotation={child.rotation ?? 0}
               scaleX={scaleX} scaleY={scaleY}
-              draggable
+              draggable={!readOnly}
               onDragStart={e => { e.cancelBubble = true; }}
               onDragEnd={e => handleChildDragEnd(child.id, e)}
-              onMouseEnter={e => { e.target.getStage().container().style.cursor = 'move'; }}
+              onMouseEnter={e => { e.target.getStage().container().style.cursor = readOnly ? 'default' : 'move'; }}
               onMouseLeave={e => { e.target.getStage().container().style.cursor = 'default'; }}
             >
               <Rect width={naturalW} height={naturalH} fill="transparent" />
@@ -580,22 +574,20 @@ function FloorBlock({ zone, isSelected, onSelect, onChange }) {
           );
         })}
       </Group>
-      {isSelected && (
-        <Transformer ref={trRef} rotateEnabled
-          enabledAnchors={['top-left','top-right','bottom-left','bottom-right']}
-          boundBoxFunc={(o, n) => (n.width < 60 || n.height < 40 ? o : n)} />
+      {isSelected && !readOnly && (
+        <Transformer ref={trRef} rotateEnabled resizeEnabled={false} enabledAnchors={[]} />
       )}
     </>
   );
 }
 
 // ── Zone router ───────────────────────────────────────────────────────────────
-function ZoneBlock({ zone, isSelected, onSelect, onChange }) {
+function ZoneBlock({ zone, isSelected, onSelect, onChange, readOnly }) {
   const bt = zone.blockType || 'rows';
-  if (bt === 'arc')   return <ArcBlock   zone={zone} isSelected={isSelected} onSelect={onSelect} onChange={onChange} />;
-  if (bt === 'table') return <TableBlock zone={zone} isSelected={isSelected} onSelect={onSelect} onChange={onChange} />;
-  if (bt === 'floor') return <FloorBlock zone={zone} isSelected={isSelected} onSelect={onSelect} onChange={onChange} />;
-  return <RowsBlock   zone={zone} isSelected={isSelected} onSelect={onSelect} onChange={onChange} />;
+  if (bt === 'arc')   return <ArcBlock   zone={zone} isSelected={isSelected} onSelect={onSelect} onChange={onChange} readOnly={readOnly} />;
+  if (bt === 'table') return <TableBlock zone={zone} isSelected={isSelected} onSelect={onSelect} onChange={onChange} readOnly={readOnly} />;
+  if (bt === 'floor') return <FloorBlock zone={zone} isSelected={isSelected} onSelect={onSelect} onChange={onChange} readOnly={readOnly} />;
+  return <RowsBlock   zone={zone} isSelected={isSelected} onSelect={onSelect} onChange={onChange} readOnly={readOnly} />;
 }
 
 // ── Stage drop target helper ───────────────────────────────────────────────────
@@ -613,6 +605,7 @@ export default function SeatmapCanvas({
   showGrid,
   measureMode, onToggleMeasure,
   bgImage, onBgChange,
+  readOnly = false,
 }) {
   const containerRef = useRef(null);
   const stageRef     = useRef(null);
@@ -933,6 +926,7 @@ export default function SeatmapCanvas({
                 isSelected={selectedId === zone.id}
                 onSelect={onSelectZone}
                 onChange={handleZoneChange}
+                readOnly={readOnly}
               />
             ))}
           </Layer>

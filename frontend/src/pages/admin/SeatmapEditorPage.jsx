@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import SeatmapCanvas from '../../components/seatmap/SeatmapCanvas';
 import SeatmapPreview from '../../components/seatmap/SeatmapPreview';
 import eventService from '../../services/event.service';
@@ -92,6 +92,62 @@ const StepperRow = ({ label, value, onDec, onInc }) => (
     </div>
   </div>
 );
+
+const PRICE_STEP = 50000;
+const fmtPrice = (n) => Number(n || 0).toLocaleString('vi-VN');
+const parsePrice = (s) => parseInt(s.replace(/\./g, '').replace(/[^\d]/g, ''), 10) || 0;
+
+function PriceInput({ value, onChange }) {
+  const [raw, setRaw] = useState(fmtPrice(value));
+  const committed = useRef(value);
+
+  useEffect(() => {
+    if (value !== committed.current) {
+      setRaw(fmtPrice(value));
+      committed.current = value;
+    }
+  }, [value]);
+
+  const commit = (num) => {
+    const clamped = Math.max(0, num);
+    committed.current = clamped;
+    setRaw(fmtPrice(clamped));
+    onChange(clamped);
+  };
+
+  const handleChange = (e) => {
+    const digits = e.target.value.replace(/\./g, '').replace(/[^\d]/g, '');
+    const num = parseInt(digits, 10) || 0;
+    setRaw(digits === '' ? '' : fmtPrice(num));
+  };
+
+  const handleBlur = () => commit(parsePrice(raw));
+
+  return (
+    <div className="sme-price-wrap">
+      <div className="sme-price-arrows">
+        <button
+          className="sme-price-arrow"
+          onMouseDown={e => { e.preventDefault(); commit(parsePrice(raw) + PRICE_STEP); }}
+        >▲</button>
+        <button
+          className="sme-price-arrow"
+          onMouseDown={e => { e.preventDefault(); commit(Math.max(0, parsePrice(raw) - PRICE_STEP)); }}
+        >▼</button>
+      </div>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={raw}
+        className="sme-price-input"
+        onChange={handleChange}
+        onBlur={e => { e.target.parentElement.style.borderColor = '#333'; handleBlur(); }}
+        onFocus={e => e.target.parentElement.style.borderColor = '#FF6B35'}
+      />
+      <span className="sme-price-suffix">đ</span>
+    </div>
+  );
+}
 
 const SliderRow = ({ label, min, max, value, onChange: onCh, suffix = '' }) => (
   <div className="slider-row">
@@ -198,14 +254,7 @@ function PropertyPanel({ zone, onChange, onRemove, onFlip }) {
                 ))}
               </div>
               <PropRow label="Giá vé">
-                <div className="sme-price-wrap">
-                  <input type="number" value={zone.price ?? 0} min={0} step={50000}
-                    className="sme-price-input"
-                    onFocus={e => { e.target.parentElement.style.borderColor = '#FF6B35'; }}
-                    onBlur={e => { e.target.parentElement.style.borderColor = '#333'; }}
-                    onChange={e => onChange('price', Number(e.target.value))} />
-                  <span className="sme-price-suffix">đ</span>
-                </div>
+                <PriceInput value={zone.price ?? 0} onChange={v => onChange('price', v)} />
               </PropRow>
             </>
           )}
@@ -316,7 +365,6 @@ function PropertyPanel({ zone, onChange, onRemove, onFlip }) {
         <div className="sme-stats">
           {[
             { label: 'Tổng ghế',    value: totalSeats.toLocaleString('vi-VN'),           cls: 'sme-stats__value--green' },
-            { label: 'Giá/ghế',     value: (zone.price || 0).toLocaleString('vi-VN') + 'đ', cls: 'sme-stats__value--orange' },
             { label: 'Tổng giá trị',value: ((totalSeats * (zone.price || 0)) / 1e6).toFixed(1) + 'tr đ', cls: 'sme-stats__value--white' },
           ].map(({ label, value, cls }) => (
             <div key={label} className="sme-stats__row">
@@ -491,14 +539,7 @@ function ChildEditor({ child, onChange }) {
           onChange={e => onChange('name', e.target.value)} />
       </PropRow>
       <PropRow label="Gia ve">
-        <div className="sme-price-wrap">
-          <input type="number" value={child.price ?? 0} min={0} step={50000}
-            className="sme-price-input"
-            onFocus={e => { e.target.parentElement.style.borderColor = '#FF6B35'; }}
-            onBlur={e => { e.target.parentElement.style.borderColor = '#333'; }}
-            onChange={e => onChange('price', Number(e.target.value))} />
-          <span className="sme-price-suffix">d</span>
-        </div>
+        <PriceInput value={child.price ?? 0} onChange={v => onChange('price', v)} />
       </PropRow>
       {bt === 'rows' && (
         <>
@@ -561,6 +602,8 @@ function Toast({ msg, onDone }) {
 export default function SeatmapEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const readOnly = searchParams.get('view') === '1';
 
   const [event, setEvent]           = useState(null);
   const [loading, setLoading]       = useState(true);
@@ -853,23 +896,45 @@ export default function SeatmapEditorPage() {
     : Math.round(totalRevenue / 1e6) + 'tr đ';
 
   const handleSave = useCallback(async () => {
-    if (zones.length === 0) { setToast('⚠ Phải có ít nhất 1 khu vực'); return; }
+    if (zones.length === 0) { setToast('⚠ Phải có ít nhất 1 khu vực'); return false; }
     // Flatten: grouped floors expand to children; ungrouped floors are skipped (their zones are top-level); regular zones included
     const flatZones = zones.flatMap(z => {
       if (z.blockType === 'floor') return z.grouped ? (z.children || []) : [];
       if (z._floorId) return [z]; // ungrouped child still top-level
       return [z];
     });
-    if (flatZones.length === 0) { setToast('⚠ Phải có ít nhất 1 khu vực có ghế'); return; }
+    if (flatZones.length === 0) { setToast('⚠ Phải có ít nhất 1 khu vực có ghế'); return false; }
     for (const z of flatZones) {
-      if (!z.name.trim())        { setToast('⚠ Tên khu vực không được để trống'); return; }
-      if ((z.price || 0) <= 0)   { setToast('⚠ Giá vé phải lớn hơn 0'); return; }
-      if (countZoneSeats(z) < 1) { setToast(`⚠ Khu "${z.name}" phải có ít nhất 1 ghế`); return; }
+      if (!z.name.trim())        { setToast('⚠ Tên khu vực không được để trống'); return false; }
+      if ((z.price || 0) <= 0)   { setToast('⚠ Giá vé phải lớn hơn 0'); return false; }
+      if (countZoneSeats(z) < 1) { setToast(`⚠ Khu "${z.name}" phải có ít nhất 1 ghế`); return false; }
     }
     setSaving(true);
     try {
+      // layout = full zone tree (floors preserved) for customer canvas rendering
+      const buildLayout = (zoneList) => zoneList
+        .filter(z => !z._floorId)
+        .map(z => {
+          const base = {
+            id: z.id, name: z.name.trim(), color: z.color, price: z.price,
+            blockType: z.blockType || 'rows',
+            config: z.config || {}, rows: z.rows, cols: z.cols,
+            x: z.x ?? 60, y: z.y ?? 60, rotation: z.rotation ?? 0,
+            width: z.width, height: z.height,
+          };
+          if (z.blockType === 'floor') {
+            const ungroupedKids = zoneList.filter(c => c._floorId === z.id);
+            base.grouped = z.grouped;
+            base.children = z.grouped
+              ? (z.children || [])
+              : ungroupedKids.map(c => ({ ...c }));
+          }
+          return base;
+        });
+
       const seatmapPayload = {
         venue: event?.venue || '',
+        layout: buildLayout(zones),
         zones: flatZones.map(z => {
           const generated = generateSeatsForZone(z);
           const seats = generated.map(s => ({
@@ -887,20 +952,30 @@ export default function SeatmapEditorPage() {
       const res = await eventService.saveSeatmap(id, seatmapVersion, seatmapPayload);
       setSeatmapVersion(res.data.seatmapVersion);
       setToast('✓ Đã lưu sơ đồ ghế thành công');
+      return true;
     } catch (err) {
       const msg = err.response?.data?.message || 'Không thể lưu sơ đồ ghế';
       if (err.response?.data?.currentVersion != null)
         setSeatmapVersion(err.response.data.currentVersion);
       setToast(`⚠ ${msg}`);
+      return false;
     } finally {
       setSaving(false);
     }
   }, [zones, id, seatmapVersion, event]);
 
   const handlePublish = useCallback(async () => {
-    await handleSave();
-    setTimeout(() => navigate('/admin/events'), 800);
-  }, [handleSave, navigate]);
+    try {
+      const saved = await handleSave();
+      if (!saved) return;
+      await eventService.publishEvent(id);
+      setToast('✓ Tạo và xuất bản sự kiện thành công!');
+      setTimeout(() => navigate('/admin/events'), 1500);
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Không thể xuất bản sự kiện';
+      setToast(`⚠ ${msg}`);
+    }
+  }, [handleSave, navigate, id]);
 
   const selectedZone = zones.find(z => z.id === selectedZoneId);
 
@@ -948,25 +1023,31 @@ export default function SeatmapEditorPage() {
           <div className="sme-header__breadcrumb">
             Admin / Sự kiện
             {event && <> / <span className="sme-header__breadcrumb-event">{event.title || event.name}</span></>}
-            {' / '}<span className="sme-header__breadcrumb-page">Thiết kế ghế</span>
+            {' / '}<span className="sme-header__breadcrumb-page">{readOnly ? 'Xem sơ đồ ghế' : 'Thiết kế ghế'}</span>
           </div>
         </div>
 
         {/* Center: title + badge */}
         <div className="sme-header__center">
           <span className="sme-header__title">Sơ đồ ghế</span>
-          <span className="sme-header__badge">
-            Đang chỉnh sửa
+          <span className="sme-header__badge" style={readOnly ? { background: 'rgba(56,189,248,.15)', color: '#38bdf8', border: '1px solid rgba(56,189,248,.35)' } : {}}>
+            {readOnly ? 'Chỉ xem' : 'Đang chỉnh sửa'}
           </span>
         </div>
 
         {/* Right: actions */}
         <div className="sme-header__actions">
-          <Btn variant="ghost" onClick={() => setShowPreview(true)}>👁 Xem trước</Btn>
-          <Btn variant="orange-ghost" onClick={handleSave} disabled={saving}>
-            {saving ? 'Đang lưu...' : 'Lưu nháp'}
-          </Btn>
-          <Btn variant="orange" onClick={handlePublish} disabled={saving}>✓ Xuất bản</Btn>
+          {readOnly ? (
+            <Btn variant="ghost" onClick={() => navigate('/admin/events')}>← Quay lại</Btn>
+          ) : (
+            <>
+              <Btn variant="ghost" onClick={() => setShowPreview(true)}>👁 Xem trước</Btn>
+              <Btn variant="orange-ghost" onClick={handleSave} disabled={saving}>
+                {saving ? 'Đang lưu...' : 'Lưu nháp'}
+              </Btn>
+              <Btn variant="orange" onClick={handlePublish} disabled={saving}>✓ Xuất bản</Btn>
+            </>
+          )}
         </div>
       </div>
 
@@ -975,75 +1056,98 @@ export default function SeatmapEditorPage() {
 
         {/* ─── LEFT SIDEBAR ─── */}
         <div className="sme-sidebar">
-          <div className="sme-sidebar__section-label">
-            Khối ghế
-          </div>
-
-          {BLOCK_TYPES.map(bt => (
-            <div
-              key={bt.type}
-              className="blk-card"
-              draggable
-              onDragStart={e => e.dataTransfer.setData('application/x-block-type', JSON.stringify({ type: bt.type, defaultConfig: bt.defaultConfig }))}
-              onClick={() => addZone(bt.type, bt.defaultConfig)}
-            >
-              <div className="blk-icon">{bt.icon}</div>
-              <div className="sme-sidebar__blk-text">
-                <div className="sme-sidebar__blk-name">{bt.name}</div>
-                <div className="sme-sidebar__blk-desc">{bt.desc}</div>
+          {!readOnly && (
+            <>
+              <div className="sme-sidebar__section-label">
+                Khối ghế
               </div>
-            </div>
-          ))}
 
-          <div className="sme-sidebar__divider" />
+              {BLOCK_TYPES.map(bt => (
+                <div
+                  key={bt.type}
+                  className="blk-card"
+                  draggable
+                  onDragStart={e => e.dataTransfer.setData('application/x-block-type', JSON.stringify({ type: bt.type, defaultConfig: bt.defaultConfig }))}
+                  onClick={() => addZone(bt.type, bt.defaultConfig)}
+                >
+                  <div className="blk-icon">{bt.icon}</div>
+                  <div className="sme-sidebar__blk-text">
+                    <div className="sme-sidebar__blk-name">{bt.name}</div>
+                    <div className="sme-sidebar__blk-desc">{bt.desc}</div>
+                  </div>
+                </div>
+              ))}
 
-          <div className="sme-sidebar__section-label--sm">
-            Công cụ
-          </div>
+              <div className="sme-sidebar__divider" />
 
-          {/* Upload nền */}
-          <div className="tool-btn" onClick={() => bgFileRef.current?.click()}>
-            <span className="sme-sidebar__tool-icon">🖼</span> Upload nền
-          </div>
-          {bgImage && (
-            <div className="tool-btn tool-btn--danger tool-btn--bg-clear"
-              onClick={() => setBgImage(null)}>
-              ✕ Xóa ảnh nền
-            </div>
+              <div className="sme-sidebar__section-label--sm">
+                Công cụ
+              </div>
+
+              {/* Upload nền */}
+              <div className="tool-btn" onClick={() => bgFileRef.current?.click()}>
+                <span className="sme-sidebar__tool-icon">🖼</span> Upload nền
+              </div>
+              {bgImage && (
+                <div className="tool-btn tool-btn--danger tool-btn--bg-clear"
+                  onClick={() => setBgImage(null)}>
+                  ✕ Xóa ảnh nền
+                </div>
+              )}
+              <input ref={bgFileRef} type="file" accept="image/*" className="sme-hidden-input"
+                onChange={e => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = ev => {
+                    const img = new window.Image();
+                    img.onload = () => setBgImage(img);
+                    img.src = ev.target.result;
+                  };
+                  reader.readAsDataURL(file);
+                  e.target.value = '';
+                }} />
+
+              {/* Bật lưới */}
+              <div className={`tool-btn${showGrid ? ' active' : ''}`} onClick={() => setShowGrid(g => !g)}>
+                <span className="sme-sidebar__tool-icon">⊞</span> Bật lưới
+              </div>
+
+              {/* Đo khoảng cách */}
+              <div className={`tool-btn${measureMode ? ' active' : ''}`}
+                onClick={() => setMeasureMode(m => !m)}>
+                <span className="sme-sidebar__tool-icon">📐</span> Đo khoảng cách
+              </div>
+
+              {/* Xóa chọn */}
+              {selectedZoneId && (
+                <div className="tool-btn tool-btn--danger" onClick={() => removeZone(selectedZoneId)}>
+                  <span>🗑</span> Xóa chọn
+                </div>
+              )}
+
+              <div className="sme-sidebar__divider" />
+            </>
           )}
-          <input ref={bgFileRef} type="file" accept="image/*" className="sme-hidden-input"
-            onChange={e => {
-              const file = e.target.files[0];
-              if (!file) return;
-              const reader = new FileReader();
-              reader.onload = ev => {
-                const img = new window.Image();
-                img.onload = () => setBgImage(img);
-                img.src = ev.target.result;
-              };
-              reader.readAsDataURL(file);
-              e.target.value = '';
-            }} />
 
-          {/* Bật lưới */}
-          <div className={`tool-btn${showGrid ? ' active' : ''}`} onClick={() => setShowGrid(g => !g)}>
-            <span className="sme-sidebar__tool-icon">⊞</span> Bật lưới
-          </div>
-
-          {/* Đo khoảng cách */}
-          <div className={`tool-btn${measureMode ? ' active' : ''}`}
-            onClick={() => setMeasureMode(m => !m)}>
-            <span className="sme-sidebar__tool-icon">📐</span> Đo khoảng cách
-          </div>
-
-          {/* Xóa chọn */}
-          {selectedZoneId && (
-            <div className="tool-btn tool-btn--danger" onClick={() => removeZone(selectedZoneId)}>
-              <span>🗑</span> Xóa chọn
-            </div>
+          {readOnly && (
+            <>
+              <div className="sme-sidebar__section-label">
+                Chú thích màu
+              </div>
+              {[
+                { color: '#22c55e', label: 'Còn trống' },
+                { color: '#6b7280', label: 'Đang khóa' },
+                { color: '#7f1d1d', label: 'Đã bán' },
+              ].map(({ color, label }) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', fontSize: 12, color: '#AAAAAA' }}>
+                  <div style={{ width: 12, height: 12, borderRadius: 3, background: color, flexShrink: 0 }} />
+                  {label}
+                </div>
+              ))}
+              <div className="sme-sidebar__divider" />
+            </>
           )}
-
-          <div className="sme-sidebar__divider" />
 
           {/* Zone list */}
           <div className="sme-sidebar__section-label--sm">
@@ -1130,16 +1234,17 @@ export default function SeatmapEditorPage() {
           <SeatmapCanvas
             zones={zones}
             selectedId={selectedZoneId}
-            onSelectZone={setSelectedZoneId}
-            onUpdateZone={handleCanvasUpdate}
-            onDropBlock={handleDropBlock}
-            onDeleteZone={removeZone}
+            onSelectZone={readOnly ? () => {} : setSelectedZoneId}
+            onUpdateZone={readOnly ? () => {} : handleCanvasUpdate}
+            onDropBlock={readOnly ? () => {} : handleDropBlock}
+            onDeleteZone={readOnly ? () => {} : removeZone}
             showGrid={showGrid}
             onToggleGrid={() => setShowGrid(g => !g)}
-            measureMode={measureMode}
-            onToggleMeasure={() => setMeasureMode(m => !m)}
+            measureMode={false}
+            onToggleMeasure={() => {}}
             bgImage={bgImage}
-            onBgChange={setBgImage}
+            onBgChange={readOnly ? () => {} : setBgImage}
+            readOnly={readOnly}
           />
 
           {/* Status Bar */}
@@ -1160,34 +1265,36 @@ export default function SeatmapEditorPage() {
         </div>
 
         {/* ─── RIGHT PANEL ─── */}
-        <div className="sme-right-panel">
-          {selectedZone ? (
-            selectedZone.blockType === 'floor' ? (
-              <FloorPropertyPanel
-                zone={selectedZone}
-                ungroupedChildren={zones.filter(z => z._floorId === selectedZone.id)}
-                onChange={(key, val) => updateZone(selectedZone.id, key, val)}
-                onRemove={() => removeZone(selectedZone.id)}
-                onGroup={() => groupFloor(selectedZone.id)}
-                onUngroup={() => ungroupFloor(selectedZone.id)}
-                onAddChild={(blockType, cfg) => addChildToFloor(selectedZone.id, blockType, cfg)}
-                onRemoveChild={(childId) => removeChildFromFloor(selectedZone.id, childId)}
-                onChangeChild={(childId, key, val) => updateChildZone(selectedZone.id, childId, key, val)}
-                selectedChildId={selectedChildId}
-                onSelectChild={setSelectedChildId}
-              />
+        {!readOnly && (
+          <div className="sme-right-panel">
+            {selectedZone ? (
+              selectedZone.blockType === 'floor' ? (
+                <FloorPropertyPanel
+                  zone={selectedZone}
+                  ungroupedChildren={zones.filter(z => z._floorId === selectedZone.id)}
+                  onChange={(key, val) => updateZone(selectedZone.id, key, val)}
+                  onRemove={() => removeZone(selectedZone.id)}
+                  onGroup={() => groupFloor(selectedZone.id)}
+                  onUngroup={() => ungroupFloor(selectedZone.id)}
+                  onAddChild={(blockType, cfg) => addChildToFloor(selectedZone.id, blockType, cfg)}
+                  onRemoveChild={(childId) => removeChildFromFloor(selectedZone.id, childId)}
+                  onChangeChild={(childId, key, val) => updateChildZone(selectedZone.id, childId, key, val)}
+                  selectedChildId={selectedChildId}
+                  onSelectChild={setSelectedChildId}
+                />
+              ) : (
+                <PropertyPanel
+                  zone={selectedZone}
+                  onChange={(key, val) => updateZone(selectedZone.id, key, val)}
+                  onRemove={() => removeZone(selectedZone.id)}
+                  onFlip={() => handleFlipZone(selectedZone.id)}
+                />
+              )
             ) : (
-              <PropertyPanel
-                zone={selectedZone}
-                onChange={(key, val) => updateZone(selectedZone.id, key, val)}
-                onRemove={() => removeZone(selectedZone.id)}
-                onFlip={() => handleFlipZone(selectedZone.id)}
-              />
-            )
-          ) : (
-            <EmptyPanel />
-          )}
-        </div>
+              <EmptyPanel />
+            )}
+          </div>
+        )}
       </div>
 
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}

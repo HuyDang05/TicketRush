@@ -7,15 +7,11 @@ import eventService from '../../services/event.service';
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
-const ZONE_COLORS = ['#FF6B35', '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EC4899'];
 
-function newZone() {
-  return { name: '', price: '' };
-}
 
 /* ── Step indicator ── */
 function StepBar({ step }) {
-  const steps = ['Thông tin sự kiện', 'Thời gian & Loại vé', 'Cấu hình chỗ ngồi'];
+  const steps = ['Thông tin sự kiện', 'Cấu hình chỗ ngồi'];
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 24 }}>
       {steps.map((label, i) => {
@@ -93,12 +89,9 @@ export default function EventCreateWizard() {
     shortDescription: '',
   });
 
-  // Step 2 form
+  // Step 1 form
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [rows, setRows] = useState(10);
-  const [cols, setCols] = useState(20);
-  const [zones, setZones] = useState([newZone()]);
 
   useEffect(() => {
     if (!imageFile) { setImagePreview(null); return; }
@@ -125,15 +118,9 @@ export default function EventCreateWizard() {
           category: ev.category || 'Âm nhạc',
           shortDescription: ev.description || '',
         }));
-        // Step 2 — dates
+        // Step 1 — dates
         if (ev.date) setStartDate(new Date(ev.date).toISOString().slice(0, 16));
         if (ev.endDate) setEndDate(new Date(ev.endDate).toISOString().slice(0, 16));
-        // Zones — lấy rows/cols từ zone đầu tiên
-        if (ev.zones?.length > 0) {
-          setRows(ev.zones[0].rows);
-          setCols(ev.zones[0].cols);
-          setZones(ev.zones.map(z => ({ name: z.name, price: String(z.price) })));
-        }
         // Preview ảnh hiện tại nếu có
         if (ev.imageUrl) setImagePreview(ev.imageUrl);
       })
@@ -146,27 +133,7 @@ export default function EventCreateWizard() {
   const currentProvince = provinces.find(p => p.name === form.province);
 
   // Validation
-  const canNext = form.name.trim() && form.venue.trim();
-  const canSubmit = startDate && rows >= 1 && cols >= 1 && zones.length > 0 &&
-    zones.every(z => z.name.trim() && Number(z.price) > 0);
-
-  /* ── Zone helpers ── */
-  const setZone = (i, key, val) =>
-    setZones(prev => prev.map((z, idx) => idx === i ? { ...z, [key]: val } : z));
-  const addZone = () => setZones(prev => [...prev, newZone()]);
-  const removeZone = (i) => setZones(prev => prev.filter((_, idx) => idx !== i));
-
-  /* ── Go to step 3 with validation ── */
-  const handleNextStep = () => {
-    if (!startDate) { showToast('Vui lòng chọn ngày giờ bắt đầu', 'error'); return; }
-    if (endDate && new Date(endDate) <= new Date(startDate)) { showToast('Thời gian kết thúc phải sau bắt đầu', 'error'); return; }
-    if (rows < 1 || cols < 1) { showToast('Số hàng và số cột ghế phải ≥ 1', 'error'); return; }
-    const emptyZone = zones.find(z => !z.name.trim());
-    if (emptyZone) { showToast('Vui lòng điền tên cho tất cả loại vé', 'error'); return; }
-    const badPrice = zones.find(z => !(Number(z.price) > 0));
-    if (badPrice) { showToast('Giá vé phải lớn hơn 0', 'error'); return; }
-    setStep(3);
-  };
+  const canSubmit = form.name.trim() && form.venue.trim() && startDate;
 
   /* ── Submit ── */
   const handleSubmit = async () => {
@@ -193,23 +160,18 @@ export default function EventCreateWizard() {
         startDate,
         endDate: endDate || undefined,
         ...(imageUrl ? { imageUrl } : {}),
-        rows: Number(rows),
-        cols: Number(cols),
-        zones: zones.map(z => ({
-          name: z.name,
-          price: Number(z.price),
-        })),
       };
 
       if (isEdit) {
         await eventService.updateEvent(editId, payload);
-        showToast('Cập nhật sự kiện thành công!', 'success');
+        showToast('Cập nhật thông tin thành công!', 'success');
+        setTimeout(() => navigate(`/admin/events/${editId}/seatmap`), 1200);
       } else {
         payload.imageUrl = imageUrl;
-        await eventService.createEvent(payload);
-        showToast('Tạo sự kiện thành công!', 'success');
+        const res = await eventService.createEvent(payload);
+        showToast('Lưu thông tin thành công! Đang chuẩn bị bản đồ ghế...', 'success');
+        setTimeout(() => navigate(`/admin/events/${res.data.event.id}/seatmap`), 1200);
       }
-      setTimeout(() => navigate('/admin/events'), 1200);
     } catch (e) {
       const msg = e?.response?.data?.message || 'Có lỗi xảy ra';
       showToast(msg, 'error');
@@ -223,8 +185,6 @@ export default function EventCreateWizard() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const totalSeats = (Number(rows) || 0) * (Number(cols) || 0);
-  const totalSeatsAll = totalSeats * zones.length;
 
   return (
     <AdminLayout>
@@ -348,260 +308,45 @@ export default function EventCreateWizard() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                <div className="event-form-card" style={{ marginTop: 24 }}>
+                  <div className="event-form-section-title">🗓 Thời gian sự kiện</div>
+                  <div className="event-form-grid">
+                    <div className="event-form-field">
+                      <label className="event-form-label">Ngày &amp; giờ bắt đầu <span style={{ color: '#FF6B35' }}>*</span></label>
+                      <input
+                        type="datetime-local"
+                        className="event-form-input"
+                        value={startDate}
+                        onChange={e => setStartDate(e.target.value)}
+                        min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                      />
+                    </div>
+                    <div className="event-form-field">
+                      <label className="event-form-label">Ngày &amp; giờ kết thúc <span style={{ color: '#AAAAAA', fontWeight: 400 }}>(tuỳ chọn)</span></label>
+                      <input
+                        type="datetime-local"
+                        className="event-form-input"
+                        value={endDate}
+                        onChange={e => setEndDate(e.target.value)}
+                        min={startDate || new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                      />
+                    </div>
+                  </div>
+
+                  {startDate && endDate && new Date(endDate) <= new Date(startDate) && (
+                    <div style={{ color: '#f87171', fontSize: 12, marginTop: -8, marginBottom: 8 }}>
+                      ⚠ Thời gian kết thúc phải sau thời gian bắt đầu
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
                   <button className="btn-ghost" onClick={() => navigate('/admin/events')}>Hủy</button>
-                  <button className="btn-primary" onClick={() => canNext && setStep(2)} disabled={!canNext}>
-                    Tiếp theo →
+                  <button className="btn-primary" onClick={handleSubmit} disabled={!canSubmit || submitting}>
+                    {submitting ? 'Đang xử lý...' : 'Lưu & Cấu hình chỗ ngồi →'}
                   </button>
                 </div>
               </main>
-            </div>
-          </div>
-        )}
-
-        {/* ══════════ STEP 2 ══════════ */}
-        {step === 2 && (
-          <div>
-          <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-
-            {/* Left: datetime + zones */}
-            <div style={{ flex: 1 }}>
-
-              {/* Time section */}
-              <div className="event-form-card" style={{ marginBottom: 16 }}>
-                <div className="event-form-section-title">🗓 Thời gian sự kiện</div>
-                <div className="event-form-grid">
-                  <div className="event-form-field">
-                    <label className="event-form-label">Ngày &amp; giờ bắt đầu <span style={{ color: '#FF6B35' }}>*</span></label>
-                    <input
-                      type="datetime-local"
-                      className="event-form-input"
-                      value={startDate}
-                      onChange={e => setStartDate(e.target.value)}
-                      min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
-                    />
-                  </div>
-                  <div className="event-form-field">
-                    <label className="event-form-label">Ngày &amp; giờ kết thúc <span style={{ color: '#AAAAAA', fontWeight: 400 }}>(tuỳ chọn)</span></label>
-                    <input
-                      type="datetime-local"
-                      className="event-form-input"
-                      value={endDate}
-                      onChange={e => setEndDate(e.target.value)}
-                      min={startDate || new Date(Date.now() + 60000).toISOString().slice(0, 16)}
-                    />
-                  </div>
-                </div>
-
-                {startDate && endDate && new Date(endDate) <= new Date(startDate) && (
-                  <div style={{ color: '#f87171', fontSize: 12, marginTop: -8, marginBottom: 8 }}>
-                    ⚠ Thời gian kết thúc phải sau thời gian bắt đầu
-                  </div>
-                )}
-              </div>
-
-              {/* Seat layout section */}
-              <div className="event-form-card" style={{ marginBottom: 16 }}>
-                <div className="event-form-section-title">💺 Sơ đồ ghế ngồi</div>
-                <div style={{ color: '#AAAAAA', fontSize: 12, marginBottom: 14 }}>
-                  Thiết lập số hàng và số cột ghế áp dụng chung cho toàn bộ sự kiện.
-                </div>
-                <div className="event-form-grid">
-                  <div className="event-form-field">
-                    <label className="event-form-label">Số hàng ghế <span style={{ color: '#FF6B35' }}>*</span></label>
-                    <input
-                      type="number"
-                      min={1}
-                      className="event-form-input"
-                      value={rows}
-                      onChange={e => setRows(Math.max(1, parseInt(e.target.value) || 1))}
-                    />
-                  </div>
-                  <div className="event-form-field">
-                    <label className="event-form-label">Số cột ghế <span style={{ color: '#FF6B35' }}>*</span></label>
-                    <input
-                      type="number"
-                      min={1}
-                      className="event-form-input"
-                      value={cols}
-                      onChange={e => setCols(Math.max(1, parseInt(e.target.value) || 1))}
-                    />
-                  </div>
-                </div>
-                <div style={{
-                  marginTop: 8, padding: '8px 12px', background: 'rgba(255,107,53,0.08)',
-                  borderRadius: 8, fontSize: 13, color: '#FF6B35', fontWeight: 600,
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                }}>
-                  <span>📐</span>
-                  <span>Tổng: {totalSeats.toLocaleString('vi-VN')} ghế / loại vé</span>
-                  {zones.length > 1 && (
-                    <span style={{ color: '#AAAAAA', fontWeight: 400, fontSize: 12 }}>
-                      &nbsp;({totalSeatsAll.toLocaleString('vi-VN')} ghế tổng cộng)
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Zones / Ticket types section */}
-              <div className="event-form-card">
-                <div className="event-form-section-title">🎟 Loại vé</div>
-                <div style={{ color: '#AAAAAA', fontSize: 12, marginBottom: 14 }}>
-                  Mỗi loại vé sẽ dùng chung sơ đồ ghế ({rows} hàng × {cols} cột).
-                </div>
-
-                {zones.map((z, i) => (
-                  <div key={i} className="zone-row" style={{ borderLeft: `3px solid ${ZONE_COLORS[i % ZONE_COLORS.length]}` }}>
-                    <div className="zone-row__top">
-                      <div style={{
-                        width: 28, height: 28, borderRadius: 6, background: ZONE_COLORS[i % ZONE_COLORS.length],
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#fff', fontSize: 11, fontWeight: 800, flexShrink: 0,
-                      }}>
-                        {String.fromCharCode(65 + i)}
-                      </div>
-                      <input
-                        className="zone-row__name-input"
-                        value={z.name}
-                        onChange={e => setZone(i, 'name', e.target.value)}
-                        placeholder={`Tên loại vé (vd: VIP, Thường...)`}
-                      />
-                      {zones.length > 1 && (
-                        <button className="zone-row__remove-btn" onClick={() => removeZone(i)} title="Xoá loại vé">
-                          ✕
-                        </button>
-                      )}
-                    </div>
-
-                    {/* price only */}
-                    <div className="zone-row__bottom">
-                      <div className="zone-row__field" style={{ flex: 2 }}>
-                        <div className="zone-row__field-label">GIÁ VÉ (VNĐ)</div>
-                        <input
-                          type="number"
-                          min={0}
-                          className="zone-row__mini-input"
-                          value={z.price}
-                          onChange={e => setZone(i, 'price', e.target.value)}
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                <button className="zone-add-btn" onClick={addZone}>
-                  + Thêm loại vé
-                </button>
-              </div>
-            </div>
-
-            {/* Right: summary sidebar */}
-            <div style={{ width: 260, flexShrink: 0, position: 'sticky', top: 0 }}>
-              <div className="event-form-seat-summary">
-                <div className="event-form-seat-summary__title">📋 Tóm tắt sự kiện</div>
-
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, color: '#AAAAAA', marginBottom: 4, fontWeight: 700 }}>TÊN SỰ KIỆN</div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{form.name || '—'}</div>
-                </div>
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, color: '#AAAAAA', marginBottom: 4, fontWeight: 700 }}>ĐỊA ĐIỂM</div>
-                  <div style={{ fontSize: 12, color: '#ccc' }}>
-                    {[form.venue, form.district, form.province].filter(Boolean).join(', ') || '—'}
-                  </div>
-                </div>
-                {startDate && (
-                  <div style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 11, color: '#AAAAAA', marginBottom: 4, fontWeight: 700 }}>THỜI GIAN</div>
-                    <div style={{ fontSize: 12, color: '#ccc' }}>
-                      {new Date(startDate).toLocaleString('vi-VN')}
-                      {endDate && <> → {new Date(endDate).toLocaleString('vi-VN')}</>}
-                    </div>
-                  </div>
-                )}
-
-                <div className="event-form-divider" />
-
-                <div className="event-form-seat-summary__title" style={{ fontSize: 13, marginBottom: 10 }}>Các loại vé</div>
-                {zones.map((z, i) => (
-                  <div key={i} className="event-form-seat-row">
-                    <div className="event-form-seat-name">
-                      <div className="event-form-seat-dot" style={{ background: ZONE_COLORS[i % ZONE_COLORS.length] }} />
-                      {z.name || `Loại ${i + 1}`}
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div className="event-form-seat-count">
-                        {totalSeats.toLocaleString('vi-VN')} ghế
-                      </div>
-                      {z.price && (
-                        <div style={{ fontSize: 11, color: '#FF6B35', fontWeight: 700 }}>
-                          {Number(z.price).toLocaleString('vi-VN')}đ
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                <div className="event-form-divider" />
-                <div className="event-form-totals-row">
-                  <span className="event-form-totals-label">Sơ đồ ghế</span>
-                  <span className="event-form-totals-value">{rows} × {cols}</span>
-                </div>
-                <div className="event-form-totals-row">
-                  <span className="event-form-totals-label">Ghế / loại vé</span>
-                  <span className="event-form-totals-value">{totalSeats.toLocaleString('vi-VN')}</span>
-                </div>
-                <div className="event-form-totals-row">
-                  <span className="event-form-totals-label">Số loại vé</span>
-                  <span className="event-form-totals-value">{zones.length}</span>
-                </div>
-                <div className="event-form-totals-row">
-                  <span className="event-form-totals-label">Tổng ghế</span>
-                  <span className="event-form-totals-value">{totalSeatsAll.toLocaleString('vi-VN')}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-            <button className="btn-ghost" onClick={() => setStep(1)}>← Quay lại</button>
-            <button className="btn-primary" onClick={handleNextStep}>
-              Tiếp theo →
-            </button>
-          </div>
-          </div>
-        )}
-
-        {/* ══════════ STEP 3 ══════════ */}
-        {step === 3 && (
-          <div className="event-form-card" style={{ textAlign: 'center', padding: '60px 40px' }}>
-            <div style={{ fontSize: 56, marginBottom: 20 }}>🚧</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 12 }}>
-              Cấu hình chỗ ngồi
-            </div>
-            <div style={{
-              fontSize: 14, color: '#AAAAAA', maxWidth: 420, margin: '0 auto 32px',
-              lineHeight: 1.7,
-            }}>
-              Tính năng này đang được phát triển. Vui lòng quay lại sau.
-            </div>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              background: 'rgba(255,107,53,0.08)', border: '1px solid rgba(255,107,53,0.25)',
-              borderRadius: 10, padding: '10px 18px', fontSize: 13, color: '#FF6B35',
-              marginBottom: 36,
-            }}>
-              ⏳ Sắp ra mắt
-            </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 8 }}>
-              <button className="btn-ghost" onClick={() => setStep(2)}>← Quay lại</button>
-              <button
-                className="btn-primary"
-                onClick={handleSubmit}
-                disabled={submitting}
-              >
-                {submitting ? 'Đang lưu...' : isEdit ? '✓ Cập nhật sự kiện' : '✓ Tạo sự kiện'}
-              </button>
             </div>
           </div>
         )}
