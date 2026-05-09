@@ -16,8 +16,8 @@ function StepBar({ step }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 24 }}>
       {steps.map((label, i) => {
         const idx = i + 1;
-        const done = idx < step;
-        const active = idx === step;
+        const done = idx < displayStep;
+        const active = idx === displayStep;
         return (
           <div key={idx} style={{ display: 'flex', alignItems: 'center', flex: i < steps.length - 1 ? 1 : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -57,6 +57,10 @@ export default function EventCreateWizard() {
   const [imagePreview, setImagePreview] = useState(null);
   const [imageError, setImageError] = useState(null);
 
+  const [cardImageFile, setCardImageFile] = useState(null);
+  const [cardImagePreview, setCardImagePreview] = useState(null);
+  const [cardImageError, setCardImageError] = useState(null);
+
   /* ── validate 1280×720 khi chọn ảnh ── */
   const handleImageChange = (file) => {
     if (!file) { setImageFile(null); setImagePreview(null); setImageError(null); return; }
@@ -71,6 +75,25 @@ export default function EventCreateWizard() {
       } else {
         setImageError(null);
         setImageFile(file);
+      }
+    };
+    img.src = objUrl;
+  };
+
+  /* ── validate 720×958 cho ảnh card ── */
+  const handleCardImageChange = (file) => {
+    if (!file) { setCardImageFile(null); setCardImagePreview(null); setCardImageError(null); return; }
+    const img = new Image();
+    const objUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objUrl);
+      if (img.width !== 720 || img.height !== 958) {
+        setCardImageError(`Ảnh card phải có kích thước 720×958px (hiện tại: ${img.width}×${img.height}px)`);
+        setCardImageFile(null);
+        setCardImagePreview(null);
+      } else {
+        setCardImageError(null);
+        setCardImageFile(file);
       }
     };
     img.src = objUrl;
@@ -100,6 +123,13 @@ export default function EventCreateWizard() {
     return () => URL.revokeObjectURL(url);
   }, [imageFile]);
 
+  useEffect(() => {
+    if (!cardImageFile) { setCardImagePreview(null); return; }
+    const url = URL.createObjectURL(cardImageFile);
+    setCardImagePreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [cardImageFile]);
+
   /* ── Fetch để pre-fill khi edit ── */
   useEffect(() => {
     if (!isEdit) return;
@@ -123,10 +153,11 @@ export default function EventCreateWizard() {
         if (ev.endDate) setEndDate(new Date(ev.endDate).toISOString().slice(0, 16));
         // Preview ảnh hiện tại nếu có
         if (ev.imageUrl) setImagePreview(ev.imageUrl);
+        if (ev.cardImageUrl) setCardImagePreview(ev.cardImageUrl);
       })
       .catch(() => showToast('Không tải được dữ liệu sự kiện', 'error'))
       .finally(() => setLoadingEvent(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editId]);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -137,15 +168,22 @@ export default function EventCreateWizard() {
 
   /* ── Submit ── */
   const handleSubmit = async () => {
-    if (!canSubmit || submitting) return;
+    if (submitting) return;
+    if (!startDate) { showToast('Vui lòng chọn ngày giờ bắt đầu', 'error'); return; }
     setSubmitting(true);
     try {
-      // 1. Upload ảnh lên Cloudinary nếu có file mới
+      // 1. Upload ảnh banner và card lên Cloudinary nếu có file mới
       let imageUrl = undefined;
       if (imageFile) {
-        showToast('Đang tải ảnh lên...', 'info');
+        showToast('Đang tải ảnh banner lên...', 'info');
         const uploadRes = await eventService.uploadEventImage(imageFile);
         imageUrl = uploadRes.data?.url;
+      }
+      let cardImageUrl = undefined;
+      if (cardImageFile) {
+        showToast('Đang tải ảnh card lên...', 'info');
+        const uploadRes = await eventService.uploadCardImage(cardImageFile);
+        cardImageUrl = uploadRes.data?.url;
       }
 
       // 2. Build full venue string
@@ -208,105 +246,75 @@ export default function EventCreateWizard() {
         </div>
       ) : (
         <div style={{ padding: 20 }}>
-        <StepBar step={step} />
+          <StepBar step={step} />
 
-        {/* ══════════ STEP 1 ══════════ */}
-        {step === 1 && (
-          <div className="event-form-card">
-            <div style={{ display: 'flex', gap: 20 }}>
-              {/* Image aside */}
-              <aside style={{ width: 240, flexShrink: 0 }}>
-                <div style={{ marginBottom: 8, color: '#AAAAAA', fontSize: 13 }}>Ảnh sự kiện</div>
-                <div style={{ width: 240, height: 160, borderRadius: 8, background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: imageError ? '1.5px solid #f87171' : '1px solid transparent' }}>
-                  {imagePreview
-                    ? <img src={imagePreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : (
-                      <div style={{ textAlign: 'center', padding: 12 }}>
-                        <div style={{ fontSize: 28, marginBottom: 6 }}>🖼️</div>
-                        <div style={{ color: '#555', fontSize: 11, lineHeight: 1.5 }}>Chưa có ảnh</div>
-                      </div>
+          {/* ══════════ STEP 1 ══════════ */}
+          {step === 1 && (
+            <div className="event-form-card">
+              <div style={{ display: 'flex', gap: 20 }}>
+                {/* Image aside */}
+                <aside style={{ width: 240, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+                  {/* Banner image */}
+                  <div>
+                    <div style={{ marginBottom: 8, color: '#AAAAAA', fontSize: 13, fontWeight: 600 }}>🖼 Ảnh banner</div>
+                    <div style={{ width: 240, height: 135, borderRadius: 8, background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: imageError ? '1.5px solid #f87171' : '1px solid #222' }}>
+                      {imagePreview
+                        ? <img src={imagePreview} alt="banner preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : (
+                          <div style={{ textAlign: 'center', padding: 12 }}>
+                            <div style={{ fontSize: 24, marginBottom: 4 }}>🖼️</div>
+                            <div style={{ color: '#555', fontSize: 11, lineHeight: 1.5 }}>Chưa có ảnh</div>
+                          </div>
+                        )}
+                    </div>
+                    {imageError && (
+                      <div style={{ fontSize: 11, color: '#f87171', marginTop: 6, lineHeight: 1.5 }}>⚠ {imageError}</div>
                     )}
-                </div>
-                {imageError && (
-                  <div style={{ fontSize: 11, color: '#f87171', marginTop: 6, lineHeight: 1.5 }}>⚠ {imageError}</div>
-                )}
-                <div style={{ fontSize: 11, color: '#555', marginTop: imageError ? 4 : 6 }}>
-                  Yêu cầu: 1280×720px
-                </div>
-                <label style={{ display: 'block', marginTop: 8, cursor: 'pointer' }}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    onChange={e => handleImageChange(e.target.files?.[0] || null)}
-                  />
-                  <span className="btn-ghost" style={{ display: 'inline-block', cursor: 'pointer' }}>Tải ảnh lên</span>
-                </label>
-              </aside>
+                    <div style={{ fontSize: 11, color: '#555', marginTop: 4 }}>Yêu cầu: 1280×720px</div>
+                    <label style={{ display: 'block', marginTop: 6, cursor: 'pointer' }}>
+                      <input type="file" accept="image/*" style={{ display: 'none' }}
+                        onChange={e => handleImageChange(e.target.files?.[0] || null)} />
+                      <span className="btn-ghost" style={{ display: 'inline-block', cursor: 'pointer', fontSize: 12 }}>Tải ảnh lên</span>
+                    </label>
+                  </div>
 
-              {/* Main fields */}
-              <main style={{ flex: 1 }}>
-                <div className="event-form-field">
-                  <label className="event-form-label">Tên sự kiện</label>
-                  <input className="event-form-input" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Vd: Đêm nhạc..." />
-                </div>
+                  {/* Card image */}
+                  <div>
+                    <div style={{ marginBottom: 8, color: '#AAAAAA', fontSize: 13, fontWeight: 600 }}>🃏 Ảnh card</div>
+                    <div style={{ width: 120, height: 160, borderRadius: 8, background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: cardImageError ? '1.5px solid #f87171' : '1px solid #222' }}>
+                      {cardImagePreview
+                        ? <img src={cardImagePreview} alt="card preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : (
+                          <div style={{ textAlign: 'center', padding: 8 }}>
+                            <div style={{ fontSize: 20, marginBottom: 4 }}>🃏</div>
+                            <div style={{ color: '#555', fontSize: 10, lineHeight: 1.5 }}>Chưa có ảnh</div>
+                          </div>
+                        )}
+                    </div>
+                    {cardImageError && (
+                      <div style={{ fontSize: 11, color: '#f87171', marginTop: 6, lineHeight: 1.5 }}>⚠ {cardImageError}</div>
+                    )}
+                    <div style={{ fontSize: 11, color: '#555', marginTop: 4 }}>Yêu cầu: 720×958px</div>
+                    <label style={{ display: 'block', marginTop: 6, cursor: 'pointer' }}>
+                      <input type="file" accept="image/*" style={{ display: 'none' }}
+                        onChange={e => handleCardImageChange(e.target.files?.[0] || null)} />
+                      <span className="btn-ghost" style={{ display: 'inline-block', cursor: 'pointer', fontSize: 12 }}>Tải ảnh lên</span>
+                    </label>
+                  </div>
+                </aside>
 
-                <div className="event-form-field">
-                  <label className="event-form-label">Tên địa điểm</label>
-                  <input className="event-form-input" value={form.venue} onChange={e => set('venue', e.target.value)} placeholder="Vd: SVĐ Mỹ Đình" />
-                </div>
-
-                {/* Province / District / Ward */}
-                <div className="event-form-grid">
+                {/* Main fields */}
+                <main style={{ flex: 1 }}>
                   <div className="event-form-field">
-                    <label className="event-form-label">Tỉnh/Thành</label>
-                    <select className="event-form-input event-form-select" value={form.province}
-                      onChange={e => { set('province', e.target.value); set('district', ''); set('ward', ''); set('street', ''); }}>
-                      <option value="">Chọn tỉnh/thành</option>
-                      {provinces.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
-                    </select>
+                    <label className="event-form-label">Tên sự kiện</label>
+                    <input className="event-form-input" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Vd: Đêm nhạc..." />
                   </div>
 
                   <div className="event-form-field">
-                    <label className="event-form-label">Quận/Huyện</label>
-                    <select className="event-form-input event-form-select" value={form.district}
-                      onChange={e => { set('district', e.target.value); set('ward', ''); }}>
-                      <option value="">Chọn quận/huyện</option>
-                      {currentProvince?.districts?.[0]?.wards?.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
+                    <label className="event-form-label">Tên địa điểm</label>
+                    <input className="event-form-input" value={form.venue} onChange={e => set('venue', e.target.value)} placeholder="Vd: SVĐ Mỹ Đình" />
                   </div>
-
-                  <div className="event-form-field">
-                    <label className="event-form-label">Phường/Xã</label>
-                    <input className="event-form-input" value={form.ward} onChange={e => set('ward', e.target.value)} placeholder="Vd: Phường Bến Nghé" />
-                  </div>
-                </div>
-
-                {/* House / Street */}
-                <div className="event-form-grid">
-                  <div className="event-form-field">
-                    <label className="event-form-label">Số nhà</label>
-                    <input className="event-form-input" value={form.houseNumber} onChange={e => set('houseNumber', e.target.value)} placeholder="Vd: 12" />
-                  </div>
-                  <div className="event-form-field">
-                    <label className="event-form-label">Đường</label>
-                    <input className="event-form-input" value={form.street} onChange={e => set('street', e.target.value)} placeholder="Vd: Lê Duẩn" />
-                  </div>
-                </div>
-
-                {/* Category / Short desc */}
-                <div className="event-form-grid">
-                  <div className="event-form-field">
-                    <label className="event-form-label">Thể loại</label>
-                    <select className="event-form-input event-form-select" value={form.category} onChange={e => set('category', e.target.value)}>
-                      {['Âm nhạc', 'Thể thao', 'Sân khấu', 'Hội thảo', 'Lễ hội'].map(c => <option key={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div className="event-form-field">
-                    <label className="event-form-label">Mô tả ngắn</label>
-                    <input className="event-form-input" value={form.shortDescription} onChange={e => set('shortDescription', e.target.value)} placeholder="Một câu tóm tắt..." />
-                  </div>
-                </div>
 
                 <div className="event-form-card" style={{ marginTop: 24 }}>
                   <div className="event-form-section-title">🗓 Thời gian sự kiện</div>
@@ -348,8 +356,7 @@ export default function EventCreateWizard() {
                 </div>
               </main>
             </div>
-          </div>
-        )}
+          )}
 
         </div>
       )} {/* end loadingEvent ternary */}

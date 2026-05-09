@@ -29,11 +29,20 @@ const eventService = {
   getAdminEventById: (id) =>
     api.get(`/admin/events/${id}`),
 
-  /** Upload ảnh sự kiện lên Cloudinary qua backend */
+  /** Upload ảnh banner sự kiện (1280×720) */
   uploadEventImage: (file) => {
     const form = new FormData();
     form.append('image', file);
     return api.post('/admin/upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  /** Upload ảnh card sự kiện (720×958) */
+  uploadCardImage: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    return api.post('/admin/upload?type=card', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },

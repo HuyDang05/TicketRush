@@ -129,7 +129,7 @@ const getEventById = async (req, res) => {
 
 const createEvent = async (req, res) => {
   try {
-    const { title, description, venue, startDate, endDate, imageUrl, rows, cols, zones } = req.body;
+    const { title, description, venue, startDate, endDate, imageUrl, cardImageUrl, rows, cols, zones } = req.body;
     const createdBy = req.user.id;
 
     if (!startDate) {
@@ -238,6 +238,9 @@ const updateEvent = async (req, res) => {
         date: eventStartDate,
         endDate: eventEndDate,
         imageUrl: imageUrl !== undefined ? imageUrl : event.imageUrl,
+        cardImageUrl: cardImageUrl !== undefined ? cardImageUrl : event.cardImageUrl,
+        date: startDate ? new Date(startDate) : (date ? new Date(date) : event.date),
+        endDate: endDate !== undefined ? (endDate ? new Date(endDate) : null) : event.endDate,
       },
     });
 
