@@ -1,5 +1,38 @@
 const prisma = require('../config/prisma');
 
+// ── Seatmap validation ────────────────────────────────────────────────────────
+
+function validateSeatmapStructure(seatmap) {
+  if (!seatmap || typeof seatmap !== 'object') {
+    return 'seatmap phải là một object';
+  }
+  if (!Array.isArray(seatmap.zones) || seatmap.zones.length === 0) {
+    return 'seatmap.zones phải là mảng và có ít nhất 1 khu vực';
+  }
+  for (let i = 0; i < seatmap.zones.length; i++) {
+    const z = seatmap.zones[i];
+    if (!z.id || typeof z.id !== 'string') {
+      return `zones[${i}].id là bắt buộc`;
+    }
+    if (!z.name || typeof z.name !== 'string') {
+      return `zones[${i}].name là bắt buộc`;
+    }
+    if (!Array.isArray(z.seats) || z.seats.length === 0) {
+      return `zones[${i}] (${z.name}) phải có ít nhất 1 ghế`;
+    }
+    if (typeof z.price !== 'number' || z.price <= 0) {
+      return `zones[${i}] (${z.name}): price phải > 0`;
+    }
+    for (let j = 0; j < z.seats.length; j++) {
+      const s = z.seats[j];
+      if (!s.id || !s.label) {
+        return `zones[${i}].seats[${j}]: id và label là bắt buộc`;
+      }
+    }
+  }
+  return null;
+}
+
 const getEvents = async (req, res) => {
   try {
     const { search } = req.query;
@@ -116,62 +149,18 @@ const createEvent = async (req, res) => {
       }
     }
 
-    // Validate seat layout (chỉ khi có zones)
-    const numRows = parseInt(rows);
-    const numCols = parseInt(cols);
-    const hasZones = Array.isArray(zones) && zones.length > 0;
-
-    if (hasZones) {
-      if (!numRows || numRows < 1 || !numCols || numCols < 1) {
-        return res.status(400).json({ message: 'Số hàng ghế và số cột ghế phải ≥ 1' });
-      }
-      for (const zone of zones) {
-        if (!zone.name || !zone.price || zone.price <= 0) {
-          return res.status(400).json({ message: 'Loại vé phải có tên và giá > 0' });
-        }
-      }
-    }
-
-    // Transaction: create event + zones + seats
-    const event = await prisma.$transaction(async (tx) => {
-      const createdEvent = await tx.event.create({
-        data: {
-          title,
-          description,
-          venue,
-          date: eventStartDate,
-          endDate: eventEndDate,
-          imageUrl,
-          cardImageUrl,
-          status: 'DRAFT',
-          createdBy,
-        },
-      });
-
-      if (hasZones) {
-        for (const zone of zones) {
-          const createdZone = await tx.zone.create({
-            data: {
-              eventId: createdEvent.id,
-              name: zone.name,
-              rows: numRows,
-              cols: numCols,
-              price: parseFloat(zone.price),
-            },
-          });
-
-          const seats = [];
-          for (let row = 0; row < numRows; row++) {
-            for (let col = 0; col < numCols; col++) {
-              const label = String.fromCharCode(65 + row) + (col + 1);
-              seats.push({ zoneId: createdZone.id, row, col, label, status: 'AVAILABLE' });
-            }
-          }
-          await tx.seat.createMany({ data: seats });
-        }
-      }
-
-      return createdEvent;
+    // Transaction: create event without zones/seats (Seatmap Editor will handle it)
+    const event = await prisma.event.create({
+      data: {
+        title,
+        description,
+        venue,
+        date: eventStartDate,
+        endDate: eventEndDate,
+        imageUrl,
+        status: 'DRAFT',
+        createdBy,
+      },
     });
 
     return res.status(201).json({
@@ -187,7 +176,7 @@ const createEvent = async (req, res) => {
 const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, venue, date, imageUrl, cardImageUrl, startDate, endDate } = req.body;
+    const { title, description, venue, startDate, endDate, imageUrl } = req.body;
 
     // Check event exists and is DRAFT
     const event = await prisma.event.findUnique({
@@ -220,11 +209,23 @@ const updateEvent = async (req, res) => {
       return res.status(400).json({ message: 'Không thể sửa khi có ghế bị khóa hoặc bán' });
     }
 
-    // Validate new date if provided
-    if (date) {
-      const newDate = new Date(date);
-      if (newDate <= new Date()) {
+    let eventStartDate = event.date;
+    if (startDate) {
+      eventStartDate = new Date(startDate);
+      if (eventStartDate <= new Date()) {
         return res.status(400).json({ message: 'Ngày sự kiện phải trong tương lai' });
+      }
+    }
+
+    let eventEndDate = event.endDate;
+    if (endDate !== undefined) {
+      if (endDate) {
+        eventEndDate = new Date(endDate);
+        if (eventEndDate <= eventStartDate) {
+          return res.status(400).json({ message: 'Ngày kết thúc phải sau ngày bắt đầu' });
+        }
+      } else {
+        eventEndDate = null;
       }
     }
 
@@ -234,6 +235,8 @@ const updateEvent = async (req, res) => {
         title: title || event.title,
         description: description !== undefined ? description : event.description,
         venue: venue || event.venue,
+        date: eventStartDate,
+        endDate: eventEndDate,
         imageUrl: imageUrl !== undefined ? imageUrl : event.imageUrl,
         cardImageUrl: cardImageUrl !== undefined ? cardImageUrl : event.cardImageUrl,
         date: startDate ? new Date(startDate) : (date ? new Date(date) : event.date),
@@ -419,6 +422,153 @@ const getAdminEventById = async (req, res) => {
   }
 };
 
+// GET /api/admin/events/:id/seatmap
+const getSeatmap = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const event = await prisma.event.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        status: true,
+        seatmapJson: true,
+        seatmapVersion: true,
+      },
+    });
+
+    if (!event) {
+      return res.status(404).json({ message: 'Sự kiện không tồn tại' });
+    }
+
+    return res.status(200).json({
+      seatmapJson: event.seatmapJson,
+      seatmapVersion: event.seatmapVersion,
+      status: event.status,
+    });
+  } catch (error) {
+    console.error('[Event][getSeatmap] Error:', error);
+    return res.status(500).json({ message: 'Đã có lỗi xảy ra' });
+  }
+};
+
+// PUT /api/admin/events/:id/seatmap
+const saveSeatmap = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { seatmapVersion, seatmap } = req.body;
+
+    if (seatmapVersion === undefined || seatmapVersion === null) {
+      return res.status(400).json({ message: 'seatmapVersion là bắt buộc' });
+    }
+    if (!seatmap) {
+      return res.status(400).json({ message: 'seatmap là bắt buộc' });
+    }
+
+    const structureError = validateSeatmapStructure(seatmap);
+    if (structureError) {
+      return res.status(400).json({ message: structureError });
+    }
+
+    const event = await prisma.event.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        status: true,
+        seatmapVersion: true,
+        zones: {
+          select: {
+            id: true,
+            seats: { select: { status: true } },
+          },
+        },
+      },
+    });
+
+    if (!event) {
+      return res.status(404).json({ message: 'Sự kiện không tồn tại' });
+    }
+
+    if (event.status === 'PUBLISHED') {
+      const hasSoldSeats = event.zones.some(z =>
+        z.seats.some(s => s.status === 'SOLD')
+      );
+      if (hasSoldSeats) {
+        return res.status(409).json({
+          message: 'Không thể sửa seatmap khi sự kiện đã công khai và có vé đã bán',
+        });
+      }
+    }
+
+    if (event.status === 'ENDED') {
+      return res.status(400).json({ message: 'Không thể sửa seatmap của sự kiện đã kết thúc' });
+    }
+
+    if (Number(seatmapVersion) !== event.seatmapVersion) {
+      return res.status(409).json({
+        message: 'Seatmap đã được cập nhật bởi người khác. Vui lòng tải lại trang.',
+        currentVersion: event.seatmapVersion,
+      });
+    }
+
+    const nextVersion = event.seatmapVersion + 1;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.event.update({
+        where: { id },
+        data: {
+          seatmapJson: seatmap,
+          seatmapVersion: nextVersion,
+        },
+      });
+
+      await tx.seat.deleteMany({ where: { zone: { eventId: id } } });
+      await tx.zone.deleteMany({ where: { eventId: id } });
+
+      for (const zoneData of seatmap.zones) {
+        const rows = zoneData.config?.rows ?? 0;
+        const cols = zoneData.config?.cols ?? (zoneData.seats.length > 0 ? zoneData.seats.length : 1);
+
+        const zoneCreateData = {
+          eventId: id,
+          name: zoneData.name,
+          rows,
+          cols,
+          price: parseFloat(zoneData.price),
+        };
+        if (zoneData.id) zoneCreateData.id = zoneData.id;
+
+        const createdZone = await tx.zone.create({ data: zoneCreateData });
+
+        if (zoneData.seats.length > 0) {
+          await tx.seat.createMany({
+            data: zoneData.seats.map((seat) => {
+              const seatData = {
+                zoneId: createdZone.id,
+                row: typeof seat.row === 'number' ? seat.row : 0,
+                col: typeof seat.col === 'number' ? seat.col : 0,
+                label: seat.label,
+                status: 'AVAILABLE',
+              };
+              if (seat.id) seatData.id = seat.id;
+              return seatData;
+            }),
+            skipDuplicates: true,
+          });
+        }
+      }
+    });
+
+    return res.status(200).json({
+      message: 'Đã lưu sơ đồ ghế thành công',
+      seatmapVersion: nextVersion,
+    });
+  } catch (error) {
+    console.error('[Event][saveSeatmap] Error:', error);
+    return res.status(500).json({ message: 'Đã có lỗi xảy ra khi lưu sơ đồ ghế' });
+  }
+};
+
 module.exports = {
   getEvents,
   getEventById,
@@ -429,4 +579,6 @@ module.exports = {
   publishEvent,
   endEvent,
   deleteEvent,
+  getSeatmap,
+  saveSeatmap,
 };

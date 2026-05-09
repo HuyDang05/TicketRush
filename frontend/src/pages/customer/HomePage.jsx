@@ -1,8 +1,103 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EventList from '../../components/event/EventList';
 import eventService from '../../services/event.service';
 import './home.css';
+
+const REVIEWS = [
+  { name: 'Nguyễn Anh', initials: 'NA', color: 'linear-gradient(135deg,#FF6B35,#f59e0b)', verified: true, stars: 5, date: '12/04/2026', event: 'Đêm nhạc Sơn Tùng M-TP', body: 'Đêm nhạc tuyệt vời! Sân khấu hoành tráng, âm thanh ánh sáng đỉnh cao. Khu VIP nhìn rất rõ và thoải mái. Sẽ ủng hộ những sự kiện tiếp theo.' },
+  { name: 'Lê Khánh', initials: 'LK', color: 'linear-gradient(135deg,#3B82F6,#06B6D4)', verified: false, stars: 4, date: '15/04/2026', event: 'Live Concert 2026', body: 'Lần đầu xem live, không thất vọng tí nào. Khu A view khá ổn so với mức giá. Chỉ tiếc là âm thanh ở giữa đêm bị rè một chút.' },
+  { name: 'Trần Hoa', initials: 'TH', color: 'linear-gradient(135deg,#10B981,#84CC16)', verified: true, stars: 5, date: '10/04/2026', event: 'Festival Mùa hè', body: 'Sự kiện được tổ chức rất chuyên nghiệp. BTC tận tâm, chu đáo từng chi tiết. Cả nhà tôi đều có một đêm đáng nhớ.' },
+  { name: 'Phạm Minh', initials: 'PM', color: 'linear-gradient(135deg,#8B5CF6,#EC4899)', verified: true, stars: 5, date: '14/04/2026', event: 'Đêm nhạc Sơn Tùng M-TP', body: 'Phần trình diễn cực kỳ ấn tượng, set list được sắp xếp rất hợp lý. Đáng đồng tiền bát gạo!' },
+  { name: 'Võ Lan', initials: 'VL', color: 'linear-gradient(135deg,#EC4899,#F43F5E)', verified: false, stars: 4, date: '13/04/2026', event: 'Live Concert 2026', body: 'Khâu check-in nhanh hơn năm ngoái nhiều. Ghế ngồi thoải mái, view sân khấu rộng. BTC đã cải thiện rất nhiều.' },
+  { name: 'Đỗ Hương', initials: 'DH', color: 'linear-gradient(135deg,#FF6B35,#f43f5e)', verified: true, stars: 5, date: '16/04/2026', event: 'VIP Showcase', body: 'Một trong những đêm nhạc đáng nhớ nhất. Từ khâu đặt vé đến chỗ ngồi đều rất chuyên nghiệp. Highly recommend!' },
+  { name: 'Bùi Vy', initials: 'BV', color: 'linear-gradient(135deg,#4ADE80,#10B981)', verified: false, stars: 4, date: '11/04/2026', event: 'Festival Mùa hè', body: 'Trải nghiệm tổng thể rất tốt, nhân viên thân thiện. Chỉ tiếc là không có nhiều khu food court hơn để giao lưu trước giờ diễn.' },
+  { name: 'Hoàng Nam', initials: 'HN', color: 'linear-gradient(135deg,#06B6D4,#3B82F6)', verified: true, stars: 5, date: '09/04/2026', event: 'Đêm nhạc Sơn Tùng M-TP', body: 'Lần thứ 3 đi xem và vẫn không hết hấp dẫn. App đặt vé dễ dùng, sơ đồ ghế rõ ràng. Cảm ơn BTC đã tổ chức tuyệt vời!' },
+  { name: 'Mai Linh', initials: 'ML', color: 'linear-gradient(135deg,#F59E0B,#EF4444)', verified: true, stars: 5, date: '08/04/2026', event: 'Acoustic Night', body: 'Không gian ấm cúng, âm thanh chuẩn studio. Đây là đêm nhạc acoustic hay nhất tôi từng tham dự ở Sài Gòn.' },
+  { name: 'Trịnh Quang', initials: 'TQ', color: 'linear-gradient(135deg,#A855F7,#7C3AED)', verified: false, stars: 4, date: '07/04/2026', event: 'EDM Festival', body: 'Set list cực bốc, DJ chơi máu lửa. Chỉ mong BTC bổ sung thêm khu nghỉ ngơi cho khách trong khu VIP.' },
+];
+
+function ReviewCard({ name, initials, color, verified, stars, date, event, body }) {
+  return (
+    <div className="rv-card">
+      <div className="rv-card__head">
+        <div className="rv-card__avatar" style={{ background: color }}>{initials}</div>
+        <div className="rv-card__meta">
+          <div className="rv-card__name">
+            {name}
+            {verified && <span className="rv-card__verified">✓</span>}
+          </div>
+          <div className="rv-card__date">{date}</div>
+        </div>
+        <div className="rv-card__stars">
+          {Array.from({ length: 5 }, (_, i) => (
+            <span key={i} className={`rv-card__star${i < stars ? '' : ' rv-card__star--empty'}`}>★</span>
+          ))}
+        </div>
+      </div>
+      <div className="rv-card__body">{body}</div>
+      <div className="rv-card__foot">
+        <span className="rv-card__tag">✓ Đã tham dự</span>
+        <span className="rv-card__event">{event}</span>
+      </div>
+    </div>
+  );
+}
+
+function ReviewCarousel() {
+  const half = Math.ceil(REVIEWS.length / 2);
+  const row1 = REVIEWS.slice(0, half);
+  const row2 = REVIEWS.slice(half).concat(REVIEWS.slice(0, 2));
+  const doubled1 = [...row1, ...row1];
+  const doubled2 = [...row2, ...row2];
+
+  return (
+    <section className="rv-section">
+      <div className="rv-section__head">
+        <div className="rv-eyebrow">Khán giả nói gì</div>
+        <h2 className="rv-title">Hơn <span className="rv-title__accent">10.000+</span> khán giả hài lòng</h2>
+        <p className="rv-sub">Những trải nghiệm chân thực từ người tham dự các sự kiện do chúng tôi tổ chức.</p>
+        <div className="rv-stats">
+          <div className="rv-stat">
+            <span className="rv-stat__num">4.9</span>
+            <span className="rv-stat__stars">★★★★★</span>
+          </div>
+          <div className="rv-stat__divider" />
+          <div className="rv-stat">
+            <span className="rv-stat__num">10.4K</span>
+            <span className="rv-stat__label">đánh giá</span>
+          </div>
+          <div className="rv-stat__divider" />
+          <div className="rv-stat">
+            <span className="rv-stat__num">98%</span>
+            <span className="rv-stat__label">giới thiệu</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="rv-carousel-wrap">
+        <div className="rv-track">
+          {doubled1.map((r, i) => <ReviewCard key={i} {...r} />)}
+        </div>
+      </div>
+
+      <div className="rv-carousel-wrap rv-carousel-wrap--reverse">
+        <div className="rv-track rv-track--reverse">
+          {doubled2.map((r, i) => <ReviewCard key={i} {...r} />)}
+        </div>
+      </div>
+
+      <div className="rv-cta">
+        <button className="rv-cta__btn">
+          Xem tất cả đánh giá
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </button>
+      </div>
+    </section>
+  );
+}
 
 const CATEGORIES = [
   { icon: '🎵', label: 'Âm nhạc', count: '124 sự kiện' },
@@ -11,8 +106,6 @@ const CATEGORIES = [
   { icon: '🎤', label: 'Hội thảo', count: '47 sự kiện' },
   { icon: '🎪', label: 'Lễ hội', count: '21 sự kiện' },
 ];
-
-const NAV_LINKS = ['Nhạc sống', 'Sân khấu & Nghệ thuật', 'Thể Thao', 'Hội thảo', 'Khác'];
 
 function CategoryPill({ icon, label, count }) {
   return (
@@ -32,45 +125,15 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [activeNav, setActiveNav] = useState(0);
-  const debounceTimer = useRef(null);
-
-  const handleSearchChange = (e) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => setDebouncedQuery(query), 300);
-  };
-
-  const handleSearchKeyDown = (e) => {
-    if (e.key === 'Enter') setDebouncedQuery(searchQuery);
-  };
-
   useEffect(() => {
-    fetchEvents(debouncedQuery);
-  }, [debouncedQuery]);
-
-  const fetchEvents = async (search = '') => {
-    try {
-      setIsLoading(true);
-      const params = {};
-      if (search) params.search = search;
-      const response = await eventService.getEvents(params);
-      setEvents(response.data.events || []);
-    } catch {
-      setEvents([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+    eventService.getEvents({})
+      .then(r => setEvents(r.data.events || []))
+      .catch(() => setEvents([]))
+      .finally(() => setIsLoading(false));
   }, []);
 
   const featuredEvent = events[0] || null;
+  const sonTungEvent = events.find(e => e.title === 'DJ Sơn Tùng M-TP Live 2024');
 
   return (
     <div className="home-page">
@@ -136,7 +199,7 @@ export default function HomePage() {
           </div>
           <button
             className="home-hero__cta"
-            onClick={() => featuredEvent && navigate(`/event/${featuredEvent.id}`)}
+            onClick={() => sonTungEvent && navigate(`/events/${sonTungEvent.id}`)}
           >
             Đặt vé ngay
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
@@ -183,18 +246,17 @@ export default function HomePage() {
       <section className="home-events">
 
         <div className="home-section-header">
-          <h2 className="home-section-title">
-            {debouncedQuery ? 'Kết quả tìm kiếm' : 'Sự kiện nổi bật'}
-          </h2>
-          {!debouncedQuery && (
-            <a href="#" className="home-section-link" onClick={e => e.preventDefault()}>
-              Xem tất cả →
-            </a>
-          )}
+          <h2 className="home-section-title">Sự kiện nổi bật</h2>
+          <a href="#" className="home-section-link" onClick={e => e.preventDefault()}>
+            Xem tất cả →
+          </a>
         </div>
 
-        <EventList events={events} isLoading={isLoading} searchQuery={debouncedQuery} />
+        <EventList events={events} isLoading={isLoading} />
       </section>
+
+      {/* ── REVIEW CAROUSEL ── */}
+      <ReviewCarousel />
 
       {/* ── PROMO BANNER ── */}
       <div className="home-promo">

@@ -11,7 +11,7 @@ function Toast({ msg, onDone }) {
   return <div className="admin-toast">{msg}</div>;
 }
 
-function EventModal({ event, onClose, onSaved }) {
+function EventModal({ event, onClose, onSaved, onCreated }) {
   const isEdit = !!event;
   const [form, setForm] = useState({
     name: event?.title || event?.name || '',
@@ -45,11 +45,15 @@ function EventModal({ event, onClose, onSaved }) {
       };
       if (isEdit) {
         await eventService.updateEvent(event.id, payload);
+        onSaved('✓ Đã cập nhật sự kiện!');
+        onClose();
       } else {
-        await eventService.createEvent(payload);
+        const res = await eventService.createEvent(payload);
+        const newId = res.data?.event?.id || res.data?.id;
+        onSaved('✓ Đã tạo sự kiện mới thành công!');
+        onClose();
+        if (newId && onCreated) onCreated(newId);
       }
-      onSaved(isEdit ? '✓ Đã cập nhật sự kiện!' : '✓ Đã tạo sự kiện mới thành công!');
-      onClose();
     } catch {
       // keep modal open on error
     } finally {
@@ -155,15 +159,19 @@ export default function EventManagerPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  useEffect(() => { setPage(1); }, [search, statusFilter]);
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
 
     try {
-      const res = await eventService.getEvents();
+      const res = await eventService.getAdminEvents();
       const eventList = res.data?.events || res.data?.data || res.data || [];
       const safeEvents = Array.isArray(eventList) ? eventList : [];
 
@@ -267,6 +275,10 @@ export default function EventManagerPage() {
     const matchStatus = !statusFilter || evStatus === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const pubCount = events.filter(e => e.status === 'PUBLISHED').length;
 
@@ -372,7 +384,7 @@ export default function EventManagerPage() {
                   <tr><td colSpan="7" className="admin-table__empty">Đang tải...</td></tr>
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan="7" className="admin-table__empty">Không tìm thấy sự kiện nào</td></tr>
-                ) : filtered.map((ev, i) => {
+                ) : paginated.map((ev, i) => {
                   const name = ev.title || ev.name || 'Sự kiện';
                   const stat = eventStats[ev.id] || {};
                   const totalSeats = Number(stat.totalSeats || ev.capacity || ev.totalSeats || 0);
@@ -437,6 +449,22 @@ export default function EventManagerPage() {
                             >🚀</ActBtn>
                           )}
 
+                          {ev.status === 'DRAFT' && (
+                            <ActBtn
+                              title="Chỉnh sửa sơ đồ chỗ ngồi"
+                              hoverStyle={{ borderColor: '#a78bfa', color: '#a78bfa', background: 'rgba(167,139,250,.08)' }}
+                              onClick={() => navigate(`/admin/events/${ev.id}/seatmap`)}
+                            >🪑</ActBtn>
+                          )}
+
+                          {ev.status === 'PUBLISHED' && (
+                            <ActBtn
+                              title="Xem sơ đồ chỗ ngồi"
+                              hoverStyle={{ borderColor: '#38bdf8', color: '#38bdf8', background: 'rgba(56,189,248,.08)' }}
+                              onClick={() => navigate(`/admin/events/${ev.id}/seatmap?view=1`)}
+                            >🗺️</ActBtn>
+                          )}
+
                           {ev.status === 'PUBLISHED' && (
                             <ActBtn
                               title="Kết thúc"
@@ -454,11 +482,52 @@ export default function EventManagerPage() {
           </div>
 
           <div className="event-manager-table-footer">
-            <div style={{ fontSize: 12, color: '#AAAAAA' }}>Hiển thị {filtered.length} trong {events.length} sự kiện</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {[1, 2, '›'].map((p, i) => (
-                <button key={i} className={`page-btn${i === 0 ? ' page-btn--active' : ''}`}>{p}</button>
-              ))}
+            <div style={{ fontSize: 12, color: '#AAAAAA' }}>
+              Hiển thị {filtered.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} trong {filtered.length} sự kiện
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {/* Prev */}
+              <button
+                className="page-btn"
+                disabled={safePage === 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                style={{ opacity: safePage === 1 ? 0.35 : 1 }}
+              >‹</button>
+
+              {/* Page numbers */}
+              {(() => {
+                const pages = [];
+                const delta = 1;
+                const left = Math.max(1, safePage - delta);
+                const right = Math.min(totalPages, safePage + delta);
+
+                if (left > 1) {
+                  pages.push(1);
+                  if (left > 2) pages.push('…');
+                }
+                for (let p = left; p <= right; p++) pages.push(p);
+                if (right < totalPages) {
+                  if (right < totalPages - 1) pages.push('…');
+                  pages.push(totalPages);
+                }
+                return pages.map((p, i) =>
+                  p === '…'
+                    ? <span key={`e${i}`} style={{ color: '#555', fontSize: 13, padding: '0 2px' }}>…</span>
+                    : <button
+                        key={p}
+                        className={`page-btn${p === safePage ? ' page-btn--active' : ''}`}
+                        onClick={() => setPage(p)}
+                      >{p}</button>
+                );
+              })()}
+
+              {/* Next */}
+              <button
+                className="page-btn"
+                disabled={safePage === totalPages}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                style={{ opacity: safePage === totalPages ? 0.35 : 1 }}
+              >›</button>
             </div>
           </div>
         </div>
@@ -469,6 +538,7 @@ export default function EventManagerPage() {
           event={modal === 'create' ? null : modal}
           onClose={() => setModal(null)}
           onSaved={msg => { showToast(msg); fetchEvents(); }}
+          onCreated={newId => navigate(`/admin/events/${newId}/seatmap`)}
         />
       )}
 

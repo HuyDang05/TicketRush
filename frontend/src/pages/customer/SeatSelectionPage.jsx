@@ -1,32 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useLocation, useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import eventService from '../../services/event.service';
 import bookingService from '../../services/booking.service';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
+import CustomerSeatmapCanvas from '../../components/seatmap/CustomerSeatmapCanvas';
 import './seat-selection.css';
 
-// ── Arc geometry constants ────────────────────────────────────────────────────
-const ARC_SPAN_DEG = 138;
-const INNER_R      = 88;
-const ROW_SPACING  = 44;
-const SEAT_R       = 11;
 const LOCK_SECONDS = 10 * 60;
-
-const STATIC_ROWS = [
-  { label:'A', zone:'vip', rowInZone:0, seats:9,  color:'#8a5c00', hov:'#c8860a' },
-  { label:'B', zone:'vip', rowInZone:1, seats:11, color:'#8a5c00', hov:'#c8860a' },
-  { label:'C', zone:'a',   rowInZone:0, seats:13, color:'#2D4A1E', hov:'#3d6828' },
-  { label:'D', zone:'a',   rowInZone:1, seats:15, color:'#2D4A1E', hov:'#3d6828' },
-  { label:'E', zone:'b',   rowInZone:0, seats:17, color:'#0f2d4a', hov:'#1a4a7a' },
-  { label:'F', zone:'b',   rowInZone:1, seats:19, color:'#0f2d4a', hov:'#1a4a7a' },
-  { label:'G', zone:'b',   rowInZone:2, seats:21, color:'#0f2d4a', hov:'#1a4a7a' },
-];
-
-const ZONE_META = {
-  vip: { name:'VIP',   color:'#c8860a', borderColor:'#c8860a' },
-  a:   { name:'Khu A', color:'#3d6828', borderColor:'#3d6828' },
-  b:   { name:'Khu B', color:'#1a4a7a', borderColor:'#1a4a7a' },
-};
 
 function toNumberPrice(value) {
   if (value === null || value === undefined) return 0;
@@ -62,16 +42,7 @@ export default function SeatSelectionPage() {
   const [booking,      setBooking]   = useState(false);
   const [toastMsg,     setToastMsg]  = useState('');
   const [selected,     setSelected]  = useState({});
-  const [filterActive, setFilter]    = useState({ vip:true, a:true, b:true });
-  const [rows,         setRows]      = useState(STATIC_ROWS.map(r => ({ ...r, price:0, zoneId: null, soldSet: new Set(), lockedSet: new Set(), seatByRowCol: {} })));
 
-  const canvasRef  = useRef(null);
-  const wrapRef    = useRef(null);
-  const seatHitRef = useRef([]);
-  const tooltipRef = useRef(null);
-  const DEV_RATIO  = window.devicePixelRatio || 1;
-
-  // ── Load event + zones + seats ───────────────────────────────────────────
   useEffect(() => {
     if (!eventId) return;
     setLoading(true);
@@ -79,256 +50,49 @@ export default function SeatSelectionPage() {
       .then(evRes => {
         const evData = evRes.data?.event ?? evRes.data;
         setEvent(evData);
-        const fetchedZones = evData?.zones || [];
-        setZones(fetchedZones);
-
-        const sorted = [...fetchedZones].sort((a, b) => b.price - a.price);
-        if (sorted.length > 0) {
-          const newRows = STATIC_ROWS.map((staticRow, ri) => {
-            const zoneKeys = ['vip','vip','a','a','b','b','b'];
-            const zKey = zoneKeys[ri];
-            const samePriceZones = sorted.filter(z => {
-              if (zKey === 'vip') return z.price === sorted[0].price;
-              if (zKey === 'a')   return z.price < sorted[0].price && z.price > sorted[sorted.length-1].price;
-              return z.price === sorted[sorted.length - 1].price;
-            });
-            const zone = samePriceZones[0] || sorted[Math.min(ri, sorted.length - 1)];
-            const zoneSeatList = zone?.seats || [];
-            // key = "rowInZone-col(0-based)" → seat UUID
-            const seatByRowCol = Object.fromEntries(
-              zoneSeatList.map(s => [`${s.row}-${s.col}`, s.id])
-            );
-            // sold/locked dùng cùng key để canvas kiểm tra
-            const soldSet   = new Set(zoneSeatList.filter(s => s.status === 'SOLD').map(s => `${s.row}-${s.col}`));
-            const lockedSet = new Set(zoneSeatList.filter(s => s.status === 'LOCKED').map(s => `${s.row}-${s.col}`));
-            return {
-              ...staticRow,
-              price:        toNumberPrice(zone?.price ?? staticRow.price),
-              zoneId:       zone?.id,
-              soldSet,
-              lockedSet,
-              seatByRowCol,
-            };
-          });
-          setRows(newRows);
-        }
+        setZones(evData?.zones || []);
       })
       .catch(err => console.error('SeatSelection load error:', err))
       .finally(() => setLoading(false));
   }, [eventId]);
-
-  // ── Canvas render ────────────────────────────────────────────────────────
-  const render = useCallback(() => {
-    const canvas = canvasRef.current;
-    const wrap   = wrapRef.current;
-    if (!canvas || !wrap) return;
-    const ctx = canvas.getContext('2d');
-
-    const halfRad  = (ARC_SPAN_DEG / 2) * Math.PI / 180;
-    const lastR    = INNER_R + (rows.length - 1) * ROW_SPACING;
-    const PAD_X    = SEAT_R + 10;
-    const PAD_B    = SEAT_R + 16;
-    const cyOff    = -16;
-    const naturalW = 2 * (lastR * Math.sin(halfRad) + PAD_X);
-    const naturalH = cyOff + lastR + PAD_B;
-
-    const W     = wrap.clientWidth || 600;
-    const scale = Math.min(1, W / naturalW);
-    const drawW = naturalW * scale;
-    const drawH = naturalH * scale;
-
-    canvas.width  = drawW * DEV_RATIO;
-    canvas.height = drawH * DEV_RATIO;
-    canvas.style.width  = drawW + 'px';
-    canvas.style.height = drawH + 'px';
-    ctx.scale(DEV_RATIO * scale, DEV_RATIO * scale);
-
-    const cx = naturalW / 2;
-    ctx.clearRect(0, 0, naturalW, naturalH);
-    seatHitRef.current = [];
-
-    // Zone separator arcs
-    [2, 4].forEach(afterIdx => {
-      const midR = INNER_R + afterIdx * ROW_SPACING - ROW_SPACING / 2;
-      ctx.beginPath();
-      for (let i = 0; i <= 60; i++) {
-        const t   = i / 60;
-        const ang = -halfRad + t * ARC_SPAN_DEG * Math.PI / 180;
-        const sx  = cx + midR * Math.sin(ang);
-        const sy  = cyOff + midR * Math.cos(ang);
-        i === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy);
-      }
-      ctx.setLineDash([4, 6]);
-      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.setLineDash([]);
-    });
-
-    // Rows
-    rows.forEach((row, ri) => {
-      const r      = INNER_R + ri * ROW_SPACING;
-      const n      = row.seats;
-      const dimmed = !filterActive[row.zone];
-
-      // Guide arc
-      ctx.beginPath();
-      for (let i = 0; i <= 60; i++) {
-        const t   = i / 60;
-        const ang = -halfRad + t * ARC_SPAN_DEG * Math.PI / 180;
-        const sx  = cx + r * Math.sin(ang);
-        const sy  = cyOff + r * Math.cos(ang);
-        i === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy);
-      }
-      ctx.strokeStyle = dimmed ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)';
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
-
-      // Row label
-      const lblAng = -halfRad - 0.07;
-      const lx     = cx + r * Math.sin(lblAng) - (ri === 0 ? 20 : ri === rows.length - 1 ? 4 : 10);
-      const ly     = cyOff + r * Math.cos(lblAng);
-      ctx.font      = `bold 11px 'Be Vietnam Pro', sans-serif`;
-      ctx.fillStyle = dimmed ? 'rgba(170,170,170,0.2)' : 'rgba(200,200,200,0.85)';
-      ctx.textAlign = 'center';
-      ctx.fillText(row.label, lx, ly + (ri === 0 ? 5 : -8));
-
-      // Seats
-      for (let si = 0; si < n; si++) {
-        const t    = n === 1 ? 0 : si / (n - 1);
-        const ang  = -halfRad + t * ARC_SPAN_DEG * Math.PI / 180;
-        const sx   = cx + r * Math.sin(ang);
-        const sy   = cyOff + r * Math.cos(ang);
-        const rcKey = `${row.rowInZone}-${si}`;
-        const key  = `${row.label}-${si + 1}`;
-        const isSold   = row.soldSet?.has(rcKey);
-        const isLocked = row.lockedSet?.has(rcKey);
-        const isSel    = !!selected[key];
-
-        let fillColor;
-        if      (isSel)    fillColor = '#FF6B35';
-        else if (isSold)   fillColor = '#4A1A1A';
-        else if (isLocked) fillColor = '#2a2a2a';
-        else               fillColor = dimmed ? row.color + '55' : row.color;
-
-        if (isSel) { ctx.shadowColor = '#FF6B35'; ctx.shadowBlur = 12; }
-        ctx.beginPath();
-        ctx.roundRect(sx - SEAT_R, sy - SEAT_R, SEAT_R * 2, SEAT_R * 2, 4);
-        ctx.fillStyle = fillColor;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-
-        if (isSel) {
-          ctx.font = `bold 11px sans-serif`;
-          ctx.fillStyle = '#fff';
-          ctx.textAlign = 'center';
-          ctx.fillText('✓', sx, sy + 4);
-        }
-
-        const state = isSel ? 'selected' : isSold ? 'sold' : isLocked ? 'locked' : 'avail';
-        seatHitRef.current.push({ cx: sx, cy: sy, key, rowIdx: ri, col: si + 1, state, dimmed });
-      }
-    });
-
-    // Zone labels (right side)
-    [
-      { zone:'vip', rowIndices:[0,1], text:'VIP' },
-      { zone:'a',   rowIndices:[2,3], text:'KHU A' },
-      { zone:'b',   rowIndices:[4,6], text:'KHU B' },
-    ].forEach(({ zone, rowIndices, text }) => {
-      const r1   = INNER_R + rowIndices[0] * ROW_SPACING;
-      const r2   = INNER_R + rowIndices[1] * ROW_SPACING;
-      const midR = (r1 + r2) / 2;
-      const ang  = halfRad + 0.1;
-      const tx   = cx + midR * Math.sin(ang) + 6;
-      const ty   = cyOff + midR * Math.cos(ang);
-      ctx.font      = `bold 10px 'Be Vietnam Pro', sans-serif`;
-      ctx.textAlign = 'left';
-      ctx.fillStyle = filterActive[zone] ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)';
-      ctx.fillText(text, tx, ty + 4);
-    });
-  }, [rows, selected, filterActive, DEV_RATIO]);
-
-  useEffect(() => { render(); }, [render]);
-  useEffect(() => {
-    const onResize = () => render();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [render]);
-
-  // ── Hit testing ──────────────────────────────────────────────────────────
-  function getSeatAt(mx, my) {
-    const hits = seatHitRef.current;
-    for (let i = hits.length - 1; i >= 0; i--) {
-      const s = hits[i];
-      if (Math.abs(mx - s.cx) <= SEAT_R + 2 && Math.abs(my - s.cy) <= SEAT_R + 2) return s;
-    }
-    return null;
-  }
-
-  function getCanvasMouse(e) {
-    const canvas = canvasRef.current;
-    if (!canvas) return { mx: 0, my: 0 };
-    const rect   = canvas.getBoundingClientRect();
-    const scaleX = parseFloat(canvas.style.width) / canvas.width * DEV_RATIO;
-    return {
-      mx: (e.clientX - rect.left) / scaleX,
-      my: (e.clientY - rect.top)  / scaleX,
-    };
-  }
-
-  function handleMouseMove(e) {
-    const { mx, my } = getCanvasMouse(e);
-    const s = getSeatAt(mx, my);
-    const tip = tooltipRef.current;
-    if (!tip) return;
-    if (s && (s.state === 'avail' || s.state === 'selected') && !s.dimmed) {
-      canvasRef.current.style.cursor = 'pointer';
-      const row = rows[s.rowIdx];
-      tip.style.display = 'block';
-      tip.style.left = e.clientX + 'px';
-      tip.style.top  = e.clientY + 'px';
-      tip.textContent = `${row.label}${s.col} · ${ZONE_META[row.zone]?.name} · ${fmt(row.price)}`;
-    } else {
-      canvasRef.current.style.cursor = (s && (s.state === 'sold' || s.state === 'locked')) ? 'not-allowed' : 'default';
-      tip.style.display = 'none';
-    }
-  }
-
-  function handleMouseLeave() {
-    if (tooltipRef.current) tooltipRef.current.style.display = 'none';
-    if (canvasRef.current) canvasRef.current.style.cursor = 'default';
-  }
-
-  function handleClick(e) {
-    const { mx, my } = getCanvasMouse(e);
-    const s = getSeatAt(mx, my);
-    if (!s || s.dimmed) return;
-    if (s.state === 'selected') {
-      setSelected(prev => { const next = { ...prev }; delete next[s.key]; return next; });
-    } else if (s.state === 'avail') {
-      if (Object.keys(selected).length >= 4) { showToast('Tối đa 4 ghế mỗi lần đặt'); return; }
-      const row = rows[s.rowIdx];
-      // s.col là 1-based từ canvas, DB col là 0-based
-      const seatDbId = row.seatByRowCol?.[`${row.rowInZone}-${s.col - 1}`];
-      setSelected(prev => ({
-        ...prev,
-        [s.key]: { rowIdx: s.rowIdx, col: s.col, seatDbId, zoneKey: row.zone, zoneId: row.zoneId, price: row.price },
-      }));
-    }
-  }
 
   function showToast(msg) {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 2200);
   }
 
+  const handleSeatClick = useCallback((dbSeat, layoutZone, dbZone) => {
+    setSelected(prev => {
+      const isSel = prev[dbSeat.id];
+      if (isSel) {
+        const next = { ...prev };
+        delete next[dbSeat.id];
+        return next;
+      } else {
+        if (Object.keys(prev).length >= 4) {
+          showToast('Tối đa 4 ghế mỗi lần đặt');
+          return prev;
+        }
+        return {
+          ...prev,
+          [dbSeat.id]: {
+            seatDbId: dbSeat.id,
+            label: dbSeat.label,
+            row: dbSeat.row,
+            col: dbSeat.col,
+            zoneKey: dbZone.name,
+            zoneId: dbZone.id,
+            price: Number(dbZone.price || 0),
+            color: layoutZone.color
+          }
+        };
+      }
+    });
+  }, []);
+
   async function handlePay() {
     const keys = Object.keys(selected);
     if (keys.length === 0) return;
-
-    const missingId = keys.find(k => !selected[k].seatDbId);
-    if (missingId) { showToast('Không tìm thấy thông tin ghế. Vui lòng thử lại.'); return; }
 
     setBooking(true);
     try {
@@ -357,15 +121,11 @@ export default function SeatSelectionPage() {
   }
 
   const selKeys  = Object.keys(selected);
-
-  const subtotal = selKeys.reduce(
-    (acc, k) => acc + toNumberPrice(selected[k].price),
-    0
-  );
+  const subtotal = selKeys.reduce((acc, k) => acc + toNumberPrice(selected[k].price), 0);
   const fee      = Math.round(subtotal * 0.05);
   const total    = subtotal + fee;
 
-  const firstRow = selKeys.length > 0 ? rows[selected[selKeys[0]].rowIdx] : null;
+  const firstSeat = selKeys.length > 0 ? selected[selKeys[0]] : null;
 
   const dateStr = event?.date
     ? new Date(event.date).toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric' })
@@ -377,131 +137,70 @@ export default function SeatSelectionPage() {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="ss">
-
-      {/* Tooltip */}
-      <div ref={tooltipRef} className="ss-tooltip" />
-
-      {/* Toast */}
+    <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', background: '#111111', overflow: 'hidden' }}>
       {toastMsg && <div className="ss-toast">{toastMsg}</div>}
 
-      {/* ── HEADER ── */}
-      <header className="ss-header">
-        <Link to="/" className="ss-logo">
-          <span className="ss-logo__icon">⚡</span>
-          <span className="ss-logo__text">TicketRush</span>
-        </Link>
-        <div className="ss-search">
-          <input className="ss-search__input" type="text" placeholder="Tìm kiếm sự kiện, nghệ sĩ..." />
-          <button className="ss-search__btn">
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-              <circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4 4" />
-            </svg>
-          </button>
+      {/* ── TOP HEADER (Like Admin) ── */}
+      <header style={{
+        height: 60, flexShrink: 0,
+        background: '#161616', borderBottom: '1px solid #222',
+        display: 'flex', alignItems: 'center', padding: '0 20px', gap: 20
+      }}>
+        <button onClick={() => navigate(-1)} style={{
+          background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: 8
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <div style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}>
+          {event?.title || 'Sự kiện'}
+          <span style={{
+            marginLeft: 12, padding: '4px 10px', fontSize: 12,
+            background: 'rgba(255,107,53,0.1)', color: '#FF6B35',
+            borderRadius: 4, border: '1px solid rgba(255,107,53,0.2)'
+          }}>Chọn ghế</span>
         </div>
-        <div className="ss-header__actions">
-          <button className="ss-btn-ghost">Đăng nhập</button>
-          <button className="ss-btn-accent">Đăng ký</button>
-        </div>
+        <div style={{ flex: 1 }} />
+        {dateStr && (
+          <div style={{ color: '#aaa', fontSize: 13 }}>
+            {dateStr} {timeStr && ` · ${timeStr}`}
+          </div>
+        )}
       </header>
 
-      {/* ── EVENT INFO BAR ── */}
-      <div className="ss-event-bar">
-        <div className="ss-event-bar__left">
-          <span className="ss-event-bar__name">{event?.title || 'Sự kiện'}</span>
-          {dateStr && (
-            <>
-              <div className="ss-bar-sep" />
-              <span className="ss-bar-detail">
-                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
-                </svg>
-                {dateStr}{timeStr && ` · ${timeStr}`}
-              </span>
-            </>
-          )}
-          {event?.venue && (
-            <>
-              <div className="ss-bar-sep" />
-              <span className="ss-bar-detail">
-                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-                  <circle cx="12" cy="9" r="2.5" />
-                </svg>
-                {event.venue}
-              </span>
-            </>
-          )}
-        </div>
-        <div className="ss-countdown">
-          <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
-          </svg>
-          Phiên giữ chỗ còn:&nbsp;<Countdown seconds={LOCK_SECONDS} />
-        </div>
-      </div>
-
       {/* ── MAIN ── */}
-      <div className="ss-main">
-
-        {/* LEFT — stage + canvas */}
-        <div className="ss-left">
-
-          {/* Stage */}
-          <div className="ss-stage-wrap">
-            <div className="ss-stage-glow" />
-            <div className="ss-stage-box">
-              <div className="ss-stage-box__line" />
-              SÂN KHẤU &nbsp;/&nbsp; STAGE
-            </div>
-          </div>
-
-          {/* Zone legend tabs */}
-          <div className="ss-zone-legend">
-            {(['vip','a','b']).map(zKey => {
-              const meta   = ZONE_META[zKey];
-              const active = filterActive[zKey];
-              const zoneRows = rows.filter(r => r.zone === zKey);
-              const price = zoneRows[0]?.price;
-              return (
-                <button
-                  key={zKey}
-                  className={`ss-legend-item${active ? ' ss-legend-item--active' : ''}`}
-                  style={{ borderColor: active ? meta.borderColor : '#333333' }}
-                  onClick={() => setFilter(prev => ({ ...prev, [zKey]: !prev[zKey] }))}
-                >
-                  <div className="ss-legend-dot" style={{ background: active ? meta.color : '#555' }} />
-                  <span className="ss-legend-name">{meta.name}</span>
-                  {price > 0 && <span className="ss-legend-price">· {fmt(price)}</span>}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Seat canvas */}
-          <div className="ss-seat-area">
-            <div ref={wrapRef} className="ss-canvas-wrap">
-              <canvas
-                ref={canvasRef}
-                style={{ display:'block', width:'100%', cursor:'default' }}
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-                onClick={handleClick}
-              />
-            </div>
-
-            {/* Legend */}
-            <div className="ss-legend-bar">
+      <div style={{ flex: 1, display: 'flex', position: 'relative' }}>
+        
+        {/* Canvas Area (Fills remaining space) */}
+        <div style={{ flex: 1, position: 'relative' }}>
+          <CustomerSeatmapCanvas
+            layoutZones={event?.seatmapJson?.layout || event?.seatmapJson?.zones || []}
+            dbZones={zones}
+            selectedSeats={selected}
+            onSeatClick={handleSeatClick}
+          />
+          
+          {/* Legend Overlay */}
+          <div style={{
+            position: 'absolute', bottom: 20, left: 20,
+            background: 'rgba(26,26,26,0.9)', backdropFilter: 'blur(10px)',
+            border: '1px solid #333', borderRadius: 8, padding: '12px 16px',
+            display: 'flex', flexDirection: 'column', gap: 10, pointerEvents: 'none'
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>Chú thích các loại ghế</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 20px', maxWidth: 400 }}>
+              {event?.seatmapJson?.zones?.filter(z => z.blockType !== 'floor').map(z => (
+                <div key={z.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#ccc' }}>
+                  <div style={{ width: 12, height: 12, borderRadius: 3, background: z.color }} />
+                  {z.name} còn trống
+                </div>
+              ))}
               {[
-                { color:'#c8860a', label:'VIP còn trống' },
-                { color:'#3d6828', label:'Khu A còn trống' },
-                { color:'#1a4a7a', label:'Khu B còn trống' },
-                { color:'#2e2e2e', label:'Đang giữ', opacity:0.6 },
-                { color:'#4A1A1A', label:'Đã bán' },
-                { color:'#FF6B35', label:'Đang chọn' },
+                { color:'#2a2a2a', label:'Ghế đang bị khóa / đang giữ', stroke: '#2a2a2a' },
+                { color:'#4A1A1A', label:'Ghế đã được bán', stroke: '#4A1A1A' },
+                { color:'#FF6B35', label:'Ghế bạn đang chọn', stroke: '#FF6B35' },
               ].map(item => (
-                <div key={item.label} className="ss-legend-bar__item">
-                  <div className="ss-legend-bar__sq" style={{ background: item.color, opacity: item.opacity ?? 1 }} />
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#ccc' }}>
+                  <div style={{ width: 12, height: 12, borderRadius: 3, background: item.color, border: `1px solid ${item.stroke}` }} />
                   {item.label}
                 </div>
               ))}
@@ -509,77 +208,77 @@ export default function SeatSelectionPage() {
           </div>
         </div>
 
-        {/* RIGHT — order panel */}
-        <div className="ss-right">
-          <div className="ss-panel">
-            <div className="ss-panel__title">Ghế đang chọn</div>
+        {/* Floating Order Panel on the right */}
+        <div style={{
+          width: 320, background: '#1a1a1a', borderLeft: '1px solid #222',
+          display: 'flex', flexDirection: 'column',
+          boxShadow: '-4px 0 24px rgba(0,0,0,0.5)', zIndex: 50
+        }}>
+          {/* Panel Header */}
+          <div style={{ padding: '20px 20px 10px', borderBottom: '1px solid #2a2a2a' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 12 }}>Ghế đang chọn</div>
+            <div className="ss-timer-box" style={{ margin: 0, padding: '10px 12px', background: '#2D1F0A', borderLeft: '3px solid #FF6B35', borderRadius: '0 6px 6px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#FF6B35', fontSize: 13, fontWeight: 700 }}>
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>
+                Giữ chỗ: <Countdown seconds={LOCK_SECONDS} />
+              </div>
+            </div>
+          </div>
 
-            {/* Seat list */}
-            <div className="ss-seat-list">
-              {selKeys.length === 0 ? (
-                <div className="ss-seat-list__empty">Chưa chọn ghế nào</div>
-              ) : (
-                selKeys.map(key => {
-                  const s   = selected[key];
-                  const row = rows[s.rowIdx];
-                  return (
-                    <div key={key} className="ss-seat-item">
-                      <div className="ss-seat-item__pill">
-                        {ZONE_META[row.zone]?.name} · {row.label}{s.col}
-                      </div>
-                      <span className="ss-seat-item__name">Hàng {row.label} · Ghế {s.col}</span>
-                      <span className="ss-seat-item__price">{fmt(row.price)}</span>
-                      <button
-                        className="ss-seat-item__remove"
-                        onClick={() => setSelected(prev => { const next = { ...prev }; delete next[key]; return next; })}
-                      >×</button>
+          {/* Seat list */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {selKeys.length === 0 ? (
+              <div style={{ color: '#888', fontSize: 13, textAlign: 'center', marginTop: 40 }}>Chưa chọn ghế nào</div>
+            ) : (
+              selKeys.map(key => {
+                const s = selected[key];
+                return (
+                  <div key={key} style={{ background: '#222', borderRadius: 8, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, color: '#888', fontWeight: 600, marginBottom: 2 }}>{s.zoneKey}</div>
+                      <div style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{s.label || `Hàng ${s.row} · Ghế ${s.col}`}</div>
                     </div>
-                  );
-                })
-              )}
+                    <div style={{ fontSize: 13, color: '#fff', fontWeight: 700 }}>{fmt(s.price)}</div>
+                    <button
+                      onClick={() => setSelected(prev => { const next = { ...prev }; delete next[key]; return next; })}
+                      style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}
+                    >×</button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Checkout Footer */}
+          <div style={{ padding: 20, borderTop: '1px solid #2a2a2a', background: '#161616' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13, color: '#aaa' }}>
+              <span>Đơn giá</span>
+              <span style={{ color: '#fff', fontWeight: 600 }}>{firstSeat ? fmt(firstSeat.price) : '—'}</span>
             </div>
-
-            {/* Timer */}
-            <div className="ss-timer-box">
-              <div className="ss-timer-box__top">
-                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
-                </svg>
-                Vui lòng thanh toán trong&nbsp;<Countdown seconds={LOCK_SECONDS} />
-              </div>
-              <div className="ss-timer-box__note">Ghế sẽ được nhả nếu không thanh toán đúng hạn</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, fontSize: 13, color: '#aaa' }}>
+              <span>Phí dịch vụ (5%)</span>
+              <span style={{ color: '#fff', fontWeight: 600 }}>{selKeys.length > 0 ? fmt(fee) : '—'}</span>
             </div>
-
-            {/* Price rows */}
-            <div className="ss-price-rows">
-              <div className="ss-price-row">
-                <span className="ss-price-row__label">Số ghế đã chọn</span>
-                <span className="ss-price-row__val">{selKeys.length} ghế</span>
-              </div>
-              <div className="ss-price-row">
-                <span className="ss-price-row__label">Đơn giá</span>
-                <span className="ss-price-row__val">{firstRow ? fmt(firstRow.price) : '—'}</span>
-              </div>
-              <div className="ss-price-row">
-                <span className="ss-price-row__label">Phí dịch vụ (5%)</span>
-                <span className="ss-price-row__val">{selKeys.length > 0 ? fmt(fee) : '—'}</span>
-              </div>
-            </div>
-
-            <div className="ss-price-divider" />
-
-            <div className="ss-total-row">
-              <span className="ss-total-row__label">Tổng cộng</span>
-              <span className="ss-total-row__val">{selKeys.length > 0 ? fmt(total) : '0đ'}</span>
+            <div style={{ height: 1, background: '#2a2a2a', margin: '0 0 16px 0' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Tổng cộng</span>
+              <span style={{ fontSize: 22, fontWeight: 800, color: '#FF6B35' }}>{selKeys.length > 0 ? fmt(total) : '0đ'}</span>
             </div>
 
             <button
-              className="ss-pay-btn"
               onClick={handlePay}
               disabled={selKeys.length === 0 || booking}
+              style={{
+                width: '100%', height: 48, background: selKeys.length === 0 ? '#333' : '#FF6B35',
+                color: selKeys.length === 0 ? '#666' : '#fff', border: 'none', borderRadius: 8,
+                fontSize: 15, fontWeight: 700, cursor: selKeys.length === 0 ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                transition: 'background .2s'
+              }}
             >
               {booking ? 'Đang xử lý...' : 'Tiến hành thanh toán'}
-              {!booking && (
+              {!booking && selKeys.length > 0 && (
                 <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>

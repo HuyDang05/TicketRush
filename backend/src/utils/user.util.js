@@ -7,6 +7,7 @@ const toPublicUser = (user) => {
     id: user.id,
     email: user.email,
     fullName: user.fullName,
+    avatarUrl: user.avatarUrl,
     role: user.role,
     dob: user.dob ? user.dob.toISOString().slice(0, 10) : null,
     gender: user.gender,

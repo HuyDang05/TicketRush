@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import eventService from '../../services/event.service';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
+import EventReviews from './EventReviews';
 import './event-detail.css';
 
 const TERMS = [
@@ -162,6 +163,9 @@ export default function EventDetailPage() {
               ))}
             </ul>
           </div>
+
+          {/* Reviews */}
+          <EventReviews eventId={eventId} />
 
         </div>
 

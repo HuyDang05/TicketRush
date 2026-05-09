@@ -8,6 +8,14 @@ const eventService = {
   getEventById: (id) =>
     api.get(`/events/${id}`),
 
+  getEventReviews: (id) =>
+    api.get(`/events/${id}/comments`),
+
+  createEventReview: (id, formData) =>
+    api.post(`/events/${id}/comments`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
   getEventZones: (id) =>
     api.get(`/events/${id}`).then((res) => ({ data: res.data.event?.zones || [] })),
 
@@ -53,6 +61,12 @@ const eventService = {
 
   deleteEvent: (id) =>
     api.delete(`/admin/events/${id}`),
+
+  getSeatmap: (id) =>
+    api.get(`/admin/events/${id}/seatmap`),
+
+  saveSeatmap: (id, seatmapVersion, seatmap) =>
+    api.put(`/admin/events/${id}/seatmap`, { seatmapVersion, seatmap }),
 };
 
 export default eventService;

@@ -34,7 +34,7 @@ const googleCallback = async (req, res) => {
       audience: GOOGLE_CLIENT_ID,
     });
     const payload = ticket.getPayload();
-    const { email, name } = payload;
+    const { email, name, picture } = payload;
 
     let user = await prisma.user.findUnique({ where: { email } });
 
@@ -43,9 +43,17 @@ const googleCallback = async (req, res) => {
         data: {
           email,
           fullName: name || email.split('@')[0],
+          avatarUrl: picture || null,
           password: '',
           role: 'CUSTOMER',
         },
+      });
+    }
+
+    if (user && picture && user.avatarUrl !== picture) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { avatarUrl: picture },
       });
     }
 
