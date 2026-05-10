@@ -147,17 +147,30 @@ async function getMyTickets(userId) {
     },
   });
 
-  return tickets.map((booking) => ({
-    bookingId: booking.id,
-    qrCode: booking.qrCode,
-    paidAt: booking.paidAt,
-    seatName: booking.seat.label,
-    zoneName: booking.seat.zone.name,
-    price: Number(booking.totalPrice),
-    eventName: booking.seat.zone.event.title,
-    location: booking.seat.zone.event.venue,
-    eventDate: booking.seat.zone.event.date,
-  }));
+  return tickets.map((booking) => {
+    const event = booking.seat.zone.event;
+
+    return {
+      id: booking.id,
+      bookingId: booking.id,
+      status: booking.status,
+      qrCode: booking.qrCode,
+      paidAt: booking.paidAt,
+
+      seatName: booking.seat.label,
+      zoneName: booking.seat.zone.name,
+
+      price: Number(booking.totalPrice),
+      totalPrice: Number(booking.totalPrice),
+
+      eventName: event.title,
+      eventTitle: event.title,
+      location: event.venue,
+      eventDate: event.date,
+      eventEndDate: event.endDate,
+      imageUrl: event.cardImageUrl || event.imageUrl,
+    };
+  });
 }
 
 module.exports = {
