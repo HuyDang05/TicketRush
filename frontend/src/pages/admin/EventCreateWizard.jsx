@@ -16,8 +16,8 @@ function StepBar({ step }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 24 }}>
       {steps.map((label, i) => {
         const idx = i + 1;
-        const done = idx < displayStep;
-        const active = idx === displayStep;
+        const done = idx < step;
+        const active = idx === step;
         return (
           <div key={idx} style={{ display: 'flex', alignItems: 'center', flex: i < steps.length - 1 ? 1 : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -354,8 +354,10 @@ export default function EventCreateWizard() {
                     {submitting ? 'Đang xử lý...' : 'Lưu & Cấu hình chỗ ngồi →'}
                   </button>
                 </div>
+                
               </main>
             </div>
+          </div>
           )}
 
         </div>

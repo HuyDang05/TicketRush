@@ -1,40 +1,27 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import bookingService from '../../services/booking.service';
+import QRCode from 'qrcode';
 
 import './my-tickets.css';
 
-function drawQRPattern(canvas, seed, size) {
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const cell = Math.floor(size / 21);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, size, size);
-  function rand(i) {
-    const x = Math.sin(seed * 9301 + i * 49297) * 233280;
-    return x - Math.floor(x);
-  }
-  ctx.fillStyle = '#111';
-  for (let row = 0; row < 21; row++) {
-    for (let col = 0; col < 21; col++) {
-      const inFinder = (row < 8 && col < 8) || (row < 8 && col > 12) || (row > 12 && col < 8);
-      if (inFinder) {
-        const ir = row > 12 ? row - 14 : row;
-        const ic = col > 12 ? col - 14 : col;
-        if (ir === 0 || ir === 6 || ic === 0 || ic === 6 || (ir >= 2 && ir <= 4 && ic >= 2 && ic <= 4)) {
-          ctx.fillRect(col * cell, row * cell, cell, cell);
-        }
-      } else if (rand(row * 21 + col) > 0.5) {
-        ctx.fillRect(col * cell, row * cell, cell, cell);
-      }
-    }
-  }
-}
-
-function QRCanvas({ seed, size, style }) {
+function QRCanvas({ value, size, style }) {
   const ref = useRef(null);
-  useEffect(() => { drawQRPattern(ref.current, seed, size); }, [seed, size]);
-  return <canvas ref={ref} width={size} height={size} style={style} />;
+
+  useEffect(() => {
+    if (!ref.current) return;
+
+    QRCode.toCanvas(ref.current, value, {
+      width: size,
+      margin: 1,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF',
+      },
+    });
+  }, [value, size]);
+
+  return <canvas ref={ref} style={style} />;
 }
 
 function QRModal({ booking, onClose }) {
@@ -45,29 +32,36 @@ function QRModal({ booking, onClose }) {
     return () => { document.removeEventListener('keydown', handler); document.body.style.overflow = ''; };
   }, [onClose]);
 
-  const event = booking?.seat?.zone?.event;
-  const seed = booking?.id ? booking.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) : 42;
-  const ticketCode = `TICKET-${booking?.seat?.label || '?'}-${booking?.id?.slice(0, 8)?.toUpperCase() || ''}`;
+  const eventName = booking.eventName || booking.eventTitle || booking.seat?.zone?.event?.name || 'Sự kiện';
+  const seatName = booking.seatName || booking.seat?.label || '—';
+  const zoneName = booking.zoneName || booking.seat?.zone?.name || '—';
+  const price = Number(booking.price ?? booking.totalPrice ?? 0);
+
+  const ticketCode = `TICKET-${seatName}-${booking?.id?.slice(0, 8)?.toUpperCase() || ''}`;
+
+  const qrText = `Mã vé: ${ticketCode}
+  Sự kiện: ${eventName}
+  Khu: ${zoneName}
+  Ghế: ${seatName}
+  Giá vé: ${price.toLocaleString('vi-VN')}đ`;
 
   return (
     <div className="qr-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="qr-modal">
         <div className="qr-modal__header">
-          <div className="qr-modal__title">{event?.name || 'Sự kiện'}</div>
+          <div className="qr-modal__title">{eventName}</div>
           <button className="qr-modal__close" onClick={onClose}>✕</button>
         </div>
         <div className="qr-modal__body">
           <div className="qr-modal__qr-wrap">
-            {booking?.qrCode
-              ? <img src={booking.qrCode} alt="QR" style={{ width: 172, height: 172, objectFit: 'contain' }} />
-              : <QRCanvas seed={seed} size={172} />
-            }
+            <QRCanvas
+              size={172}
+              value={qrText}
+            />
           </div>
           <div className="qr-modal__info">
             {[
               { label: 'Mã vé', value: ticketCode },
-              { label: 'Ngày', value: event?.date ? new Date(event.date).toLocaleDateString('vi-VN') : '—' },
-              { label: 'Địa điểm', value: event?.location || '—' },
             ].map(({ label, value }) => (
               <div key={label} className="qr-modal__info-row">
                 <span className="qr-modal__info-label">{label}</span>
@@ -91,35 +85,65 @@ const THUMB_GRADIENTS = [
 const THUMB_EMOJIS = ['🎤', '⚽', '🎹', '🎷', '🎭', '🎪'];
 
 function TicketCard({ booking, idx, onViewQR }) {
-  const event = booking.seat?.zone?.event;
-  const isPast = booking.status === 'PAID' && event?.date && new Date(event.date) < new Date();
-  const isUpcoming = !isPast && booking.status === 'PAID';
-  const fmtVND = n => (n || 0).toLocaleString('vi-VN') + 'đ';
+  const eventName = booking.eventName || booking.eventTitle || 'Sự kiện';
+  const seatName = booking.seatName || booking.seat?.label || '—';
+  const zoneName = booking.zoneName || booking.seat?.zone?.name || '—';
+  const price = Number(booking.price ?? booking.totalPrice ?? 0);
+  const startDate = booking.eventDate || booking.seat?.zone?.event?.date;
+  const endDate = booking.eventEndDate || booking.seat?.zone?.event?.endDate;
+  const location = booking.location || booking.seat?.zone?.event?.venue || '—';
+  const imageUrl =
+    booking.imageUrl ||
+    booking.cardImageUrl ||
+    booking.seat?.zone?.event?.imageUrl ||
+    booking.seat?.zone?.event?.cardImageUrl ||
+    '';
+  const isPast = booking.status === 'PAID' && startDate && new Date(startDate) < new Date();
+  const isUpcoming = booking.status === 'PAID' && startDate && new Date(startDate) >= new Date();
+  const fmtVND = (n) => Number(n || 0).toLocaleString('vi-VN') + 'đ';
+
+  const fmtDateTime = (date) => {
+    if (!date) return '—';
+    return new Date(date).toLocaleString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
 
   return (
     <div className="booking-card" style={{ opacity: isPast ? 0.75 : 1 }}>
       <div className="booking-card__header">
         <div
           className="booking-card__thumb"
-          style={{ background: THUMB_GRADIENTS[idx % THUMB_GRADIENTS.length] }}
+          style={{
+            background: imageUrl
+              ? `url(${imageUrl}) center/cover`
+              : THUMB_GRADIENTS[idx % THUMB_GRADIENTS.length],
+          }}
         >
-          {THUMB_EMOJIS[idx % THUMB_EMOJIS.length]}
+          {!imageUrl && THUMB_EMOJIS[idx % THUMB_EMOJIS.length]}
         </div>
         <div className="booking-card__info">
-          <div className="booking-card__title">{event?.name || 'Sự kiện'}</div>
+          <div className="booking-card__title">{eventName}</div>
           <div className="booking-card__meta">
-            {event?.date && (
-              <div className="booking-card__meta-item">
-                <svg width="12" height="12" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                {new Date(event.date).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}
-              </div>
-            )}
-            {event?.location && (
-              <div className="booking-card__meta-item">
-                <svg width="12" height="12" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                {event.location}
-              </div>
-            )}
+            <div className="booking-card__meta-item">
+              <svg width="12" height="12" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <path d="M16 2v4M8 2v4M3 10h18"/>
+              </svg>
+              {fmtDateTime(startDate)} - {fmtDateTime(endDate)}
+            </div>
+
+            <div className="booking-card__meta-item">
+              <svg width="12" height="12" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                <circle cx="12" cy="9" r="2.5"/>
+              </svg>
+              {location}
+            </div>
           </div>
         </div>
         <div className="booking-card__status">
@@ -143,15 +167,17 @@ function TicketCard({ booking, idx, onViewQR }) {
               style={{ background: isUpcoming ? '#FF6B35' : '#AAAAAA' }}
             />
             <span className="booking-card__seat-label">
-              {booking.seat?.zone?.name || '—'} · Ghế {booking.seat?.label || '—'}
+              {zoneName} · Ghế {seatName}
             </span>
           </div>
-          <span className="booking-card__seat-price">{fmtVND(booking.totalPrice)}</span>
+          <span className="booking-card__seat-price">{fmtVND(price)}</span>
         </div>
       </div>
 
       <div className="booking-card__footer">
-        <span className="booking-card__total">{fmtVND(booking.totalPrice)}</span>
+        <span className="booking-card__total">
+          {fmtDateTime(startDate)} - {fmtDateTime(endDate)}
+        </span>
         {isPast ? (
           <span style={{ fontSize: 11, fontWeight: 700, color: '#AAAAAA', border: '1px solid #333333', borderRadius: 5, padding: '4px 10px' }}>
             Đã sử dụng
@@ -182,12 +208,19 @@ export default function MyTicketsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const isUpcoming = b => b.status === 'PAID' && b.seat?.zone?.event?.date && new Date(b.seat.zone.event.date) >= new Date();
-  const isPast = b => b.status === 'PAID' && b.seat?.zone?.event?.date && new Date(b.seat.zone.event.date) < new Date();
+  const getEventDate = b => b.eventDate || b.seat?.zone?.event?.date;
+
+  const isUpcoming = b =>
+    b.status === 'PAID' && getEventDate(b) && new Date(getEventDate(b)) >= new Date();
+
+  const isPast = b =>
+    b.status === 'PAID' && getEventDate(b) && new Date(getEventDate(b)) < new Date();
 
   const filtered = bookings.filter(b => {
     const matchFilter = filter === 'all' || (filter === 'upcoming' && isUpcoming(b)) || (filter === 'past' && isPast(b));
-    const matchSearch = search === '' || (b.seat?.zone?.event?.name || '').toLowerCase().includes(search.toLowerCase());
+    const eventName = b.eventName || b.eventTitle || b.seat?.zone?.event?.name || '';
+    const matchSearch =
+      search === '' || eventName.toLowerCase().includes(search.toLowerCase());
     return matchFilter && matchSearch;
   });
 
