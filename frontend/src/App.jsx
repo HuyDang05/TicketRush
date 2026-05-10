@@ -21,6 +21,7 @@ import EventCreateWizard from './pages/admin/EventCreateWizard';
 import EventFormPage from './pages/admin/EventFormPage';
 import SeatmapEditorPage from './pages/admin/SeatmapEditorPage';
 import PersonalAccountPage from './pages/customer/PersonalAccountPage';
+import AdminTicketManagerPage from './pages/admin/AdminTicketManagerPage';
 
 function CustomerLayout() {
   return (
@@ -142,6 +143,14 @@ function App() {
           element={
             <ProtectedRoute requiredRole="ADMIN">
               <SeatmapEditorPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/tickets"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminTicketManagerPage />
             </ProtectedRoute>
           }
         />
