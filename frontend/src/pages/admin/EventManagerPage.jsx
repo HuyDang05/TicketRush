@@ -449,13 +449,6 @@ export default function EventManagerPage() {
                             >🚀</ActBtn>
                           )}
 
-                          {ev.status === 'DRAFT' && (
-                            <ActBtn
-                              title="Chỉnh sửa sơ đồ chỗ ngồi"
-                              hoverStyle={{ borderColor: '#a78bfa', color: '#a78bfa', background: 'rgba(167,139,250,.08)' }}
-                              onClick={() => navigate(`/admin/events/${ev.id}/seatmap`)}
-                            >🪑</ActBtn>
-                          )}
 
                           {ev.status === 'PUBLISHED' && (
                             <ActBtn
