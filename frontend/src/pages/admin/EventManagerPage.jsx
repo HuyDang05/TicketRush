@@ -5,6 +5,7 @@ import AdminLayout from '../../components/shared/AdminLayout';
 import './admin.css';
 import api from '../../services/api';
 import { io } from 'socket.io-client';
+import useModalStore from '../../store/modalStore';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const id = setTimeout(onDone, 2600); return () => clearTimeout(id); }, [onDone]);
@@ -154,6 +155,7 @@ const THUMB_EMOJIS = ['🎤', '⚽', '🎷', '🎹', '🎪', '🎭'];
 
 export default function EventManagerPage() {
   const navigate = useNavigate();
+  const { openModal } = useModalStore();
   const [events, setEvents] = useState([]);
   const [eventStats, setEventStats] = useState({});
   const [loading, setLoading] = useState(true);
@@ -233,40 +235,61 @@ export default function EventManagerPage() {
 
   const showToast = msg => { setToast(msg); };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Bạn có chắc muốn xoá sự kiện này?')) return;
-    setDeletingId(id);
-    try {
-      await eventService.deleteEvent(id);
-      setEvents(prev => prev.filter(e => e.id !== id));
-      showToast('✓ Đã xoá sự kiện');
-    } catch {
-      showToast('Không thể xoá sự kiện');
-    } finally {
-      setDeletingId(null);
-    }
+  const handleDelete = (id) => {
+    openModal({
+      title: 'Xóa sự kiện?',
+      content: 'Bạn có chắc chắn muốn xóa sự kiện này không? Hành động này không thể hoàn tác.',
+      type: 'error',
+      confirmText: 'Xóa',
+      onConfirm: async () => {
+        setDeletingId(id);
+        try {
+          await eventService.deleteEvent(id);
+          setEvents(prev => prev.filter(e => e.id !== id));
+          showToast('✓ Đã xoá sự kiện');
+        } catch {
+          showToast('Không thể xoá sự kiện');
+        } finally {
+          setDeletingId(null);
+        }
+      }
+    });
   };
 
-  const handlePublish = async (id) => {
-    if (!confirm('Bạn có chắc muốn xuất bản sự kiện này?')) return;
-    try {
-      await eventService.publishEvent(id);
-      showToast('✓ Đã xuất bản sự kiện');
-      fetchEvents();
-    } catch {
-      showToast('Không thể xuất bản sự kiện');
-    }
+  const handlePublish = (id) => {
+    openModal({
+      title: 'Xuất bản sự kiện?',
+      content: 'Bạn có chắc chắn muốn xuất bản sự kiện này để người dùng có thể thấy và mua vé không?',
+      type: 'info',
+      confirmText: 'Xuất bản',
+      onConfirm: async () => {
+        try {
+          await eventService.publishEvent(id);
+          showToast('✓ Đã xuất bản sự kiện');
+          fetchEvents();
+        } catch {
+          showToast('Không thể xuất bản sự kiện');
+        }
+      }
+    });
   };
 
-  const handleEnd = async (id) => {
-    if (!confirm('Bạn có chắc muốn kết thúc sự kiện này?')) return;
-    try {
-      await eventService.endEvent(id);
-      showToast('✓ Đã kết thúc sự kiện');
-      fetchEvents();
-    } catch {
-      showToast('Không thể kết thúc sự kiện');
-    }
+  const handleEnd = (id) => {
+    openModal({
+      title: 'Kết thúc sự kiện?',
+      content: 'Bạn có chắc chắn muốn kết thúc sự kiện này không? Người dùng sẽ không thể tiếp tục mua vé.',
+      type: 'warning',
+      confirmText: 'Kết thúc',
+      onConfirm: async () => {
+        try {
+          await eventService.endEvent(id);
+          showToast('✓ Đã kết thúc sự kiện');
+          fetchEvents();
+        } catch {
+          showToast('Không thể kết thúc sự kiện');
+        }
+      }
+    });
   };
 
   const filtered = events.filter(ev => {
