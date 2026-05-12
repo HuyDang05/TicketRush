@@ -43,7 +43,6 @@ model Event {
   endDate        DateTime?   @map("end_date") @db.Timestamp(6)
   admin          User        @relation("AdminEvents", fields: [createdBy], references: [id])
   zones          Zone[]
-  cardImageUrl   String?
   comments       Comment[]
 
   @@map("events")

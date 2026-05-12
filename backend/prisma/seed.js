@@ -86,138 +86,81 @@ async function main() {
 
     console.log('✅ Tạo 3 users thành công');
 
-    // 2. Tạo events
-    console.log('\n🎭 Tạo events...');
+    // 2. Tạo events từ file crawler/events.json
+    console.log('\n🎭 Tạo events từ events.json...');
+    const fs = require('fs');
+    const path = require('path');
+    const eventsFilePath = path.join(__dirname, '../../crawler/events.json');
 
-    const event1 = await prisma.event.create({
-      data: {
-        createdBy: admin.id,
-        title: 'Concert Đông Nhi 2024',
-        description: 'Concert lớn nhất năm với các bài hát kinh điển',
-        venue: 'Nhà thi đấu Phú Thọ, TP HCM',
-        date: new Date('2024-12-25T19:00:00'),
-        imageUrl: 'https://via.placeholder.com/600x400?text=Concert+Dong+Nhi',
-        status: 'PUBLISHED',
-      },
-    });
+    if (fs.existsSync(eventsFilePath)) {
+      const eventsData = JSON.parse(fs.readFileSync(eventsFilePath, 'utf8'));
+      const eventsToCreate = eventsData.events;
 
-    const event2 = await prisma.event.create({
-      data: {
-        createdBy: admin.id,
-        title: 'DJ Sơn Tùng M-TP Live 2024',
-        description: 'Đêm nhạc EDM sôi động từ DJ Sơn Tùng',
-        venue: 'Sân vận động Mỹ Đình, Hà Nội',
-        date: new Date('2024-11-15T20:00:00'),
-        imageUrl: 'https://th.bing.com/th/id/R.9dfffb02fcde33c007dc02819eea95b3?rik=dmEvtnLM3HNwUw&pid=ImgRaw&r=0',
-        status: 'PUBLISHED',
-      },
-    });
+      console.log(`Đã tìm thấy ${eventsToCreate.length} events. Đang tiến hành tạo...`);
 
-    const event3 = await prisma.event.create({
-      data: {
-        createdBy: admin.id,
-        title: 'Festival Âm Nhạc 2025',
-        description: 'Festival lớn với nhiều nghệ sĩ nổi tiếng',
-        venue: 'Công viên Tao Đàn, TP HCM',
-        date: new Date('2025-03-10T18:00:00'),
-        imageUrl: 'https://via.placeholder.com/600x400?text=Music+Festival',
-        status: 'DRAFT',
-      },
-    });
-
-    console.log('✅ Tạo 3 events thành công (2 PUBLISHED, 1 DRAFT)');
-
-    // 3. Tạo zones với arc layout
-    console.log('\n🎯 Tạo zones với arc layout và seats...');
-
-    // Cấu hình zones theo arc layout
-    const zoneConfigs = [
-      {
-        name: 'VIP',
-        price: 2500000,
-        arcSeatsPerRow: [9, 11], // 2 vòng cung đầu
-      },
-      {
-        name: 'Khu A',
-        price: 1500000,
-        arcSeatsPerRow: [13, 15], // 2 vòng cung tiếp theo
-      },
-      {
-        name: 'Khu B',
-        price: 800000,
-        arcSeatsPerRow: [17, 19, 21], // 3 vòng cung cuối
-      },
-    ];
-
-    for (const event of [event1, event2, event3]) {
-      for (const zoneConfig of zoneConfigs) {
-        const zone = await prisma.zone.create({
+      let createdCount = 0;
+      for (const event of eventsToCreate) {
+        const createdEvent = await prisma.event.create({
           data: {
-            eventId: event.id,
-            name: zoneConfig.name,
-            rows: zoneConfig.arcSeatsPerRow.length, // Số lượng vòng cung
-            cols: Math.max(...zoneConfig.arcSeatsPerRow), // Ghế tối đa trong 1 vòng
-            price: zoneConfig.price,
+            title: event.title,
+            description: event.description,
+            venue: event.venue || 'TBD',
+            date: new Date(event.date),
+            endDate: event.endDate ? new Date(event.endDate) : null,
+            imageUrl: event.imageUrl,
+            cardImageUrl: event.cardImageUrl,
+            status: event.status,
+            createdAt: new Date(event.createdAt),
+            seatmapJson: event.seatmapJson,
+            seatmapVersion: event.seatmapVersion,
+            createdBy: admin.id,
           },
         });
 
-        // Tạo seats theo arc layout
-        const seatsData = await createArcSeats(zone.id, zoneConfig.arcSeatsPerRow);
-        await prisma.seat.createMany({
-          data: seatsData,
-        });
+        for (const zoneData of event.zones) {
+          const createdZone = await prisma.zone.create({
+            data: {
+              eventId: createdEvent.id,
+              name: zoneData.name,
+              rows: zoneData.rows,
+              cols: zoneData.cols,
+              price: zoneData.price,
+            },
+          });
 
-        const totalSeats = zoneConfig.arcSeatsPerRow.reduce((a, b) => a + b, 0);
-        console.log(
-          `  ✅ ${event.title} - Zone ${zoneConfig.name}: ${totalSeats} ghế (${zoneConfig.arcSeatsPerRow.length} vòng cung)`
-        );
+          const seatmapZone = event.seatmapJson?.zones?.find(
+            (z) => z.name === zoneData.name
+          );
+          
+          if (seatmapZone && seatmapZone.seats) {
+            const seatsToCreate = seatmapZone.seats.map((seat) => ({
+              zoneId: createdZone.id,
+              row: seat.row,
+              col: seat.col,
+              label: seat.label,
+              status: seat.status || 'AVAILABLE',
+            }));
+
+            await prisma.seat.createMany({
+              data: seatsToCreate,
+            });
+          }
+        }
+
+        createdCount++;
+        if (createdCount % 50 === 0) {
+          console.log(`  Đã tạo ${createdCount}/${eventsToCreate.length} events...`);
+        }
       }
-    }
-
-    // 4. Tạo một số bookings mẫu
-    console.log('\n📝 Tạo bookings mẫu...');
-
-    // Lấy 2 ghế VIP từ event1
-    const vipZone = await prisma.zone.findFirst({
-      where: {
-        eventId: event1.id,
-        name: 'VIP',
-      },
-    });
-
-    const vipSeats = await prisma.seat.findMany({
-      where: {
-        zoneId: vipZone.id,
-      },
-      take: 2,
-    });
-
-    for (let i = 0; i < vipSeats.length; i++) {
-      const booking = await prisma.booking.create({
-        data: {
-          userId: i === 0 ? customer1.id : customer2.id,
-          seatId: vipSeats[i].id,
-          status: i === 0 ? 'PAID' : 'PENDING',
-          totalPrice: 2500000,
-          qrCode: `QR${Date.now()}${i}`,
-          paidAt: i === 0 ? new Date() : null,
-        },
-      });
-
-      // Cập nhật trạng thái ghế
-      await prisma.seat.update({
-        where: { id: vipSeats[i].id },
-        data: { status: 'SOLD' },
-      });
-
-      console.log(
-        `  ✅ Booking ${i + 1}: ${i === 0 ? customer1.fullName : customer2.fullName} - Ghế ${vipSeats[i].label}`
-      );
+      console.log(`✅ Tạo thành công ${createdCount} events từ file.`);
+    } else {
+      console.log('⚠️ Không tìm thấy file events.json. Bỏ qua tạo sự kiện.');
     }
 
     console.log('\n✨ Seed dữ liệu hoàn tất!\n');
     console.log('📊 Thống kê:');
     console.log('  - Users: 1 Admin + 2 Customer');
+    /*
     console.log('  - Events: 2 PUBLISHED + 1 DRAFT');
     console.log('  - Zones: 9 (3 per event)');
     console.log('');
@@ -229,14 +172,17 @@ async function main() {
     console.log('  • Tổng ghế/event: 105 ghế');
     console.log('  • Tổng ghế: 315 ghế');
     console.log('  - Bookings: 2');
+    */
     console.log('\n🔐 Tài Khoản Test:');
     console.log('  Admin: admin@ticketrush.com / admin123');
     console.log('  Customer 1: cus1@gmail.com / 12345');
     console.log('  Customer 2: cus2@gmail.com / 12345');
+    /*
     console.log('\n🎯 Arc Layout Mỗi Zone:');
     console.log('  VIP (2,500,000đ): A(9) → B(11)');
     console.log('  Khu A (1,500,000đ): C(13) → D(15)');
     console.log('  Khu B (800,000đ): E(17) → F(19) → G(21)');
+    */
   } catch (error) {
     console.error('❌ Lỗi seed:', error);
     throw error;
