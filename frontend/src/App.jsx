@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import Header from './components/shared/Header';
+import GlobalModal from './components/shared/GlobalModal';
 import Footer from './components/shared/Footer';
 import ProtectedRoute from './components/shared/ProtectedRoute';
 
@@ -39,6 +40,7 @@ function App() {
   return (
     <Router>
       <Toaster position="top-right" richColors />
+      <GlobalModal />
       <Routes>
         {/* Customer + Auth Routes — wrapped in Header/Footer */}
         <Route element={<CustomerLayout />}>
