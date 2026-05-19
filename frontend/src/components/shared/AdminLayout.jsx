@@ -1,8 +1,12 @@
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../hooks/useTheme';
+import '../../pages/admin/admin.css';
+
 
 export default function AdminLayout({ children }) {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -15,74 +19,43 @@ export default function AdminLayout({ children }) {
   const NavItem = ({ to, icon, label, badge }) => {
     const active = location.pathname === to || (to !== '/admin/dashboard' && isActive(to));
     return (
-      <Link to={to} style={{
-        display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-        borderRadius: 8, marginBottom: 2, fontSize: 13, fontWeight: 600,
-        textDecoration: 'none', transition: 'background .2s, color .2s',
-        background: active ? '#FF6B35' : 'transparent',
-        color: active ? '#fff' : '#AAAAAA',
-      }}
-      onMouseEnter={e => { if (!active) { e.currentTarget.style.background = '#242424'; e.currentTarget.style.color = '#fff'; } }}
-      onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#AAAAAA'; } }}
-      >
+      <Link to={to} className={`admin-nav-item${active ? ' admin-nav-item--active' : ''}`}>
         <span style={{ flexShrink: 0, opacity: active ? 1 : 0.85 }}>{icon}</span>
         {label}
         {badge != null && (
-          <span style={{
-            marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 100,
-            background: active ? 'rgba(255,255,255,.2)' : '#333333',
-            color: active ? '#fff' : '#AAAAAA',
-          }}>{badge}</span>
+          <span className={`admin-nav-badge${active ? ' admin-nav-badge--active' : ''}`}>{badge}</span>
         )}
       </Link>
     );
   };
 
   const SectionLabel = ({ label }) => (
-    <div style={{ fontSize: 10, fontWeight: 700, color: '#333333', letterSpacing: '1.5px', textTransform: 'uppercase', padding: '12px 8px 6px' }}>
-      {label}
-    </div>
+    <div className="admin-nav-section-label">{label}</div>
   );
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Be Vietnam Pro', sans-serif", background: '#1A1A1A' }}>
+    <div className="admin-layout">
 
       {/* ── SIDEBAR ── */}
-      <aside style={{
-        width: 240, flexShrink: 0, background: '#111111',
-        borderRight: '1px solid #333333',
-        display: 'flex', flexDirection: 'column', overflowY: 'auto',
-      }}>
+      <aside className="admin-sidebar">
 
         {/* Logo */}
-        <Link to="/admin/dashboard" style={{
-          display: 'flex', alignItems: 'center', gap: 8, padding: '24px 20px 20px',
-          textDecoration: 'none', borderBottom: '1px solid #333333',
-        }}>
-          <span style={{ color: '#FF6B35', fontSize: 20 }}>⚡</span>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: -0.5 }}>TicketRush</span>
+        <Link to="/admin/dashboard" className="admin-sidebar__logo">
+          <span className="admin-sidebar__logo-icon">⚡</span>
+          <span className="admin-sidebar__logo-text">TicketRush</span>
         </Link>
 
         {/* Admin profile */}
-        <div style={{ padding: '18px 20px', borderBottom: '1px solid #333333', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: '50%', background: '#FF6B35',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 15, fontWeight: 800, color: '#fff', flexShrink: 0,
-            border: '2px solid rgba(255,107,53,.3)',
-          }}>{initials}</div>
+        <div className="admin-sidebar__profile">
+          <div className="admin-sidebar__avatar">{initials}</div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2, color: '#fff' }}>{user?.fullName || user?.name || 'Admin'}</div>
-            <div style={{
-              fontSize: 10, color: '#FF6B35', fontWeight: 700,
-              background: 'rgba(255,107,53,.12)', border: '1px solid rgba(255,107,53,.25)',
-              padding: '1px 7px', borderRadius: 100, display: 'inline-block', marginTop: 3, letterSpacing: .3,
-            }}>Quản trị viên</div>
+            <div className="admin-sidebar__profile-name">{user?.fullName || user?.name || 'Admin'}</div>
+            <div className="admin-sidebar__profile-role">Quản trị viên</div>
           </div>
         </div>
 
         {/* Nav */}
-        <nav style={{ flex: 1, padding: '12px 12px' }}>
+        <nav className="admin-sidebar__nav">
           <SectionLabel label="Tổng quan" />
           <NavItem to="/admin/dashboard" label="Tổng quan" icon={
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -108,19 +81,26 @@ export default function AdminLayout({ children }) {
           } />
         </nav>
 
-        {/* Logout */}
-        <div style={{ padding: '12px 12px', borderTop: '1px solid #333333' }}>
+        {/* Bottom: theme toggle + logout */}
+        <div className="admin-sidebar__footer">
           <button
-            onClick={handleLogout}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-              borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-              color: '#AAAAAA', background: 'transparent', border: 'none',
-              fontFamily: 'inherit', width: '100%', transition: 'all .2s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,.1)'; e.currentTarget.style.color = '#f87171'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#AAAAAA'; }}
+            className="admin-sidebar__theme-btn"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Chuyển sang theme sáng' : 'Chuyển sang theme tối'}
           >
+            {theme === 'dark' ? (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 4.75a1 1 0 0 1 1 1V7a1 1 0 1 1-2 0V5.75a1 1 0 0 1 1-1zM12 17a1 1 0 0 1 1 1v1.25a1 1 0 1 1-2 0V18a1 1 0 0 1 1-1zm7.25-5a1 1 0 0 1 1 1 1 1 0 0 1-1 1H18a1 1 0 1 1 0-2h1.25zM6 12a1 1 0 0 1-1 1H3.75a1 1 0 1 1 0-2H5a1 1 0 0 1 1 1zm10.35-5.6a1 1 0 0 1 1.42 0l.9.9a1 1 0 1 1-1.42 1.42l-.9-.9a1 1 0 0 1 0-1.42zm-9.9 9.9a1 1 0 0 1 1.42 0l.9.9a1 1 0 1 1-1.42 1.42l-.9-.9a1 1 0 0 1 0-1.42zm11.32 1.32a1 1 0 0 1 1.42-1.42l.9.9a1 1 0 0 1-1.42 1.42l-.9-.9zM6.54 6.54a1 1 0 0 1 1.42 0l.9.9a1 1 0 1 1-1.42 1.42l-.9-.9a1 1 0 0 1 0-1.42zM12 8.25A3.75 3.75 0 1 1 8.25 12 3.75 3.75 0 0 1 12 8.25z" />
+              </svg>
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M21 14.5A8.5 8.5 0 0 1 9.5 3a.75.75 0 0 0-.86.97A6.5 6.5 0 0 0 17 15.36a.75.75 0 0 0 .97-.86A8.46 8.46 0 0 1 21 14.5z" />
+              </svg>
+            )}
+            <span>{theme === 'dark' ? 'Theme sáng' : 'Theme tối'}</span>
+          </button>
+
+          <button onClick={handleLogout} className="admin-sidebar__logout-btn">
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
             Đăng xuất
           </button>
@@ -128,7 +108,7 @@ export default function AdminLayout({ children }) {
       </aside>
 
       {/* ── CONTENT ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', background: '#1A1A1A' }}>
+      <div className="admin-content">
         {children}
       </div>
     </div>
