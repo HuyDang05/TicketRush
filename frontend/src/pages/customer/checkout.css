@@ -1,14 +1,14 @@
 /* ── CheckoutPage ── */
 .checkout-page {
-  background: #0D0D0D;
+  background: var(--bg-strong);
   min-height: calc(100vh - 108px);
-  color: #fff;
+  color: var(--text);
 }
 
 /* Stepper */
 .checkout-stepper {
-  background: #111111;
-  border-bottom: 1px solid #333333;
+  background: var(--nav);
+  border-bottom: 1px solid var(--border);
   padding: 16px 60px;
   display: flex;
   align-items: center;
@@ -35,31 +35,31 @@
 }
 
 .checkout-stepper__circle--done {
-  background: rgba(255,107,53,.15);
-  color: #FF6B35;
-  border: 1.5px solid rgba(255,107,53,.4);
+  background: var(--badge-bg);
+  color: var(--accent);
+  border: 1.5px solid var(--badge-border);
 }
 
 .checkout-stepper__circle--active {
-  background: #FF6B35;
+  background: var(--accent);
   color: #fff;
   box-shadow: 0 0 16px rgba(255,107,53,.4);
 }
 
 .checkout-stepper__circle--pending {
-  background: #242424;
-  color: #AAAAAA;
-  border: 1.5px solid #333333;
+  background: var(--card);
+  color: var(--muted);
+  border: 1.5px solid var(--border);
 }
 
 .checkout-stepper__label {
   font-size: 13px;
   font-weight: 600;
-  color: #AAAAAA;
+  color: var(--muted);
 }
 
 .checkout-stepper__label--active {
-  color: #FF6B35;
+  color: var(--accent);
 }
 
 .checkout-stepper__line {
@@ -70,33 +70,33 @@
 }
 
 .checkout-stepper__line--done {
-  background: rgba(255,107,53,.3);
+  background: var(--badge-border);
 }
 
 .checkout-stepper__line--pending {
-  background: #333333;
+  background: var(--border);
 }
 
 /* Breadcrumb */
 .checkout-breadcrumb {
-  background: #1A1A1A;
+  background: var(--bg);
   padding: 10px 60px;
-  border-bottom: 1px solid #333333;
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #AAAAAA;
+  color: var(--muted);
 }
 
 .checkout-breadcrumb a {
-  color: #AAAAAA;
+  color: var(--muted);
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .checkout-breadcrumb a:hover {
-  color: #fff;
+  color: var(--text);
 }
 
 .checkout-breadcrumb__sep {
@@ -104,7 +104,7 @@
 }
 
 .checkout-breadcrumb__current {
-  color: #FF6B35;
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -127,8 +127,8 @@
 
 /* Section cards */
 .checkout-card {
-  background: #1A1A1A;
-  border: 1px solid #333333;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
 }
@@ -136,7 +136,7 @@
 .checkout-card__label {
   font-size: 11px;
   font-weight: 700;
-  color: #FF6B35;
+  color: var(--accent);
   letter-spacing: 1.5px;
   text-transform: uppercase;
   margin-bottom: 12px;
@@ -147,7 +147,7 @@
   font-weight: 700;
   margin-bottom: 16px;
   padding-left: 12px;
-  border-left: 3px solid #FF6B35;
+  border-left: 3px solid var(--accent);
 }
 
 /* Event info */
@@ -183,7 +183,7 @@
 
 .checkout-event__meta-item {
   font-size: 12px;
-  color: #AAAAAA;
+  color: var(--muted);
   display: flex;
   align-items: center;
   gap: 5px;
@@ -197,19 +197,19 @@
 }
 
 .checkout-ticket {
-  background: #242424;
+  background: var(--card);
   border-radius: 8px;
   padding: 12px 14px;
   display: flex;
   align-items: center;
   gap: 12px;
-  border: 1px solid #333333;
+  border: 1px solid var(--border);
 }
 
 .checkout-ticket__badge {
-  background: rgba(255,107,53,.15);
-  border: 1px solid rgba(255,107,53,.3);
-  color: #FF6B35;
+  background: var(--badge-bg);
+  border: 1px solid var(--badge-border);
+  color: var(--accent);
   font-size: 11px;
   font-weight: 700;
   padding: 4px 10px;
@@ -220,7 +220,7 @@
 
 .checkout-ticket__desc {
   font-size: 13px;
-  color: #AAAAAA;
+  color: var(--muted);
   flex: 1;
 }
 
@@ -235,13 +235,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 0 0;
-  border-top: 1px solid #333333;
+  border-top: 1px solid var(--border);
   margin-top: 12px;
 }
 
 .checkout-ticket-footer__count {
   font-size: 13px;
-  color: #AAAAAA;
+  color: var(--muted);
 }
 
 .checkout-ticket-footer__total {
@@ -260,7 +260,7 @@
 
 .checkout-info-row__label {
   font-size: 13px;
-  color: #AAAAAA;
+  color: var(--muted);
 }
 
 .checkout-info-row__value {
@@ -270,7 +270,7 @@
 
 .checkout-info-notice {
   background: rgba(255,107,53,.06);
-  border-left: 3px solid #FF6B35;
+  border-left: 3px solid var(--accent);
   border-radius: 0 8px 8px 0;
   padding: 12px 14px;
   margin-top: 16px;
@@ -278,7 +278,7 @@
   align-items: flex-start;
   gap: 8px;
   font-size: 12px;
-  color: #AAAAAA;
+  color: var(--muted);
   line-height: 1.7;
 }
 
@@ -287,7 +287,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #1A1A1A;
+  background: var(--bg);
   border-radius: 8px;
   padding: 14px;
   cursor: pointer;
@@ -295,11 +295,11 @@
 }
 
 .checkout-pay-option--selected {
-  border: 1.5px solid #FF6B35;
+  border: 1.5px solid var(--accent);
 }
 
 .checkout-pay-option--unselected {
-  border: 1.5px solid #333333;
+  border: 1.5px solid var(--border);
 }
 
 .checkout-pay-logo {
@@ -323,15 +323,15 @@
 
 .checkout-pay-sub {
   font-size: 11px;
-  color: #AAAAAA;
+  color: var(--muted);
 }
 
 .checkout-pay-selected-badge {
   margin-left: auto;
   font-size: 11px;
-  color: #FF6B35;
+  color: var(--accent);
   font-weight: 600;
-  background: rgba(255,107,53,.1);
+  background: var(--badge-bg);
   padding: 3px 8px;
   border-radius: 4px;
 }
@@ -343,8 +343,8 @@
 }
 
 .checkout-summary {
-  background: #1A1A1A;
-  border: 1px solid #333333;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 24px;
 }
@@ -356,8 +356,8 @@
 }
 
 .checkout-countdown-box {
-  background: #1e1408;
-  border: 1px solid #FF6B35;
+  background: var(--accent-panel);
+  border: 1px solid var(--accent);
   border-radius: 8px;
   padding: 14px 16px;
   margin-bottom: 20px;
@@ -397,7 +397,7 @@
 }
 
 .checkout-price-row__label {
-  color: #AAAAAA;
+  color: var(--muted);
 }
 
 .checkout-price-row__value {
@@ -406,7 +406,7 @@
 
 .checkout-divider {
   height: 1px;
-  background: #333333;
+  background: var(--border);
   margin: 14px 0;
 }
 
@@ -420,12 +420,12 @@
 .checkout-total-row__label {
   font-size: 15px;
   font-weight: 700;
+  color: var(--text);
 }
 
 .checkout-total-row__value {
-  font-size: 26px;
   font-weight: 800;
-  color: #FF6B35;
+  color: var(--accent);
 }
 
 .checkout-confirm-btn {

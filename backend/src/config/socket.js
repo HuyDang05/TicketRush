@@ -18,7 +18,6 @@ function initSocket(server) {
   io.on('connection', (socket) => {
     console.log(`[Socket] Connected: ${socket.id}`);
 
-    // Client tự join room theo eventId để nhận broadcast của event đó
     socket.on('join_event', (eventId) => {
       socket.join(`event:${eventId}`);
       console.log(`[Socket] ${socket.id} joined room event:${eventId}`);
@@ -27,6 +26,17 @@ function initSocket(server) {
     socket.on('leave_event', (eventId) => {
       socket.leave(`event:${eventId}`);
       console.log(`[Socket] ${socket.id} left room event:${eventId}`);
+    });
+
+    // Soft-select relay: broadcast to everyone else in the room, not back to sender
+    socket.on('seat_selecting', ({ eventId, seatId }) => {
+      if (!eventId || !seatId) return;
+      socket.to(`event:${eventId}`).emit('seat_selecting', { seatId });
+    });
+
+    socket.on('seat_deselecting', ({ eventId, seatId }) => {
+      if (!eventId || !seatId) return;
+      socket.to(`event:${eventId}`).emit('seat_deselecting', { seatId });
     });
 
     socket.on('disconnect', () => {

@@ -7,13 +7,88 @@
 @layer base {
   :root {
     --bg: #1A1A1A;
+    --bg-strong: #0D0D0D;
     --nav: #111111;
     --card: #242424;
+    --card-hover: #2A2A2A;
+    --input-bg: #1A1A1A;
+    --input-border: #333333;
     --accent: #FF6B35;
     --accent-h: #e85a24;
+    --accent-panel: #2D1F0A;
     --text: #FFFFFF;
+    --text-soft: rgba(255, 255, 255, 0.85);
     --muted: #AAAAAA;
+    --muted-2: #888888;
     --border: #333333;
+    --border-strong: #444444;
+    --overlay: rgba(0, 0, 0, 0.75);
+    --overlay-strong: rgba(0, 0, 0, 0.85);
+    --overlay-light: rgba(0, 0, 0, 0.5);
+    --chip-bg: rgba(0, 0, 0, 0.65);
+    --chip-text: #FFFFFF;
+    --badge-bg: rgba(255, 107, 53, 0.15);
+    --badge-border: rgba(255, 107, 53, 0.4);
+    --hero-bg: radial-gradient(ellipse at 60% 40%, #3a1a0a 0%, #1a0a00 40%, #0a0a0a 100%);
+    --hero-overlay: linear-gradient(to right, rgba(0, 0, 0, 0.85) 50%, rgba(0, 0, 0, 0.3) 100%);
+    --hero-card-thumb: linear-gradient(135deg, #2a1200, #FF6B35 120%);
+    --hero-card-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+    --review-bg: radial-gradient(ellipse at top, rgba(255, 107, 53, 0.08) 0%, transparent 60%), #1A1A1A;
+    --success: #4ADE80;
+    --success-bg: rgba(74, 222, 128, 0.1);
+    --success-border: rgba(74, 222, 128, 0.25);
+    --info: #38bdf8;
+    --info-bg: rgba(56, 189, 248, 0.15);
+    --info-border: rgba(56, 189, 248, 0.35);
+    --warning: #f59e0b;
+    --warning-bg: rgba(245, 158, 11, 0.15);
+    --warning-border: rgba(245, 158, 11, 0.35);
+    --danger: #ef4444;
+    --danger-bg: rgba(239, 68, 68, 0.12);
+    --danger-border: rgba(239, 68, 68, 0.35);
+  }
+
+  :root[data-theme='light'] {
+    --bg: #F6F2EB;
+    --bg-strong: #EFE7DD;
+    --nav: #FFF9F2;
+    --card: #FFFFFF;
+    --card-hover: #FFF3E6;
+    --input-bg: #FFF9F2;
+    --input-border: #E5DED5;
+    --accent: #E4572E;
+    --accent-h: #c94825;
+    --accent-panel: #FBE9D9;
+    --text: #1E1B18;
+    --text-soft: rgba(30, 27, 24, 0.75);
+    --muted: #6F6A64;
+    --muted-2: #8B847C;
+    --border: #E5DED5;
+    --border-strong: #D9CFC4;
+    --overlay: rgba(30, 27, 24, 0.4);
+    --overlay-strong: rgba(30, 27, 24, 0.6);
+    --overlay-light: rgba(30, 27, 24, 0.25);
+    --chip-bg: rgba(255, 255, 255, 0.75);
+    --chip-text: #2A251F;
+    --badge-bg: rgba(228, 87, 46, 0.12);
+    --badge-border: rgba(228, 87, 46, 0.35);
+    --hero-bg: radial-gradient(ellipse at 60% 40%, #FFF3E6 0%, #F7E6D8 40%, #F2E3D6 100%);
+    --hero-overlay: linear-gradient(to right, rgba(255, 255, 255, 0.85) 40%, rgba(255, 255, 255, 0.2) 100%);
+    --hero-card-thumb: linear-gradient(135deg, #F2D7C4, #E4572E 120%);
+    --hero-card-shadow: 0 16px 48px rgba(78, 51, 33, 0.15);
+    --review-bg: radial-gradient(ellipse at top, rgba(228, 87, 46, 0.12) 0%, transparent 60%), #F6F2EB;
+    --success: #2E8B57;
+    --success-bg: rgba(46, 139, 87, 0.12);
+    --success-border: rgba(46, 139, 87, 0.25);
+    --info: #0284c7;
+    --info-bg: rgba(2, 132, 199, 0.12);
+    --info-border: rgba(2, 132, 199, 0.3);
+    --warning: #d97706;
+    --warning-bg: rgba(217, 119, 6, 0.14);
+    --warning-border: rgba(217, 119, 6, 0.3);
+    --danger: #dc2626;
+    --danger-bg: rgba(220, 38, 38, 0.12);
+    --danger-border: rgba(220, 38, 38, 0.3);
   }
 
   html {

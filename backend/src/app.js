@@ -12,6 +12,7 @@ const eventRoutes = require('./routes/event.routes');
 const userRoutes = require('./routes/user.routes');
 const bookingRoutes = require('./routes/booking.routes');
 const adminTicketRoutes = require('./routes/admin-ticket.routes');
+const queueRoutes = require('./routes/queue.routes');
 
 const app = express();
 
@@ -41,5 +42,6 @@ app.use('/api/events', eventRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminTicketRoutes);
+app.use('/api/queue', queueRoutes);
 
 module.exports = app;

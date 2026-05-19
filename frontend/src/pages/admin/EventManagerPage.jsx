@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import eventService from '../../services/event.service';
 import AdminLayout from '../../components/shared/AdminLayout';
 import './admin.css';
-import api from '../../services/api';
-import { io } from 'socket.io-client';
 import useModalStore from '../../store/modalStore';
+
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const id = setTimeout(onDone, 2600); return () => clearTimeout(id); }, [onDone]);
@@ -157,81 +156,47 @@ export default function EventManagerPage() {
   const navigate = useNavigate();
   const { openModal } = useModalStore();
   const [events, setEvents] = useState([]);
-  const [eventStats, setEventStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const PAGE_SIZE = 10;
 
-  useEffect(() => { setPage(1); }, [search, statusFilter]);
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 10;
 
-  const fetchEvents = useCallback(async () => {
+  // Reset về trang 1 khi search/filter thay đổi
+  useEffect(() => { setPage(1); }, [search, statusFilter]);
+
+  const fetchEvents = useCallback(async (overridePage) => {
     setLoading(true);
-
     try {
-      const res = await eventService.getAdminEvents();
-      const eventList = res.data?.events || res.data?.data || res.data || [];
-      const safeEvents = Array.isArray(eventList) ? eventList : [];
-
-      setEvents(safeEvents);
-
-      const statsEntries = await Promise.all(
-        safeEvents.map(async (ev) => {
-          try {
-            const dashRes = await api.get(`/admin/dashboard/${ev.id}`);
-            return [ev.id, dashRes.data?.data?.summary || {}];
-          } catch {
-            return [ev.id, {}];
-          }
-        })
-      );
-
-      setEventStats(Object.fromEntries(statsEntries));
+      const currentPage = overridePage ?? page;
+      const res = await eventService.getAdminEvents({
+        page: currentPage,
+        limit: PAGE_SIZE,
+        ...(search     && { search }),
+        ...(statusFilter && { status: statusFilter }),
+      });
+      const data = res.data;
+      setEvents(data?.events || []);
+      setTotal(data?.total ?? 0);
+      setTotalPages(data?.totalPages ?? 1);
     } catch {
       setEvents([]);
-      setEventStats({});
+      setTotal(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, search, statusFilter]);
 
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
-  useEffect(() => {
-    if (events.length === 0) return;
 
-    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
-      withCredentials: true,
-    });
-
-    events.forEach(ev => {
-      socket.emit('join_event', ev.id);
-    });
-
-    const refreshEvents = () => {
-      fetchEvents();
-    };
-
-    socket.on('seat_locked', refreshEvents);
-    socket.on('seat_sold', refreshEvents);
-    socket.on('seat_released', refreshEvents);
-
-    return () => {
-      events.forEach(ev => {
-        socket.emit('leave_event', ev.id);
-      });
-
-      socket.off('seat_locked', refreshEvents);
-      socket.off('seat_sold', refreshEvents);
-      socket.off('seat_released', refreshEvents);
-
-      socket.disconnect();
-    };
-  }, [events, fetchEvents]);
 
   const showToast = msg => { setToast(msg); };
 
@@ -292,28 +257,9 @@ export default function EventManagerPage() {
     });
   };
 
-  const filtered = events.filter(ev => {
-    const matchSearch = !search || (ev.title || ev.name || '').toLowerCase().includes(search.toLowerCase());
-    const evStatus = ev.status === 'PUBLISHED' ? 'pub' : ev.status === 'DRAFT' ? 'draft' : 'ended';
-    const matchStatus = !statusFilter || evStatus === statusFilter;
-    return matchSearch && matchStatus;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-
   const pubCount = events.filter(e => e.status === 'PUBLISHED').length;
-
-  const totalSold = Object.values(eventStats).reduce(
-    (sum, stat) => sum + Number(stat.soldSeats || 0),
-    0
-  );
-
-  const totalRevenue = Object.values(eventStats).reduce(
-    (sum, stat) => sum + Number(stat.revenue || 0),
-    0
-  );
+  const totalSold  = events.reduce((s, e) => s + Number(e.soldSeats || 0), 0);
+  const safePage   = page;
 
   const formatRevenue = (n) => {
     if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1) + 'tỷ đ';
@@ -357,10 +303,10 @@ export default function EventManagerPage() {
       <div className="event-manager-scroll">
 
         <div className="event-manager-stats">
-          <StatCard label="Tổng sự kiện" value={events.length} change="+2 tháng này" changeUp />
+          <StatCard label="Tổng sự kiện" value={total} change="+2 tháng này" changeUp />
           <StatCard label="Đang mở bán" value={pubCount} valueColor="#FF6B35" change="Đang hoạt động" />
           <StatCard label="Vé đã bán" value={totalSold.toLocaleString('vi-VN')} change="+18% so với tháng trước" changeUp />
-          <StatCard label="Doanh thu tháng" value={formatRevenue(totalRevenue)} valueColor="#FF6B35" change="+24% so với T5" changeUp />
+          <StatCard label="Trang hiện tại" value={`${safePage}/${totalPages}`} valueColor="#FF6B35" change="Server-side pagination" />
         </div>
 
         <div className="event-manager-table-card">
@@ -405,13 +351,12 @@ export default function EventManagerPage() {
               <tbody>
                 {loading ? (
                   <tr><td colSpan="7" className="admin-table__empty">Đang tải...</td></tr>
-                ) : filtered.length === 0 ? (
+                ) : events.length === 0 ? (
                   <tr><td colSpan="7" className="admin-table__empty">Không tìm thấy sự kiện nào</td></tr>
-                ) : paginated.map((ev, i) => {
+                ) : events.map((ev, i) => {
                   const name = ev.title || ev.name || 'Sự kiện';
-                  const stat = eventStats[ev.id] || {};
-                  const totalSeats = Number(stat.totalSeats || ev.capacity || ev.totalSeats || 0);
-                  const soldSeats = Number(stat.soldSeats || ev.soldSeats || 0);
+                  const totalSeats = Number(ev.totalSeats || 0);
+                  const soldSeats  = Number(ev.soldSeats  || 0);
                   const badge = getStatusBadge(ev.status);
                   const isDeleting = deletingId === ev.id;
 
@@ -499,7 +444,7 @@ export default function EventManagerPage() {
 
           <div className="event-manager-table-footer">
             <div style={{ fontSize: 12, color: '#AAAAAA' }}>
-              Hiển thị {filtered.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} trong {filtered.length} sự kiện
+              Hiển thị {total === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, total)} trong {total} sự kiện
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               {/* Prev */}

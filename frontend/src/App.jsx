@@ -1,9 +1,10 @@
-import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import Header from './components/shared/Header';
 import GlobalModal from './components/shared/GlobalModal';
 import Footer from './components/shared/Footer';
 import ProtectedRoute from './components/shared/ProtectedRoute';
+import useAuthStore from './store/authStore';
 
 // Pages
 import HomePage from './pages/customer/HomePage';
@@ -23,8 +24,15 @@ import EventFormPage from './pages/admin/EventFormPage';
 import SeatmapEditorPage from './pages/admin/SeatmapEditorPage';
 import PersonalAccountPage from './pages/customer/PersonalAccountPage';
 import AdminTicketManagerPage from './pages/admin/AdminTicketManagerPage';
+import VirtualQueuePage from './pages/customer/VirtualQueuePage';
 
 function CustomerLayout() {
+  const { user } = useAuthStore();
+
+  if (user?.role === 'ADMIN') {
+    return <Navigate to="/admin" replace />;
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
@@ -49,7 +57,7 @@ function App() {
           <Route
             path="/checkout"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="CUSTOMER">
                 <CheckoutPage />
               </ProtectedRoute>
             }
@@ -57,7 +65,7 @@ function App() {
           <Route
             path="/my-tickets"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="CUSTOMER">
                 <MyTicketsPage />
               </ProtectedRoute>
             }
@@ -65,7 +73,7 @@ function App() {
           <Route
             path="/account"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="CUSTOMER">
                 <PersonalAccountPage />
               </ProtectedRoute>
             }
@@ -76,8 +84,18 @@ function App() {
         <Route
           path="/events/:id/seats"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="CUSTOMER">
               <SeatSelectionPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Virtual Queue — no CustomerLayout */}
+        <Route
+          path="/events/:id/queue"
+          element={
+            <ProtectedRoute requiredRole="CUSTOMER">
+              <VirtualQueuePage />
             </ProtectedRoute>
           }
         />
