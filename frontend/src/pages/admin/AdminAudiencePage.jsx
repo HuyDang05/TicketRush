@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../components/shared/AdminLayout';
 import api from '../../services/api';
+import { useNavigate } from 'react-router-dom';
 
 export default function AdminAudiencePage() {
+  const navigate = useNavigate();
+
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -13,16 +16,19 @@ export default function AdminAudiencePage() {
 
   const loadEvents = async () => {
     try {
-      setLoading(true);
-      const res = await api.get('/admin/tickets/events');
-      setEvents(res.data.data || []);
+        setLoading(true);
+        const res = await api.get('/admin/tickets/events');
+
+        console.log('AUDIENCE EVENTS:', res.data.data);
+
+        setEvents(res.data.data || []);
     } catch (error) {
-      console.error(error);
-      alert('Không tải được dữ liệu khán giả');
+        console.error(error);
+        alert('Không tải được dữ liệu khán giả');
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+ };
 
   useEffect(() => {
     loadEvents();
@@ -85,18 +91,39 @@ export default function AdminAudiencePage() {
             }}
           >
             {events.map((event) => {
-              const audienceCount = Number(event.soldTickets || 0);
+                const audienceCount = Number(event.soldTickets || 0);
 
-              return (
+                const imageSrc =
+                    event.imageUrl ||
+                    event.cardImageUrl ||
+                    event.image ||
+                    event.bannerUrl ||
+                    event.posterUrl ||
+                    event.thumbnail;
+
+                return (
                 <div
-                  key={event.id}
-                  style={{
-                    background: '#202020',
-                    border: '1px solid #333',
-                    borderRadius: 18,
-                    overflow: 'hidden',
-                  }}
-                >
+                    key={event.id}
+                    onClick={() => navigate(`/admin/users/${event.id}`)}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.border = '1px solid #ff6b35';
+                        e.currentTarget.style.boxShadow = '0 0 18px rgba(255,107,53,0.35)';
+                        e.currentTarget.style.transform = 'translateY(-4px)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.border = '1px solid #333';
+                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                    style={{
+                        background: '#202020',
+                        border: '1px solid #333',
+                        borderRadius: 18,
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        transition: 'all 0.25s ease',
+                    }}
+                    >
                   <div
                     style={{
                       height: 140,
@@ -104,9 +131,9 @@ export default function AdminAudiencePage() {
                       overflow: 'hidden',
                     }}
                   >
-                    {(event.imageUrl || event.image || event.bannerUrl || event.posterUrl || event.thumbnail) ? (
+                    {imageSrc ? (
                         <img
-                            src={event.imageUrl || event.image || event.bannerUrl || event.posterUrl || event.thumbnail}
+                            src={imageSrc}
                             alt={event.title}
                             style={{
                                 width: '100%',

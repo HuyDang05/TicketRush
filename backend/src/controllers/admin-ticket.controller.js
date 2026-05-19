@@ -60,6 +60,8 @@ async function getAdminTicketEvents(req, res) {
         soldTickets,
         availableTickets: totalTickets - soldTickets,
         totalRevenue,
+        imageUrl: event.imageUrl || event.cardImageUrl,
+        cardImageUrl: event.cardImageUrl,
       };
     });
 
