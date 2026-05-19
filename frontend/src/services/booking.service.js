@@ -5,8 +5,8 @@ const bookingService = {
     api.get('/bookings/my-tickets'),
 
   // Lock a single seat — returns { bookingId, seatId, seatLabel, zoneName, totalPrice, status, expiresAt }
-  lockSeat: (seatId) =>
-    api.post('/bookings/lock', { seatId }),
+  lockSeat: (seatId, socketId) =>
+    api.post('/bookings/lock', { seatId, socketId }),
 
   // Confirm payment for one or more pending bookings
   checkout: (bookingIds) =>

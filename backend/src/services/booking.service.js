@@ -7,83 +7,88 @@ const prisma = new PrismaClient();
 const LOCK_DURATION_MS = 10 * 60 * 1000; // 10 phút
 const MAX_LOCKS_PER_EVENT = 4;
 
-async function lockSeat(userId, seatId) {
-  // Bước 0: Kiểm tra ghế tồn tại và lấy thông tin zone/event
-  const seat = await prisma.seat.findUnique({
-    where: { id: seatId },
-    include: {
-      zone: {
-        include: { event: true },
-      },
-    },
-  });
-
-  if (!seat) {
-    const err = new Error('Ghế không tồn tại');
-    err.statusCode = 404;
-    throw err;
-  }
-
-  const { zone } = seat;
-  const eventId = zone.eventId;
-
-  // Bước 0b: Kiểm tra giới hạn 4 ghế/event
-  const currentLocks = await prisma.booking.count({
-    where: {
-      userId,
-      status: 'PENDING',
-      seat: { zone: { eventId } },
-    },
-  });
-
-  if (currentLocks >= MAX_LOCKS_PER_EVENT) {
-    const err = new Error(`Bạn chỉ được giữ tối đa ${MAX_LOCKS_PER_EVENT} ghế trong cùng một sự kiện`);
-    err.statusCode = 409;
-    throw err;
-  }
-
-  // Bước 1-5: Transaction với SELECT FOR UPDATE
+async function lockSeat(userId, seatId, socketId) {
+  // Toàn bộ validation + mutation trong 1 transaction duy nhất với SERIALIZABLE
+  // để tránh race condition khi nhiều user cùng click 1 ghế
   let booking;
+  let seat;
+  let eventId;
   try {
-    booking = await prisma.$transaction(async (tx) => {
-      // SELECT FOR UPDATE — block transaction khác trên row này
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. SELECT FOR UPDATE trên ghế — block mọi transaction khác đang cố lock cùng row
       const [lockedSeat] = await tx.$queryRaw`
-        SELECT id, status FROM seats WHERE id = ${seatId} FOR UPDATE
+        SELECT id, status, "zoneId", label FROM seats WHERE id = ${seatId} FOR UPDATE
       `;
 
-      if (!lockedSeat || lockedSeat.status !== 'AVAILABLE') {
+      if (!lockedSeat) {
+        const err = new Error('Ghế không tồn tại');
+        err.statusCode = 404;
+        throw err;
+      }
+
+      if (lockedSeat.status !== 'AVAILABLE') {
         const err = new Error('Ghế vừa được người khác chọn');
         err.statusCode = 409;
         throw err;
       }
 
-      // Cập nhật ghế → LOCKED
+      // 2. Lấy zone/event (sau khi đã giữ lock ghế)
+      const zone = await tx.zone.findUnique({
+        where: { id: lockedSeat.zoneId },
+        include: { event: true },
+      });
+
+      if (!zone) {
+        const err = new Error('Khu vực không tồn tại');
+        err.statusCode = 404;
+        throw err;
+      }
+
+      const eventId = zone.eventId;
+
+      // 3. Kiểm tra giới hạn 4 ghế/event — bên trong transaction để đếm chính xác
+      const [{ count }] = await tx.$queryRaw`
+        SELECT COUNT(*) AS count
+        FROM bookings b
+        JOIN seats s ON s.id = b."seatId"
+        JOIN zones z ON z.id = s."zoneId"
+        WHERE b."userId" = ${userId}
+          AND b.status = 'PENDING'
+          AND z."eventId" = ${eventId}
+      `;
+
+      if (Number(count) >= MAX_LOCKS_PER_EVENT) {
+        const err = new Error(`Bạn chỉ được giữ tối đa ${MAX_LOCKS_PER_EVENT} ghế trong cùng một sự kiện`);
+        err.statusCode = 409;
+        throw err;
+      }
+
+      // 4. Cập nhật ghế → LOCKED
       await tx.seat.update({
         where: { id: seatId },
         data: { status: 'LOCKED', lockedAt: new Date() },
       });
 
-      // Tạo Booking PENDING
-      return tx.booking.create({
+      // 5. Tạo Booking PENDING — seatId là UNIQUE nên DB cũng chặn duplicate
+      const newBooking = await tx.booking.create({
         data: {
           userId,
           seatId,
           status: 'PENDING',
           totalPrice: zone.price,
         },
-        include: {
-          seat: {
-            include: {
-              zone: {
-                include: { event: true },
-              },
-            },
-          },
-        },
       });
+
+      return { booking: newBooking, zone, eventId, seatLabel: lockedSeat.label };
+    }, {
+      // SERIALIZABLE đảm bảo không có phantom read khi đếm locks
+      isolationLevel: 'Serializable',
     });
+
+    booking = result.booking;
+    seat = { label: result.seatLabel, zone: result.zone };
+    eventId = result.eventId;
   } catch (err) {
-    // Re-throw lỗi từ trong transaction (409) hoặc DB error
     if (!err.statusCode) err.statusCode = 500;
     throw err;
   }
@@ -106,6 +111,7 @@ async function lockSeat(userId, seatId) {
     emitSeatEvent(eventId, 'seat_locked', {
       seatId,
       label: seat.label,
+      socketId: socketId ?? null,
     });
   } catch {
     // Socket lỗi không ảnh hưởng response
@@ -117,8 +123,8 @@ async function lockSeat(userId, seatId) {
     bookingId: booking.id,
     seatId,
     seatLabel: seat.label,
-    zoneName: zone.name,
-    totalPrice: Number(zone.price),
+    zoneName: seat.zone.name,
+    totalPrice: Number(seat.zone.price),
     status: booking.status,
     expiresAt,
     createdAt: booking.createdAt,
