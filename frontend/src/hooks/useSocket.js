@@ -4,7 +4,9 @@ import { io } from 'socket.io-client';
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 
 export function useSocket(eventId) {
-  const socketRef = useRef(null);
+  const socketRef    = useRef(null);
+  // Map of eventName -> Set<callback> — populated before socket exists
+  const listenersRef = useRef({});
 
   useEffect(() => {
     const socket = io(SOCKET_URL, {
@@ -15,25 +17,52 @@ export function useSocket(eventId) {
     });
     socketRef.current = socket;
 
-    socket.on('connect', () => {
-      if (eventId) socket.emit('join_event', eventId);
+    // Re-attach any listeners that were registered before socket was ready
+    Object.entries(listenersRef.current).forEach(([event, cbs]) => {
+      cbs.forEach(cb => socket.on(event, cb));
     });
+
+    const joinRoom = () => {
+      if (eventId) socket.emit('join_event', eventId);
+    };
+
+    socket.on('connect', joinRoom);
+    if (socket.connected) joinRoom();
 
     return () => {
       if (eventId) socket.emit('leave_event', eventId);
+      // Detach all managed listeners before disconnect
+      Object.entries(listenersRef.current).forEach(([event, cbs]) => {
+        cbs.forEach(cb => socket.off(event, cb));
+      });
       socket.disconnect();
       socketRef.current = null;
     };
   }, [eventId]);
 
-  // Stable reference — registers listener, returns cleanup fn so callers
-  // can deregister inside their own useEffect cleanup.
   const on = useCallback((eventName, callback) => {
-    const socket = socketRef.current;
-    if (!socket) return () => {};
-    socket.on(eventName, callback);
-    return () => socket.off(eventName, callback);
+    // Register in the persistent map so it survives socket reconnects
+    if (!listenersRef.current[eventName]) {
+      listenersRef.current[eventName] = new Set();
+    }
+    listenersRef.current[eventName].add(callback);
+
+    // If socket already exists, attach immediately
+    if (socketRef.current) {
+      socketRef.current.on(eventName, callback);
+    }
+
+    return () => {
+      listenersRef.current[eventName]?.delete(callback);
+      socketRef.current?.off(eventName, callback);
+    };
   }, []);
 
-  return { on };
+  const emit = useCallback((eventName, data) => {
+    socketRef.current?.emit(eventName, data);
+  }, []);
+
+  const getSocketId = useCallback(() => socketRef.current?.id ?? null, []);
+
+  return { on, emit, getSocketId };
 }

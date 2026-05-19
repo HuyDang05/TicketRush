@@ -50,10 +50,29 @@ const getEvents = async (req, res) => {
 
     const events = await prisma.event.findMany({
       where: whereCondition,
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        venue: true,
+        date: true,
+        endDate: true,
+        imageUrl: true,
+        cardImageUrl: true,
+        status: true,
+        createdAt: true,
+        createdBy: true,
+        seatmapVersion: true,
         zones: {
           select: {
             price: true,
+            _count: {
+              select: {
+                seats: {
+                  where: { status: 'SOLD' },
+                },
+              },
+            },
           },
         },
       },
@@ -64,14 +83,20 @@ const getEvents = async (req, res) => {
 
     const formattedEvents = events.map(event => {
       let minPrice = null;
+      let soldTickets = 0;
       if (event.zones && event.zones.length > 0) {
         minPrice = Math.min(...event.zones.map(z => Number(z.price)));
+        soldTickets = event.zones.reduce(
+          (sum, zone) => sum + zone._count.seats,
+          0
+        );
       }
 
       const { zones, ...eventData } = event;
       return {
         ...eventData,
         minPrice,
+        soldTickets,
       };
     });
 
@@ -343,12 +368,18 @@ const deleteEvent = async (req, res) => {
 
 const getAdminEvents = async (req, res) => {
   try {
-    const { search, status } = req.query;
+    const { search, status, page = 1, limit = 10 } = req.query;
+
+    const pageNum  = Math.max(1, parseInt(page,  10) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+    const skip     = (pageNum - 1) * pageSize;
 
     const whereCondition = {};
 
     if (status) {
-      whereCondition.status = status;
+      // frontend gửi 'pub'/'draft'/'ended' → map sang enum
+      const statusMap = { pub: 'PUBLISHED', draft: 'DRAFT', ended: 'ENDED' };
+      whereCondition.status = statusMap[status] || status;
     }
 
     if (search) {
@@ -358,34 +389,72 @@ const getAdminEvents = async (req, res) => {
       };
     }
 
-    const events = await prisma.event.findMany({
-      where: whereCondition,
-      include: {
-        zones: {
-          select: {
-            price: true,
-            rows: true,
-            cols: true,
-            _count: { select: { seats: true } },
+    // Chạy song song: đếm tổng + lấy trang hiện tại
+    const [total, events] = await Promise.all([
+      prisma.event.count({ where: whereCondition }),
+      prisma.event.findMany({
+        where: whereCondition,
+        select: {
+          id: true,
+          title: true,
+          venue: true,
+          date: true,
+          endDate: true,
+          status: true,
+          imageUrl: true,
+          cardImageUrl: true,
+          createdAt: true,
+          createdBy: true,
+          zones: {
+            select: {
+              price: true,
+              rows: true,
+              cols: true,
+              _count: {
+                select: {
+                  seats: true,                          // tổng ghế
+                },
+              },
+            },
           },
+          // đếm sold seats qua booking
+          _count: { select: { zones: true } },
         },
-        _count: {
-          select: { zones: true },
-        },
-      },
-      orderBy: { date: 'asc' },
-    });
+        orderBy: { date: 'asc' },
+        skip,
+        take: pageSize,
+      }),
+    ]);
+
+    // Tính soldSeats: ~10 queries song song (1 per event in page) — OK với pagination
+    const eventIds = events.map(e => e.id);
+    let soldMap = {};
+    if (eventIds.length > 0) {
+      await Promise.all(
+        eventIds.map(async (eventId) => {
+          soldMap[eventId] = await prisma.seat.count({
+            where: { zone: { eventId }, status: 'SOLD' },
+          });
+        })
+      );
+    }
 
     const formatted = events.map(event => {
       const totalSeats = event.zones.reduce((s, z) => s + (z.rows * z.cols), 0);
-      const minPrice = event.zones.length > 0
+      const minPrice   = event.zones.length > 0
         ? Math.min(...event.zones.map(z => Number(z.price)))
         : null;
       const { zones, ...rest } = event;
-      return { ...rest, totalSeats, minPrice };
+      return { ...rest, totalSeats, minPrice, soldSeats: soldMap[event.id] ?? 0 };
     });
 
-    return res.status(200).json({ events: formatted });
+    return res.status(200).json({
+      events: formatted,
+      total,
+      page:  pageNum,
+      limit: pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    });
   } catch (error) {
     console.error('[Event][getAdminEvents] Error:', error);
     return res.status(500).json({ message: 'Đã có lỗi xảy ra' });

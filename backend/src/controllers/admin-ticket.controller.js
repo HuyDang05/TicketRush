@@ -4,12 +4,22 @@ async function getAdminTicketEvents(req, res) {
   try {
     const events = await prisma.event.findMany({
       orderBy: { date: 'desc' },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        venue: true,
+        date: true,
+        imageUrl: true,
+        cardImageUrl: true,
         zones: {
-          include: {
-            seats: {
-              include: {
-                booking: true,
+          select: {
+            rows: true,
+            cols: true,
+            _count: {
+              select: {
+                seats: {
+                  where: { status: 'SOLD' },
+                },
               },
             },
           },
@@ -18,10 +28,8 @@ async function getAdminTicketEvents(req, res) {
     });
 
     const data = events.map((event) => {
-      const seats = event.zones.flatMap((z) => z.seats);
-      const soldSeats = seats.filter(
-        (s) => s.booking && s.booking.status === 'PAID'
-      );
+      const totalTickets = event.zones.reduce((s, z) => s + (z.rows * z.cols), 0);
+      const soldTickets = event.zones.reduce((s, z) => s + z._count.seats, 0);
 
       return {
         id: event.id,
@@ -29,9 +37,9 @@ async function getAdminTicketEvents(req, res) {
         venue: event.venue,
         date: event.date,
         imageUrl: event.imageUrl || event.cardImageUrl,
-        totalTickets: seats.length,
-        soldTickets: soldSeats.length,
-        availableTickets: seats.length - soldSeats.length,
+        totalTickets,
+        soldTickets,
+        availableTickets: totalTickets - soldTickets,
       };
     });
 
@@ -59,13 +67,22 @@ async function getAdminTicketBuyers(req, res) {
           },
         },
       },
-      include: {
-        user: true,
+      select: {
+        id: true,
+        totalPrice: true,
+        createdAt: true,
+        user: {
+          select: {
+            fullName: true,
+            email: true,
+          },
+        },
         seat: {
-          include: {
+          select: {
+            label: true,
             zone: {
-              include: {
-                event: true,
+              select: {
+                name: true,
               },
             },
           },
