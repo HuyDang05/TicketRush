@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import eventService from '../../services/event.service';
 import bookingService from '../../services/booking.service';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import CustomerSeatmapCanvas from '../../components/seatmap/CustomerSeatmapCanvas';
+import { useSocket } from '../../hooks/useSocket';
+import { useTheme } from '../../hooks/useTheme';
 import './seat-selection.css';
 
 const LOCK_SECONDS = 10 * 60;
@@ -31,18 +33,97 @@ function Countdown({ seconds }) {
 
 export default function SeatSelectionPage() {
   const { id: eventId } = useParams();
+  const { theme, toggleTheme } = useTheme();
   const location        = useLocation();
   const navigate        = useNavigate();
 
   void location.state;
 
-  const [event,        setEvent]     = useState(null);
-  const [zones,        setZones]     = useState([]);
-  const [loading,      setLoading]   = useState(true);
-  const [booking,      setBooking]   = useState(false);
-  const [toastMsg,     setToastMsg]  = useState('');
-  const [selected,     setSelected]  = useState({});
+  const [event,            setEvent]           = useState(null);
+  const [zones,            setZones]           = useState([]);
+  const [loading,          setLoading]         = useState(true);
+  const [booking,          setBooking]         = useState(false);
+  const [toastMsg,         setToastMsg]        = useState('');
+  const [selected,         setSelected]        = useState({});
+  // seatId -> true: ghế người khác đang soft-select (chưa lock)
+  const [othersSelecting,  setOthersSelecting] = useState({});
 
+  const { on, emit, getSocketId } = useSocket(eventId);
+
+  // ── Nhận realtime events ───────────────────────────────────────────────────
+  useEffect(() => {
+    function updateSeatStatus(seatId, newStatus) {
+      setZones(prev =>
+        prev.map(zone => ({
+          ...zone,
+          seats: zone.seats?.map(seat =>
+            seat.id === seatId ? { ...seat, status: newStatus } : seat
+          ),
+        }))
+      );
+    }
+
+    // Người khác đang chọn (soft) → tô màu "đang xem"
+    const offSelecting = on('seat_selecting', ({ seatId }) => {
+      setOthersSelecting(prev => ({ ...prev, [seatId]: true }));
+    });
+
+    // Người khác bỏ chọn (soft) → trả về available
+    const offDeselecting = on('seat_deselecting', ({ seatId }) => {
+      setOthersSelecting(prev => {
+        if (!prev[seatId]) return prev;
+        const next = { ...prev };
+        delete next[seatId];
+        return next;
+      });
+    });
+
+    // Ghế bị lock cứng (sau khi bấm thanh toán)
+    const offLocked = on('seat_locked', ({ seatId, socketId }) => {
+      updateSeatStatus(seatId, 'LOCKED');
+      // Xoá khỏi soft-selecting map vì giờ đã locked
+      setOthersSelecting(prev => {
+        if (!prev[seatId]) return prev;
+        const next = { ...prev };
+        delete next[seatId];
+        return next;
+      });
+      // Chỉ thông báo nếu event đến từ người khác
+      if (socketId && socketId === getSocketId()) return;
+      setSelected(prev => {
+        if (!prev[seatId]) return prev;
+        const next = { ...prev };
+        delete next[seatId];
+        setToastMsg('Một ghế bạn chọn vừa bị người khác giữ chỗ');
+        return next;
+      });
+    });
+
+    const offSold = on('seat_sold', ({ seatId }) => {
+      updateSeatStatus(seatId, 'SOLD');
+      setSelected(prev => {
+        if (!prev[seatId]) return prev;
+        const next = { ...prev };
+        delete next[seatId];
+        setToastMsg('Một ghế bạn chọn vừa được người khác mua');
+        return next;
+      });
+    });
+
+    const offReleased = on('seat_released', ({ seatId }) => {
+      updateSeatStatus(seatId, 'AVAILABLE');
+    });
+
+    return () => {
+      offSelecting();
+      offDeselecting();
+      offLocked();
+      offSold();
+      offReleased();
+    };
+  }, [on, getSocketId]);
+
+  // ── Load dữ liệu sự kiện ───────────────────────────────────────────────────
   useEffect(() => {
     if (!eventId) return;
     setLoading(true);
@@ -61,44 +142,55 @@ export default function SeatSelectionPage() {
     setTimeout(() => setToastMsg(''), 2200);
   }
 
+  // ── Click chọn / bỏ chọn ghế → emit soft-select realtime ─────────────────
   const handleSeatClick = useCallback((dbSeat, layoutZone, dbZone) => {
     setSelected(prev => {
-      const isSel = prev[dbSeat.id];
+      const isSel = !!prev[dbSeat.id];
+
       if (isSel) {
         const next = { ...prev };
         delete next[dbSeat.id];
+        // Báo người khác: ghế này available trở lại
+        emit('seat_deselecting', { eventId, seatId: dbSeat.id });
         return next;
-      } else {
-        if (Object.keys(prev).length >= 4) {
-          showToast('Tối đa 4 ghế mỗi lần đặt');
-          return prev;
-        }
-        return {
-          ...prev,
-          [dbSeat.id]: {
-            seatDbId: dbSeat.id,
-            label: dbSeat.label,
-            row: dbSeat.row,
-            col: dbSeat.col,
-            zoneKey: dbZone.name,
-            zoneId: dbZone.id,
-            price: Number(dbZone.price || 0),
-            color: layoutZone.color
-          }
-        };
       }
-    });
-  }, []);
 
+      if (Object.keys(prev).length >= 4) {
+        showToast('Tối đa 4 ghế mỗi lần đặt');
+        return prev;
+      }
+
+      // Báo người khác: ghế này đang được xem
+      emit('seat_selecting', { eventId, seatId: dbSeat.id });
+      return {
+        ...prev,
+        [dbSeat.id]: {
+          seatDbId: dbSeat.id,
+          label:    dbSeat.label,
+          row:      dbSeat.row,
+          col:      dbSeat.col,
+          zoneKey:  dbZone.name,
+          zoneId:   dbZone.id,
+          price:    Number(dbZone.price || 0),
+          color:    layoutZone.color,
+        },
+      };
+    });
+  }, [emit, eventId]);
+
+  // ── Tiến hành thanh toán ───────────────────────────────────────────────────
   async function handlePay() {
     const keys = Object.keys(selected);
     if (keys.length === 0) return;
 
     setBooking(true);
     try {
-      const lockResults = await Promise.all(
-        keys.map(k => bookingService.lockSeat(selected[k].seatDbId))
-      );
+      const mySocketId = getSocketId();
+      const lockResults = [];
+      for (const k of keys) {
+        const res = await bookingService.lockSeat(selected[k].seatDbId, mySocketId);
+        lockResults.push(res);
+      }
       const bookings = lockResults.map(r => r.data).filter(Boolean);
       if (bookings.length === 0) {
         showToast('Không thể giữ ghế. Vui lòng thử lại.');
@@ -120,11 +212,24 @@ export default function SeatSelectionPage() {
     }
   }
 
+  // ── Layout zones (stable reference — không tạo mới mỗi render) ────────────
+  const layoutZones = useMemo(() => {
+    const sj = event?.seatmapJson;
+    if (!sj) return [];
+    const raw = Array.isArray(sj.layout) ? sj.layout
+              : Array.isArray(sj.zones)  ? sj.zones
+              : [];
+    return raw.map(z => {
+      if (z.id) return z;
+      const match = zones.find(d => d.name === z.name);
+      return match ? { ...z, id: match.id } : z;
+    });
+  }, [event?.seatmapJson, zones]);
+
   const selKeys  = Object.keys(selected);
   const subtotal = selKeys.reduce((acc, k) => acc + toNumberPrice(selected[k].price), 0);
   const fee      = Math.round(subtotal * 0.05);
   const total    = subtotal + fee;
-
   const firstSeat = selKeys.length > 0 ? selected[selKeys[0]] : null;
 
   const dateStr = event?.date
@@ -137,70 +242,75 @@ export default function SeatSelectionPage() {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', background: '#111111', overflow: 'hidden' }}>
+    <div className="ss-fullscreen">
       {toastMsg && <div className="ss-toast">{toastMsg}</div>}
 
-      {/* ── TOP HEADER (Like Admin) ── */}
-      <header style={{
-        height: 60, flexShrink: 0,
-        background: '#161616', borderBottom: '1px solid #222',
-        display: 'flex', alignItems: 'center', padding: '0 20px', gap: 20
-      }}>
-        <button onClick={() => navigate(-1)} style={{
-          background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: 8
-        }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      <header className="ss-fullscreen__header">
+        <button onClick={() => navigate(-1)} className="ss-fullscreen__back-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
         </button>
-        <div style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}>
+        <div className="ss-fullscreen__title">
           {event?.title || 'Sự kiện'}
-          <span style={{
-            marginLeft: 12, padding: '4px 10px', fontSize: 12,
-            background: 'rgba(255,107,53,0.1)', color: '#FF6B35',
-            borderRadius: 4, border: '1px solid rgba(255,107,53,0.2)'
-          }}>Chọn ghế</span>
+          <span className="ss-fullscreen__tag">Chọn ghế</span>
         </div>
         <div style={{ flex: 1 }} />
+        <button
+          type="button"
+          className="header__theme-toggle"
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Chuyển sang theme sáng' : 'Chuyển sang theme tối'}
+          title={theme === 'dark' ? 'Theme sáng' : 'Theme tối'}
+        >
+          {theme === 'dark' ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 4.75a1 1 0 0 1 1 1V7a1 1 0 1 1-2 0V5.75a1 1 0 0 1 1-1zM12 17a1 1 0 0 1 1 1v1.25a1 1 0 1 1-2 0V18a1 1 0 0 1 1-1zm7.25-5a1 1 0 0 1 1 1 1 1 0 0 1-1 1H18a1 1 0 1 1 0-2h1.25zM6 12a1 1 0 0 1-1 1H3.75a1 1 0 1 1 0-2H5a1 1 0 0 1 1 1zm10.35-5.6a1 1 0 0 1 1.42 0l.9.9a1 1 0 1 1-1.42 1.42l-.9-.9a1 1 0 0 1 0-1.42zm-9.9 9.9a1 1 0 0 1 1.42 0l.9.9a1 1 0 1 1-1.42 1.42l-.9-.9a1 1 0 0 1 0-1.42zm11.32 1.32a1 1 0 0 1 1.42-1.42l.9.9a1 1 0 0 1-1.42 1.42l-.9-.9zM6.54 6.54a1 1 0 0 1 1.42 0l.9.9a1 1 0 1 1-1.42 1.42l-.9-.9a1 1 0 0 1 0-1.42zM12 8.25A3.75 3.75 0 1 1 8.25 12 3.75 3.75 0 0 1 12 8.25z" />
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M21 14.5A8.5 8.5 0 0 1 9.5 3a.75.75 0 0 0-.86.97A6.5 6.5 0 0 0 17 15.36a.75.75 0 0 0 .97-.86A8.46 8.46 0 0 1 21 14.5z" />
+            </svg>
+          )}
+        </button>
         {dateStr && (
-          <div style={{ color: '#aaa', fontSize: 13 }}>
-            {dateStr} {timeStr && ` · ${timeStr}`}
+          <div className="ss-fullscreen__date">
+            {dateStr}{timeStr && ` · ${timeStr}`}
           </div>
         )}
       </header>
 
-      {/* ── MAIN ── */}
-      <div style={{ flex: 1, display: 'flex', position: 'relative' }}>
-        
-        {/* Canvas Area (Fills remaining space) */}
-        <div style={{ flex: 1, position: 'relative' }}>
+      <div className="ss-fullscreen__body">
+
+        <div className="ss-fullscreen__canvas-wrap">
           <CustomerSeatmapCanvas
-            layoutZones={event?.seatmapJson?.layout || event?.seatmapJson?.zones || []}
+            layoutZones={layoutZones}
             dbZones={zones}
             selectedSeats={selected}
+            othersSelectingSeats={othersSelecting}
             onSeatClick={handleSeatClick}
           />
-          
-          {/* Legend Overlay */}
-          <div style={{
-            position: 'absolute', bottom: 20, left: 20,
-            background: 'rgba(26,26,26,0.9)', backdropFilter: 'blur(10px)',
-            border: '1px solid #333', borderRadius: 8, padding: '12px 16px',
-            display: 'flex', flexDirection: 'column', gap: 10, pointerEvents: 'none'
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>Chú thích các loại ghế</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 20px', maxWidth: 400 }}>
-              {event?.seatmapJson?.zones?.filter(z => z.blockType !== 'floor').map(z => (
-                <div key={z.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#ccc' }}>
-                  <div style={{ width: 12, height: 12, borderRadius: 3, background: z.color }} />
-                  {z.name} còn trống
-                </div>
-              ))}
+
+          {/* Legend */}
+          <div className="ss-fullscreen__legend">
+            <div className="ss-fullscreen__legend-title">Chú thích</div>
+            <div className="ss-fullscreen__legend-items">
+              {(Array.isArray(event?.seatmapJson?.zones) ? event.seatmapJson.zones : [])
+                .filter(z => z.blockType !== 'floor')
+                .map((z, i) => (
+                  <div key={z.id ?? z.name ?? i} className="ss-fullscreen__legend-item">
+                    <div style={{ width: 12, height: 12, borderRadius: 3, background: z.color, flexShrink: 0 }} />
+                    {z.name} còn trống
+                  </div>
+                ))}
               {[
-                { color:'#2a2a2a', label:'Ghế đang bị khóa / đang giữ', stroke: '#2a2a2a' },
-                { color:'#4A1A1A', label:'Ghế đã được bán', stroke: '#4A1A1A' },
-                { color:'#FF6B35', label:'Ghế bạn đang chọn', stroke: '#FF6B35' },
+                { color: '#FFA500', label: 'Người khác đang xem' },
+                { color: '#888', label: 'Đang bị khóa / giữ' },
+                { color: '#e44', label: 'Đã được bán' },
+                { color: '#FF6B35', label: 'Bạn đang chọn' },
               ].map(item => (
-                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#ccc' }}>
-                  <div style={{ width: 12, height: 12, borderRadius: 3, background: item.color, border: `1px solid ${item.stroke}` }} />
+                <div key={item.label} className="ss-fullscreen__legend-item">
+                  <div style={{ width: 12, height: 12, borderRadius: 3, background: item.color, flexShrink: 0 }} />
                   {item.label}
                 </div>
               ))}
@@ -208,41 +318,40 @@ export default function SeatSelectionPage() {
           </div>
         </div>
 
-        {/* Floating Order Panel on the right */}
-        <div style={{
-          width: 320, background: '#1a1a1a', borderLeft: '1px solid #222',
-          display: 'flex', flexDirection: 'column',
-          boxShadow: '-4px 0 24px rgba(0,0,0,0.5)', zIndex: 50
-        }}>
-          {/* Panel Header */}
-          <div style={{ padding: '20px 20px 10px', borderBottom: '1px solid #2a2a2a' }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 12 }}>Ghế đang chọn</div>
-            <div className="ss-timer-box" style={{ margin: 0, padding: '10px 12px', background: '#2D1F0A', borderLeft: '3px solid #FF6B35', borderRadius: '0 6px 6px 0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#FF6B35', fontSize: 13, fontWeight: 700 }}>
-                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>
+        {/* Order panel */}
+        <div className="ss-fullscreen__panel">
+          <div className="ss-fullscreen__panel-top">
+            <div className="ss-fullscreen__panel-heading">Ghế đang chọn</div>
+            <div className="ss-timer-box" style={{ margin: 0 }}>
+              <div className="ss-timer-box__top">
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
+                </svg>
                 Giữ chỗ: <Countdown seconds={LOCK_SECONDS} />
               </div>
             </div>
           </div>
 
-          {/* Seat list */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="ss-fullscreen__seat-list">
             {selKeys.length === 0 ? (
-              <div style={{ color: '#888', fontSize: 13, textAlign: 'center', marginTop: 40 }}>Chưa chọn ghế nào</div>
+              <div className="ss-seat-list__empty" style={{ marginTop: 40 }}>Chưa chọn ghế nào</div>
             ) : (
               selKeys.map(key => {
                 const s = selected[key];
                 return (
-                  <div key={key} style={{ background: '#222', borderRadius: 8, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div key={key} className="ss-fullscreen__seat-item">
                     <div style={{ width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 11, color: '#888', fontWeight: 600, marginBottom: 2 }}>{s.zoneKey}</div>
-                      <div style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{s.label || `Hàng ${s.row} · Ghế ${s.col}`}</div>
+                      <div className="ss-fullscreen__seat-zone">{s.zoneKey}</div>
+                      <div className="ss-fullscreen__seat-label">{s.label || `Hàng ${s.row} · Ghế ${s.col}`}</div>
                     </div>
-                    <div style={{ fontSize: 13, color: '#fff', fontWeight: 700 }}>{fmt(s.price)}</div>
+                    <div className="ss-fullscreen__seat-price">{fmt(s.price)}</div>
                     <button
-                      onClick={() => setSelected(prev => { const next = { ...prev }; delete next[key]; return next; })}
-                      style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}
+                      onClick={() => {
+                        emit('seat_deselecting', { eventId, seatId: key });
+                        setSelected(prev => { const next = { ...prev }; delete next[key]; return next; });
+                      }}
+                      className="ss-seat-item__remove"
                     >×</button>
                   </div>
                 );
@@ -250,32 +359,25 @@ export default function SeatSelectionPage() {
             )}
           </div>
 
-          {/* Checkout Footer */}
-          <div style={{ padding: 20, borderTop: '1px solid #2a2a2a', background: '#161616' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13, color: '#aaa' }}>
-              <span>Đơn giá</span>
-              <span style={{ color: '#fff', fontWeight: 600 }}>{firstSeat ? fmt(firstSeat.price) : '—'}</span>
+          <div className="ss-fullscreen__panel-footer">
+            <div className="ss-fullscreen__price-row">
+              <span className="ss-price-row__label">Đơn giá</span>
+              <span className="ss-price-row__val">{firstSeat ? fmt(firstSeat.price) : '—'}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, fontSize: 13, color: '#aaa' }}>
-              <span>Phí dịch vụ (5%)</span>
-              <span style={{ color: '#fff', fontWeight: 600 }}>{selKeys.length > 0 ? fmt(fee) : '—'}</span>
+            <div className="ss-fullscreen__price-row">
+              <span className="ss-price-row__label">Phí dịch vụ (5%)</span>
+              <span className="ss-price-row__val">{selKeys.length > 0 ? fmt(fee) : '—'}</span>
             </div>
-            <div style={{ height: 1, background: '#2a2a2a', margin: '0 0 16px 0' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Tổng cộng</span>
-              <span style={{ fontSize: 22, fontWeight: 800, color: '#FF6B35' }}>{selKeys.length > 0 ? fmt(total) : '0đ'}</span>
+            <div className="ss-price-divider" />
+            <div className="ss-total-row" style={{ marginBottom: 20 }}>
+              <span className="ss-total-row__label">Tổng cộng</span>
+              <span className="ss-total-row__val">{selKeys.length > 0 ? fmt(total) : '0đ'}</span>
             </div>
 
             <button
               onClick={handlePay}
               disabled={selKeys.length === 0 || booking}
-              style={{
-                width: '100%', height: 48, background: selKeys.length === 0 ? '#333' : '#FF6B35',
-                color: selKeys.length === 0 ? '#666' : '#fff', border: 'none', borderRadius: 8,
-                fontSize: 15, fontWeight: 700, cursor: selKeys.length === 0 ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                transition: 'background .2s'
-              }}
+              className={`ss-pay-btn${selKeys.length === 0 ? ' ss-pay-btn--disabled' : ''}`}
             >
               {booking ? 'Đang xử lý...' : 'Tiến hành thanh toán'}
               {!booking && selKeys.length > 0 && (

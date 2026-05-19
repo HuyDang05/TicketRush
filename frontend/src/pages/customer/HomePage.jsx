@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EventList from '../../components/event/EventList';
 import eventService from '../../services/event.service';
@@ -134,6 +134,15 @@ export default function HomePage() {
 
   const featuredEvent = events[0] || null;
   const sonTungEvent = events.find(e => e.title === 'DJ Sơn Tùng M-TP Live 2024');
+  const featuredEvents = useMemo(() => {
+    const sorted = [...events].sort((a, b) => {
+      const soldDiff = Number(b.soldTickets || 0) - Number(a.soldTickets || 0);
+      if (soldDiff !== 0) return soldDiff;
+      return (a.title || '').localeCompare(b.title || '', 'vi', { sensitivity: 'base' });
+    });
+
+    return sorted.slice(0, 12);
+  }, [events]);
 
   return (
     <div className="home-page">
@@ -252,7 +261,7 @@ export default function HomePage() {
           </a>
         </div>
 
-        <EventList events={events} isLoading={isLoading} />
+        <EventList events={featuredEvents} isLoading={isLoading} />
       </section>
 
       {/* ── REVIEW CAROUSEL ── */}

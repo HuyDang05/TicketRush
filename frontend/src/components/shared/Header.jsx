@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../hooks/useTheme';
 import eventService from '../../services/event.service';
 import './Header.css';
 
 export default function Header() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const avatarUrl = user?.avatarUrl;
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -18,6 +20,8 @@ export default function Header() {
   useEffect(() => {
     eventService.getEvents({}).then(r => setAllEvents(r.data.events || [])).catch(() => {});
   }, []);
+
+
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -57,6 +61,8 @@ export default function Header() {
     setOpenUserMenu(false);
     logout();
   };
+
+
 
   return (
     <>
@@ -116,6 +122,23 @@ export default function Header() {
         </div>
 
         <div className="header__actions">
+          <button
+            type="button"
+            className="header__theme-toggle"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Chuyen sang theme sang' : 'Chuyen sang theme toi'}
+            title={theme === 'dark' ? 'Theme sang' : 'Theme toi'}
+          >
+            {theme === 'dark' ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 4.75a1 1 0 0 1 1 1V7a1 1 0 1 1-2 0V5.75a1 1 0 0 1 1-1zM12 17a1 1 0 0 1 1 1v1.25a1 1 0 1 1-2 0V18a1 1 0 0 1 1-1zm7.25-5a1 1 0 0 1 1 1 1 1 0 0 1-1 1H18a1 1 0 1 1 0-2h1.25zM6 12a1 1 0 0 1-1 1H3.75a1 1 0 1 1 0-2H5a1 1 0 0 1 1 1zm10.35-5.6a1 1 0 0 1 1.42 0l.9.9a1 1 0 1 1-1.42 1.42l-.9-.9a1 1 0 0 1 0-1.42zm-9.9 9.9a1 1 0 0 1 1.42 0l.9.9a1 1 0 1 1-1.42 1.42l-.9-.9a1 1 0 0 1 0-1.42zm11.32 1.32a1 1 0 0 1 1.42-1.42l.9.9a1 1 0 0 1-1.42 1.42l-.9-.9zM6.54 6.54a1 1 0 0 1 1.42 0l.9.9a1 1 0 1 1-1.42 1.42l-.9-.9a1 1 0 0 1 0-1.42zM12 8.25A3.75 3.75 0 1 1 8.25 12 3.75 3.75 0 0 1 12 8.25z" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M21 14.5A8.5 8.5 0 0 1 9.5 3a.75.75 0 0 0-.86.97A6.5 6.5 0 0 0 17 15.36a.75.75 0 0 0 .97-.86A8.46 8.46 0 0 1 21 14.5z" />
+              </svg>
+            )}
+          </button>
           {!user ? (
             <>
               <Link to="/login" className="header__btn header__btn--outline">
@@ -207,20 +230,6 @@ export default function Header() {
           )}
         </div>
       </header>
-
-      <nav className="header-nav">
-        {[
-          { label: 'Nhạc sống', path: '/?cat=music' },
-          { label: 'Sân khấu & Nghệ thuật', path: '/?cat=theater' },
-          { label: 'Thể Thao', path: '/?cat=sports' },
-          { label: 'Hội thảo', path: '/?cat=conference' },
-          { label: 'Khác', path: '/?cat=other' },
-        ].map(({ label, path }) => (
-          <Link key={label} to={path} className="header-nav__link">
-            {label}
-          </Link>
-        ))}
-      </nav>
     </>
   );
 }

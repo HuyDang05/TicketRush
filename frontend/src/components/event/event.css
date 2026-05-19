@@ -3,8 +3,8 @@
   display: block;
   text-decoration: none;
   color: inherit;
-  background: #242424;
-  border: 1px solid #333333;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
@@ -12,7 +12,7 @@
 }
 
 .event-card:hover {
-  border-color: #FF6B35;
+  border-color: var(--accent);
   filter: brightness(1.07);
   transform: translateY(-3px);
 }
@@ -54,7 +54,7 @@
   position: absolute;
   top: 10px;
   left: 10px;
-  background: #FF6B35;
+  background: var(--accent);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -68,9 +68,9 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  background: rgba(0,0,0,.65);
+  background: var(--chip-bg);
   backdrop-filter: blur(4px);
-  color: #fff;
+  color: var(--chip-text);
   font-size: 11px;
   font-weight: 500;
   padding: 3px 8px;
@@ -97,7 +97,7 @@
   align-items: center;
   gap: 5px;
   font-size: 13px;
-  color: #AAAAAA;
+  color: var(--muted);
   margin-bottom: 5px;
 }
 
@@ -113,18 +113,18 @@
   justify-content: space-between;
   margin-top: 14px;
   padding-top: 12px;
-  border-top: 1px solid #333333;
+  border-top: 1px solid var(--border);
 }
 
 .event-card__price {
   font-size: 13px;
   font-weight: 700;
-  color: #FF6B35;
+  color: var(--accent);
 }
 
 .event-card__btn {
-  border: 1px solid #FF6B35;
-  color: #FF6B35;
+  border: 1px solid var(--accent);
+  color: var(--accent);
   background: transparent;
   border-radius: 6px;
   font-family: inherit;
@@ -137,7 +137,7 @@
 
 .event-card__btn:hover,
 .event-card:hover .event-card__btn {
-  background: #FF6B35;
+  background: var(--accent);
   color: #fff;
 }
 
@@ -150,15 +150,15 @@
 
 /* ── EventSkeleton ── */
 .event-skeleton {
-  background: #242424;
-  border: 1px solid #333333;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
 }
 
 .event-skeleton__thumb {
   aspect-ratio: 16/9;
-  background: #333333;
+  background: var(--border);
   animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
 
@@ -168,7 +168,7 @@
 
 .event-skeleton__line {
   height: 14px;
-  background: #333333;
+  background: var(--border);
   border-radius: 4px;
   margin-bottom: 8px;
   animation: skeleton-pulse 1.5s ease-in-out infinite;
@@ -187,7 +187,7 @@
 }
 
 .event-skeleton__footer {
-  border-top: 1px solid #333333;
+  border-top: 1px solid var(--border);
   padding-top: 12px;
   display: flex;
   justify-content: space-between;
@@ -196,7 +196,7 @@
 .event-skeleton__btn-stub {
   height: 26px;
   width: 28%;
-  background: #333333;
+  background: var(--border);
   border-radius: 6px;
   animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
@@ -204,7 +204,7 @@
 .event-skeleton__price-stub {
   height: 12px;
   width: 40%;
-  background: #333333;
+  background: var(--border);
   border-radius: 4px;
   animation: skeleton-pulse 1.5s ease-in-out infinite;
 }

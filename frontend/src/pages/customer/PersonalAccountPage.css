@@ -2,8 +2,8 @@
   min-height: 100vh;
   background:
     radial-gradient(circle at top left, rgba(255, 107, 53, 0.22), transparent 32%),
-    linear-gradient(135deg, #070707, #151515 45%, #22120c);
-  color: #ffffff;
+    linear-gradient(135deg, var(--bg-strong), var(--bg) 45%, var(--accent-panel));
+  color: var(--text);
   padding: 48px 72px 72px;
 }
 
@@ -12,7 +12,7 @@
 }
 
 .account-hero p {
-  color: #ff6b35;
+  color: var(--accent);
   font-weight: 800;
   letter-spacing: 1.5px;
   margin-bottom: 8px;
@@ -24,7 +24,7 @@
 }
 
 .account-hero span {
-  color: #b8b8b8;
+  color: var(--muted);
   font-size: 16px;
 }
 
@@ -37,8 +37,8 @@
 
 .account-profile-card,
 .account-card {
-  background: rgba(34, 34, 34, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 26px;
   box-shadow: 0 20px 70px rgba(0, 0, 0, 0.35);
 }
@@ -62,7 +62,7 @@
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  border: 4px solid #ff6b35;
+  border: 4px solid var(--accent);
   object-fit: cover;
   box-shadow: 0 0 35px rgba(255, 107, 53, 0.35);
 }
@@ -70,7 +70,7 @@
 .account-avatar-fallback {
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #ff6b35, #ff3d00);
+  background: linear-gradient(135deg, var(--accent), #ff3d00);
   font-size: 72px;
   font-weight: 900;
 }
@@ -82,7 +82,7 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #22c55e;
+  background: var(--success);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -100,25 +100,25 @@
 
 .account-profile-card p {
   margin: 0;
-  color: #b8b8b8;
+  color: var(--muted);
 }
 
 .account-mini-info {
   margin-top: 24px;
   padding: 16px;
   border-radius: 18px;
-  background: #181818;
+  background: var(--nav);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .account-mini-info span {
-  color: #aaa;
+  color: var(--muted);
 }
 
 .account-mini-info strong {
-  color: #ff6b35;
+  color: var(--accent);
 }
 
 .account-content {
@@ -144,13 +144,13 @@
 
 .account-card-title p {
   margin: 5px 0 0;
-  color: #aaa;
+  color: var(--muted);
 }
 
 .account-card label {
   display: block;
   margin: 16px 0 8px;
-  color: #d6d6d6;
+  color: var(--text-soft);
   font-weight: 700;
 }
 
@@ -159,15 +159,15 @@
   box-sizing: border-box;
   padding: 15px 16px;
   border-radius: 15px;
-  background: #151515;
-  border: 1px solid #3a3a3a;
-  color: #fff;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--text);
   outline: none;
   font-size: 15px;
 }
 
 .account-card input:not([type='range']):focus {
-  border-color: #ff6b35;
+  border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
 }
 
@@ -177,7 +177,7 @@
   padding: 15px 18px;
   border: none;
   border-radius: 16px;
-  background: linear-gradient(135deg, #ff6b35, #ff3d00);
+  background: linear-gradient(135deg, var(--accent), #ff3d00);
   color: white;
   font-weight: 900;
   font-size: 15px;
@@ -199,13 +199,13 @@
 }
 
 .account-danger-card {
-  border-color: rgba(239, 68, 68, 0.45);
+  border-color: var(--danger-border);
   background:
     linear-gradient(135deg, rgba(82, 12, 12, 0.82), rgba(34, 34, 34, 0.94));
 }
 
 .account-danger-title {
-  color: #ff5a5a;
+  color: var(--danger);
 }
 
 .account-danger-text {
@@ -214,7 +214,7 @@
 }
 
 .account-delete-toggle {
-  background: linear-gradient(135deg, #ef4444, #991b1b) !important;
+  background: linear-gradient(135deg, var(--danger), #991b1b) !important;
   letter-spacing: 2px;
 }
 
@@ -223,7 +223,7 @@
   padding: 18px;
   border-radius: 18px;
   background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  border: 1px solid var(--danger-border);
 }
 
 .account-delete-warning {
@@ -234,7 +234,7 @@
 
 .account-delete-slider {
   width: 100%;
-  accent-color: #ef4444;
+  accent-color: var(--danger);
   cursor: pointer;
 }
 
