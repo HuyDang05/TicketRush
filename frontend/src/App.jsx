@@ -25,6 +25,7 @@ import SeatmapEditorPage from './pages/admin/SeatmapEditorPage';
 import PersonalAccountPage from './pages/customer/PersonalAccountPage';
 import AdminTicketManagerPage from './pages/admin/AdminTicketManagerPage';
 import VirtualQueuePage from './pages/customer/VirtualQueuePage';
+import AdminAudiencePage from './pages/admin/AdminAudiencePage';
 
 function CustomerLayout() {
   const { user } = useAuthStore();
@@ -167,10 +168,18 @@ function App() {
           }
         />
         <Route
-          path="/admin/tickets"
+          path="/admin/revenue"
           element={
-            <ProtectedRoute allowedRoles={['ADMIN']}>
+            <ProtectedRoute requiredRole="ADMIN">
               <AdminTicketManagerPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute requiredRole="ADMIN">
+              <AdminAudiencePage />
             </ProtectedRoute>
           }
         />

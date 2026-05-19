@@ -15,10 +15,14 @@ async function getAdminTicketEvents(req, res) {
           select: {
             rows: true,
             cols: true,
-            _count: {
+            seats: {
+              where: { status: 'SOLD' },
               select: {
-                seats: {
-                  where: { status: 'SOLD' },
+                booking: {
+                  where: { status: 'PAID' },
+                  select: {
+                    totalPrice: true,
+                  },
                 },
               },
             },
@@ -28,18 +32,34 @@ async function getAdminTicketEvents(req, res) {
     });
 
     const data = events.map((event) => {
-      const totalTickets = event.zones.reduce((s, z) => s + (z.rows * z.cols), 0);
-      const soldTickets = event.zones.reduce((s, z) => s + z._count.seats, 0);
+      const totalTickets = event.zones.reduce(
+        (sum, zone) => sum + zone.rows * zone.cols,
+        0
+      );
+
+      const soldTickets = event.zones.reduce(
+        (sum, zone) => sum + zone.seats.length,
+        0
+      );
+
+      const totalRevenue = event.zones.reduce((sum, zone) => {
+        const zoneRevenue = zone.seats.reduce((seatSum, seat) => {
+          const booking = seat.booking?.[0];
+          return seatSum + Number(booking?.totalPrice || 0);
+        }, 0);
+
+        return sum + zoneRevenue;
+      }, 0);
 
       return {
         id: event.id,
         title: event.title,
         venue: event.venue,
         date: event.date,
-        imageUrl: event.imageUrl || event.cardImageUrl,
         totalTickets,
         soldTickets,
         availableTickets: totalTickets - soldTickets,
+        totalRevenue,
       };
     });
 

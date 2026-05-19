@@ -4,79 +4,75 @@ import api from '../../services/api';
 
 export default function AdminTicketManagerPage() {
   const [events, setEvents] = useState([]);
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [buyers, setBuyers] = useState([]);
-  const [sortBy, setSortBy] = useState('time');
-  const [loadingEvents, setLoadingEvents] = useState(false);
-  const [loadingBuyers, setLoadingBuyers] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState('');
-
-  const formatDate = (value) => {
-    if (!value) return 'Chưa có';
-    return new Date(value).toLocaleString('vi-VN');
-  };
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const formatMoney = (value) => {
     return Number(value || 0).toLocaleString('vi-VN') + 'đ';
   };
 
-  const loadEvents = async () => {
+  const loadRevenue = async () => {
     try {
-      setLoadingEvents(true);
+      setLoading(true);
       const res = await api.get('/admin/tickets/events');
       setEvents(res.data.data || []);
     } catch (error) {
       console.error(error);
-      alert('Không tải được danh sách sự kiện');
+      alert('Không tải được dữ liệu doanh thu');
     } finally {
-      setLoadingEvents(false);
-    }
-  };
-
-  const loadBuyers = async (eventId, sort = sortBy) => {
-    if (!eventId) return;
-
-    try {
-      setLoadingBuyers(true);
-      const res = await api.get(`/admin/tickets/events/${eventId}/buyers`, {
-        params: { sortBy: sort },
-      });
-      setBuyers(res.data.data || []);
-    } catch (error) {
-      console.error(error);
-      alert('Không tải được danh sách người mua vé');
-    } finally {
-      setLoadingBuyers(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadEvents();
+    loadRevenue();
   }, []);
 
-  useEffect(() => {
-    if (selectedEvent?.id) {
-      loadBuyers(selectedEvent.id, sortBy);
-    }
-  }, [selectedEvent, sortBy]);
-
-  const filteredBuyers = useMemo(() => {
+  const filteredEvents = useMemo(() => {
     const q = keyword.trim().toLowerCase();
+    if (!q) return events;
 
-    if (!q) return buyers;
+    return events.filter((event) =>
+      event.title?.toLowerCase().includes(q)
+    );
+  }, [events, keyword]);
 
-    return buyers.filter((b) => {
-      return (
-        b.buyerName?.toLowerCase().includes(q) ||
-        b.buyerEmail?.toLowerCase().includes(q) ||
-        b.seatLabel?.toLowerCase().includes(q)
-      );
-    });
-  }, [buyers, keyword]);
+  const totalPages = Math.max(1, Math.ceil(filteredEvents.length / PAGE_SIZE));
+
+  const safePage = Math.min(page, totalPages);
+
+  const paginatedEvents = filteredEvents.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [keyword]);
+
+  const totalSold = filteredEvents.reduce(
+    (sum, event) => sum + Number(event.soldTickets || 0),
+    0
+  );
+
+  const totalRevenue = filteredEvents.reduce(
+    (sum, event) => sum + Number(event.totalRevenue || 0),
+    0
+  );
 
   return (
     <AdminLayout>
-      <div style={{ padding: 32, color: '#fff' }}>
+      <div
+        style={{
+          padding: 32,
+          color: '#fff',
+          height: '100vh',
+          overflowY: 'auto',
+          boxSizing: 'border-box',
+        }}
+      >
         <div
           style={{
             display: 'flex',
@@ -87,17 +83,14 @@ export default function AdminTicketManagerPage() {
           }}
         >
           <div>
-            <h1 style={{ margin: 0, fontSize: 28 }}>Quản lý vé</h1>
+            <h1 style={{ margin: 0, fontSize: 28 }}>Doanh thu</h1>
             <p style={{ marginTop: 8, color: '#aaa' }}>
-              Theo dõi số lượng vé của từng sự kiện và danh sách người mua vé.
+              Theo dõi số vé đã bán, vé còn lại và tổng doanh thu của từng sự kiện.
             </p>
           </div>
 
           <button
-            onClick={() => {
-              loadEvents();
-              if (selectedEvent?.id) loadBuyers(selectedEvent.id, sortBy);
-            }}
+            onClick={loadRevenue}
             style={{
               background: '#ff6b35',
               border: 'none',
@@ -112,286 +105,233 @@ export default function AdminTicketManagerPage() {
           </button>
         </div>
 
-        <h2 style={{ fontSize: 18, marginBottom: 14 }}>Danh sách sự kiện</h2>
-
-        {loadingEvents ? (
-          <div style={{ color: '#aaa' }}>Đang tải sự kiện...</div>
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: 18,
-              marginBottom: 32,
-            }}
-          >
-            {events.map((event) => {
-              const active = selectedEvent?.id === event.id;
-              const percent =
-                event.totalTickets > 0
-                  ? Math.round((event.soldTickets / event.totalTickets) * 100)
-                  : 0;
-
-              return (
-                <div
-                  key={event.id}
-                  onClick={() => setSelectedEvent(event)}
-                  style={{
-                    background: active ? '#2a211f' : '#202020',
-                    border: active
-                      ? '1px solid #ff6b35'
-                      : '1px solid #333',
-                    borderRadius: 18,
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    boxShadow: active
-                      ? '0 0 0 3px rgba(255,107,53,.15)'
-                      : 'none',
-                  }}
-                >
-                  <div
-                    style={{
-                      height: 140,
-                      background: '#111',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {event.imageUrl ? (
-                      <img
-                        src={event.imageUrl}
-                        alt={event.title}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                        }}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#777',
-                        }}
-                      >
-                        Chưa có ảnh
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ padding: 16 }}>
-                    <h3 style={{ margin: 0, fontSize: 16 }}>
-                      {event.title}
-                    </h3>
-
-                    <p style={{ color: '#aaa', fontSize: 13, marginTop: 8 }}>
-                      {event.venue || 'Chưa có địa điểm'}
-                    </p>
-
-                    <p style={{ color: '#aaa', fontSize: 13 }}>
-                      {formatDate(event.date)}
-                    </p>
-
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr 1fr',
-                        gap: 8,
-                        marginTop: 14,
-                      }}
-                    >
-                      <div>
-                        <div style={{ color: '#aaa', fontSize: 12 }}>
-                          Tổng vé
-                        </div>
-                        <strong>{event.totalTickets}</strong>
-                      </div>
-
-                      <div>
-                        <div style={{ color: '#aaa', fontSize: 12 }}>
-                          Đã bán
-                        </div>
-                        <strong style={{ color: '#4ade80' }}>
-                          {event.soldTickets}
-                        </strong>
-                      </div>
-
-                      <div>
-                        <div style={{ color: '#aaa', fontSize: 12 }}>
-                          Còn lại
-                        </div>
-                        <strong style={{ color: '#ff6b35' }}>
-                          {event.availableTickets}
-                        </strong>
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        height: 6,
-                        background: '#333',
-                        borderRadius: 999,
-                        marginTop: 16,
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <div
-                        style={{
-                          height: '100%',
-                          width: `${percent}%`,
-                          background: '#ff6b35',
-                        }}
-                      />
-                    </div>
-
-                    <div
-                      style={{
-                        color: '#aaa',
-                        fontSize: 12,
-                        marginTop: 6,
-                      }}
-                    >
-                      Đã bán {percent}%
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            gap: 16,
+            marginBottom: 24,
+          }}
+        >
+          <div style={statCardStyle}>
+            <div style={statLabelStyle}>Vé đã bán</div>
+            <div style={statValueStyle}>{totalSold}</div>
           </div>
-        )}
+
+          <div style={statCardStyle}>
+            <div style={statLabelStyle}>Tổng doanh thu</div>
+            <div style={{ ...statValueStyle, color: '#ff6b35' }}>
+              {formatMoney(totalRevenue)}
+            </div>
+          </div>
+        </div>
 
         <div
           style={{
             background: '#202020',
             border: '1px solid #333',
             borderRadius: 18,
-            padding: 20,
+            overflow: 'hidden',
           }}
         >
-          {!selectedEvent ? (
-            <div style={{ color: '#aaa' }}>
-              Click vào một card sự kiện để xem danh sách người mua vé.
-            </div>
-          ) : (
-            <>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: 16,
-                  alignItems: 'center',
-                  marginBottom: 18,
-                }}
-              >
-                <div>
-                  <h2 style={{ margin: 0, fontSize: 20 }}>
-                    Người mua vé · {selectedEvent.title}
-                  </h2>
-                  <p style={{ marginTop: 6, color: '#aaa' }}>
-                    Tổng {buyers.length} vé đã bán
-                  </p>
-                </div>
+          <div
+            style={{
+              padding: 20,
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 16,
+              alignItems: 'center',
+              borderBottom: '1px solid #333',
+            }}
+          >
+            <h2 style={{ margin: 0, fontSize: 20 }}>
+              Bảng doanh thu sự kiện
+            </h2>
 
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <input
-                    value={keyword}
-                    onChange={(e) => setKeyword(e.target.value)}
-                    placeholder="Tìm tên, email, ghế..."
-                    style={{
-                      background: '#111',
-                      border: '1px solid #333',
-                      color: '#fff',
-                      padding: '10px 12px',
-                      borderRadius: 10,
-                      outline: 'none',
-                    }}
-                  />
+            <input
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="Tìm sự kiện..."
+              style={{
+                width: 280,
+                background: '#111',
+                border: '1px solid #333',
+                color: '#fff',
+                padding: '10px 12px',
+                borderRadius: 10,
+                outline: 'none',
+              }}
+            />
+          </div>
 
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    style={{
-                      background: '#111',
-                      border: '1px solid #333',
-                      color: '#fff',
-                      padding: '10px 12px',
-                      borderRadius: 10,
-                      outline: 'none',
-                    }}
-                  >
-                    <option value="time">Sắp xếp theo thời gian</option>
-                    <option value="name">Sắp xếp theo tên</option>
-                  </select>
-                </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                fontSize: 14,
+              }}
+            >
+              <thead>
+                <tr style={{ background: '#151515' }}>
+                  <th style={thStyle}>Tên sự kiện</th>
+                  <th style={thStyle}>Tổng số vé</th>
+                  <th style={thStyle}>Số vé đã bán</th>
+                  <th style={thStyle}>Số vé còn lại</th>
+                  <th style={thStyle}>Tổng doanh thu</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan="5" style={emptyStyle}>
+                      Đang tải dữ liệu...
+                    </td>
+                  </tr>
+                ) : filteredEvents.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" style={emptyStyle}>
+                      Không có dữ liệu doanh thu
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedEvents.map((event) => (
+                    <tr
+                      key={event.id}
+                      style={{ borderBottom: '1px solid #333' }}
+                    >
+                      <td style={tdStyle}>
+                        <div style={{ fontWeight: 700 }}>
+                          {event.title}
+                        </div>
+                        <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>
+                          {event.venue || 'TBD'}
+                        </div>
+                      </td>
+
+                      <td style={tdStyle}>
+                        {Number(event.totalTickets || 0).toLocaleString('vi-VN')}
+                      </td>
+
+                      <td style={{ ...tdStyle, color: '#4ade80', fontWeight: 700 }}>
+                        {Number(event.soldTickets || 0).toLocaleString('vi-VN')}
+                      </td>
+
+                      <td style={{ ...tdStyle, color: '#ff6b35', fontWeight: 700 }}>
+                        {Number(event.availableTickets || 0).toLocaleString('vi-VN')}
+                      </td>
+
+                      <td style={{ ...tdStyle, fontWeight: 800 }}>
+                        {formatMoney(event.totalRevenue)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+
+            <div
+              style={{
+                padding: '14px 16px',
+                borderTop: '1px solid #333',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ fontSize: 12, color: '#aaa' }}>
+                Hiển thị {filteredEvents.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}
+                –
+                {Math.min(safePage * PAGE_SIZE, filteredEvents.length)}
+                {' '}trong {filteredEvents.length} sự kiện
               </div>
 
-              {loadingBuyers ? (
-                <div style={{ color: '#aaa' }}>Đang tải người mua vé...</div>
-              ) : filteredBuyers.length === 0 ? (
-                <div style={{ color: '#aaa' }}>
-                  Chưa có người mua vé hoặc không có kết quả phù hợp.
-                </div>
-              ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table
-                    style={{
-                      width: '100%',
-                      borderCollapse: 'collapse',
-                      fontSize: 14,
-                    }}
-                  >
-                    <thead>
-                      <tr style={{ background: '#151515' }}>
-                        <th style={thStyle}>Người mua</th>
-                        <th style={thStyle}>Email</th>
-                        <th style={thStyle}>Vị trí ghế</th>
-                        <th style={thStyle}>Thời gian mua</th>
-                        <th style={thStyle}>Số lượng vé</th>
-                        <th style={thStyle}>Tổng tiền</th>
-                      </tr>
-                    </thead>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button
+                  style={pageBtnStyle}
+                  disabled={safePage === 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  ‹
+                </button>
 
-                    <tbody>
-                      {filteredBuyers.map((buyer) => (
-                        <tr
-                          key={buyer.bookingId}
-                          style={{ borderBottom: '1px solid #333' }}
-                        >
-                          <td style={tdStyle}>{buyer.buyerName}</td>
-                          <td style={tdStyle}>{buyer.buyerEmail}</td>
-                          <td style={tdStyle}>
-                            <span
-                              style={{
-                                background: 'rgba(255,107,53,.12)',
-                                color: '#ff6b35',
-                                padding: '5px 9px',
-                                borderRadius: 999,
-                                fontWeight: 700,
-                              }}
-                            >
-                              {buyer.seatLabel}
-                            </span>
-                          </td>
-                          <td style={tdStyle}>{formatDate(buyer.buyTime)}</td>
-                          <td style={tdStyle}>{buyer.quantity}</td>
-                          <td style={tdStyle}>
-                            {formatMoney(buyer.totalPrice)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </>
-          )}
+                {(() => {
+                  const pages = [];
+                  const delta = 1;
+                  const left = Math.max(1, safePage - delta);
+                  const right = Math.min(totalPages, safePage + delta);
+
+                  if (left > 1) {
+                    pages.push(1);
+                    if (left > 2) pages.push('...');
+                  }
+
+                  for (let p = left; p <= right; p++) pages.push(p);
+
+                  if (right < totalPages) {
+                    if (right < totalPages - 1) pages.push('...');
+                    pages.push(totalPages);
+                  }
+
+                  return pages.map((p, index) =>
+                    p === '...' ? (
+                      <span key={index} style={{ color: '#777', padding: '0 4px' }}>
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p)}
+                        style={{
+                          ...pageBtnStyle,
+                          background: p === safePage ? '#ff6b35' : '#151515',
+                          color: p === safePage ? '#fff' : '#aaa',
+                          borderColor: p === safePage ? '#ff6b35' : '#333',
+                        }}
+                      >
+                        {p}
+                      </button>
+                    )
+                  );
+                })()}
+
+                <button
+                  style={pageBtnStyle}
+                  disabled={safePage === totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </AdminLayout>
   );
 }
+
+const statCardStyle = {
+  background: '#202020',
+  border: '1px solid #333',
+  borderRadius: 18,
+  padding: 20,
+};
+
+const statLabelStyle = {
+  color: '#aaa',
+  fontSize: 13,
+  textTransform: 'uppercase',
+  fontWeight: 700,
+};
+
+const statValueStyle = {
+  marginTop: 10,
+  color: '#fff',
+  fontSize: 32,
+  fontWeight: 800,
+};
 
 const thStyle = {
   textAlign: 'left',
@@ -402,6 +342,22 @@ const thStyle = {
 };
 
 const tdStyle = {
-  padding: '14px 12px',
+  padding: '16px 12px',
   color: '#fff',
+};
+
+const emptyStyle = {
+  padding: 28,
+  color: '#aaa',
+  textAlign: 'center',
+};
+
+const pageBtnStyle = {
+  minWidth: 34,
+  height: 34,
+  borderRadius: 8,
+  border: '1px solid #333',
+  background: '#151515',
+  color: '#aaa',
+  cursor: 'pointer',
 };
