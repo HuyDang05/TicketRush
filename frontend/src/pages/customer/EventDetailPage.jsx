@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import eventService from '../../services/event.service';
+import queueService from '../../services/queue.service';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import EventReviews from './EventReviews';
 import './event-detail.css';
@@ -16,7 +17,7 @@ const TERMS = [
 ];
 
 function fmt(n) {
-  return n.toLocaleString('vi-VN') + 'đ';
+  return Number(n || 0).toLocaleString('vi-VN') + 'đ';
 }
 
 export default function EventDetailPage() {
@@ -26,8 +27,7 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState(null);
   const [zones, setZones] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedZone, setSelectedZone] = useState(null);
-  const [qty, setQty] = useState(1);
+  const [isJoining, setIsJoining] = useState(false);
 
   useEffect(() => {
     if (!eventId) return;
@@ -43,21 +43,37 @@ export default function EventDetailPage() {
             : (z.availableSeats ?? z.rows * z.cols ?? 0),
         }));
         setZones(fetchedZones);
-        const firstAvail = fetchedZones.find(z => z.availableSeats > 0);
-        if (firstAvail) setSelectedZone(firstAvail);
       })
       .catch(() => toast.error('Không thể tải thông tin sự kiện'))
       .finally(() => setIsLoading(false));
   }, [eventId]);
 
-  function handleBook() {
-    if (!selectedZone) return;
-    navigate(`/events/${eventId}/seats`, {
-      state: { zoneId: selectedZone.id, zoneName: selectedZone.name, qty },
-    });
+  async function handleBook() {
+    if (isJoining) return;
+    setIsJoining(true);
+    try {
+      const res = await queueService.join(eventId);
+      if (res.admitted && res.token) {
+        // Slot available — go straight to seat selection
+        navigate(`/events/${eventId}/seats`, {
+          state: { queueToken: res.token },
+        });
+      } else {
+        // Queue is full — send to waiting room
+        navigate(`/events/${eventId}/queue`, {
+          state: {
+            eventName: event?.title,
+          },
+        });
+      }
+    } catch {
+      // On any error fall back to direct navigation
+      navigate(`/events/${eventId}/seats`);
+    } finally {
+      setIsJoining(false);
+    }
   }
 
-  const total = selectedZone ? (selectedZone.price ?? 0) * qty : 0;
 
   const dateStr = event?.date
     ? new Date(event.date).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -172,7 +188,7 @@ export default function EventDetailPage() {
         {/* RIGHT — ticket sidebar */}
         <div className="ed-sidebar">
           <div className="ed-ticket">
-            <div className="ed-ticket__title">Chọn loại vé</div>
+            <div className="ed-ticket__title">Loại vé</div>
 
             {zones.length === 0 ? (
               <div className="ed-ticket__empty">Chưa có thông tin vé</div>
@@ -180,17 +196,13 @@ export default function EventDetailPage() {
               zones.map((zone) => {
                 const avail = zone.availableSeats ?? zone.capacity ?? 0;
                 const isSoldOut = avail === 0;
-                const isSelected = selectedZone?.id === zone.id;
                 return (
                   <div
                     key={zone.id}
-                    className={`ed-zone${isSelected ? ' ed-zone--selected' : ''}${isSoldOut ? ' ed-zone--sold' : ''}`}
-                    onClick={() => !isSoldOut && setSelectedZone(zone)}
+                    className={`ed-zone${isSoldOut ? ' ed-zone--sold' : ''}`}
+                    style={{ cursor: 'default' }}
                   >
-                    <div className="ed-zone__radio">
-                      {isSelected && <div className="ed-zone__radio-dot" />}
-                    </div>
-                    <div className="ed-zone__info">
+                    <div className="ed-zone__info" style={{ paddingLeft: 0 }}>
                       <div className="ed-zone__name">{zone.name}</div>
                       <div className="ed-zone__desc">{avail > 0 ? `Còn ${avail} ghế` : 'Hết vé'}</div>
                     </div>
@@ -212,17 +224,12 @@ export default function EventDetailPage() {
 
             <button
               className="ed-book-btn"
-              disabled={!selectedZone || zones.length === 0}
+              disabled={zones.length === 0 || isJoining}
               onClick={handleBook}
             >
-              Chọn ghế &amp; Đặt vé
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+              {isJoining ? 'Đang kiểm tra...' : 'Chọn ghế & Đặt vé'}
+              {!isJoining && <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" /></svg>}
             </button>
-
-            <div className="ed-ticket__note">
-              <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>
-              Bạn có <strong>10 phút</strong> để hoàn tất thanh toán
-            </div>
 
             <div className="ed-share">
               <button className="ed-share__btn">🔗 Sao chép link</button>

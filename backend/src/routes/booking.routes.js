@@ -25,23 +25,23 @@ const router = Router();
 router.get(
   '/my-tickets',
   authMiddleware,
-  requireRole('CUSTOMER'),
+  requireRole(['CUSTOMER', 'ADMIN']),
   getMyTicketsHandler
 );
 
-// POST /api/bookings/lock — Customer only
+// POST /api/bookings/lock
 router.post(
   '/lock',
   authMiddleware,
-  requireRole('CUSTOMER'),
+  requireRole(['CUSTOMER', 'ADMIN']),
   lockSeatHandler
 );
 
-// POST /api/bookings/checkout — Customer only
+// POST /api/bookings/checkout
 router.post(
   '/checkout',
   authMiddleware,
-  requireRole('CUSTOMER'),
+  requireRole(['CUSTOMER', 'ADMIN']),
   checkoutHandler
 );
 
