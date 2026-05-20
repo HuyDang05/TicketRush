@@ -2,12 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
+import { useCart } from '../../context/CartContext';
 import eventService from '../../services/event.service';
 import './Header.css';
 
 export default function Header() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { cartCount } = useCart();
   const avatarUrl = user?.avatarUrl;
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -139,6 +141,25 @@ export default function Header() {
               </svg>
             )}
           </button>
+          
+          {user && (
+            <button
+              onClick={() => navigate('/cart')}
+              className="header__cart-btn"
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40 }}
+              title="Giỏ hàng"
+            >
+              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              {cartCount > 0 && (
+                <span style={{ position: 'absolute', top: 0, right: 0, background: '#ef4444', color: '#fff', fontSize: '12px', fontWeight: 'bold', width: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {!user ? (
             <>
               <Link to="/login" className="header__btn header__btn--outline">

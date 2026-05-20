@@ -6,6 +6,7 @@ import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import CustomerSeatmapCanvas from '../../components/seatmap/CustomerSeatmapCanvas';
 import { useSocket } from '../../hooks/useSocket';
 import { useTheme } from '../../hooks/useTheme';
+import { useCart } from '../../context/CartContext';
 import './seat-selection.css';
 
 const LOCK_SECONDS = 10 * 60;
@@ -19,15 +20,34 @@ function fmt(n) {
   return toNumberPrice(n).toLocaleString('vi-VN') + 'đ';
 }
 
-function Countdown({ seconds }) {
-  const [secs, setSecs] = useState(seconds);
+function Countdown({ expiresAt, onExpire }) {
+  const [timeLeft, setTimeLeft] = useState(0);
+
   useEffect(() => {
-    if (secs <= 0) return;
-    const t = setTimeout(() => setSecs(s => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [secs]);
-  const mm = String(Math.floor(secs / 60)).padStart(2, '0');
-  const ss = String(secs % 60).padStart(2, '0');
+    if (!expiresAt) return;
+    const calculateTimeLeft = () => {
+      const now = Date.now();
+      const expiresTime = new Date(expiresAt).getTime();
+      const diff = Math.floor((expiresTime - now) / 1000);
+      return diff > 0 ? diff : 0;
+    };
+
+    setTimeLeft(calculateTimeLeft());
+
+    const t = setInterval(() => {
+      const remaining = calculateTimeLeft();
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(t);
+        if (onExpire) onExpire();
+      }
+    }, 1000);
+
+    return () => clearInterval(t);
+  }, [expiresAt, onExpire]);
+
+  const mm = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+  const ss = String(timeLeft % 60).padStart(2, '0');
   return <span>{mm}:{ss}</span>;
 }
 
@@ -36,6 +56,7 @@ export default function SeatSelectionPage() {
   const { theme, toggleTheme } = useTheme();
   const location        = useLocation();
   const navigate        = useNavigate();
+  const { refreshCart } = useCart();
 
   void location.state;
 
@@ -45,6 +66,7 @@ export default function SeatSelectionPage() {
   const [booking,          setBooking]         = useState(false);
   const [toastMsg,         setToastMsg]        = useState('');
   const [selected,         setSelected]        = useState({});
+  const [lockingSeats,     setLockingSeats]    = useState({});
   // seatId -> true: ghế người khác đang soft-select (chưa lock)
   const [othersSelecting,  setOthersSelecting] = useState({});
 
@@ -110,8 +132,15 @@ export default function SeatSelectionPage() {
       });
     });
 
-    const offReleased = on('seat_released', ({ seatId }) => {
+    const offReleased = on('seat_released', ({ seatId, label }) => {
       updateSeatStatus(seatId, 'AVAILABLE');
+      setSelected(prev => {
+        if (!prev[seatId]) return prev;
+        const next = { ...prev };
+        delete next[seatId];
+        showToast(`Ghế ${label || ''} đã được giải phóng`);
+        return next;
+      });
     });
 
     return () => {
@@ -127,11 +156,47 @@ export default function SeatSelectionPage() {
   useEffect(() => {
     if (!eventId) return;
     setLoading(true);
-    eventService.getEventById(eventId)
-      .then(evRes => {
-        const evData = evRes.data?.event ?? evRes.data;
-        setEvent(evData);
-        setZones(evData?.zones || []);
+
+    Promise.allSettled([
+      eventService.getEventById(eventId),
+      bookingService.getMyPendingLocks(eventId)
+    ])
+      .then(([evResult, locksResult]) => {
+        if (evResult.status === 'fulfilled') {
+          const evData = evResult.value.data?.event ?? evResult.value.data;
+          setEvent(evData);
+          setZones(evData?.zones || []);
+
+          // Process pending locks if available
+          if (locksResult.status === 'fulfilled') {
+            const pendingLocks = locksResult.value.data?.data || [];
+            const initialSelected = {};
+            const sj = evData.seatmapJson;
+            const rawLayout = Array.isArray(sj?.layout) ? sj.layout : (Array.isArray(sj?.zones) ? sj.zones : []);
+
+            pendingLocks.forEach(lock => {
+              if (new Date(lock.expiresAt).getTime() > Date.now()) {
+                let color = undefined;
+                const matchedLayoutZone = rawLayout.find(lz => lz.name === lock.zoneName);
+                if (matchedLayoutZone) color = matchedLayoutZone.color;
+
+                initialSelected[lock.seatId] = {
+                  seatDbId: lock.seatId,
+                  bookingId: lock.bookingId,
+                  expiresAt: lock.expiresAt,
+                  label: lock.seatLabel,
+                  row: lock.row,
+                  col: lock.col,
+                  zoneKey: lock.zoneName,
+                  zoneId: lock.zoneId,
+                  price: lock.totalPrice,
+                  color: color
+                };
+              }
+            });
+            setSelected(initialSelected);
+          }
+        }
       })
       .catch(err => console.error('SeatSelection load error:', err))
       .finally(() => setLoading(false));
@@ -142,60 +207,142 @@ export default function SeatSelectionPage() {
     setTimeout(() => setToastMsg(''), 2200);
   }
 
-  // ── Click chọn / bỏ chọn ghế → emit soft-select realtime ─────────────────
-  const handleSeatClick = useCallback((dbSeat, layoutZone, dbZone) => {
-    setSelected(prev => {
-      const isSel = !!prev[dbSeat.id];
+  // ── Click chọn / bỏ chọn ghế → gọi API lockSeat / releaseSeat ────────────
+  const handleSeatClick = useCallback(async (dbSeat, layoutZone, dbZone) => {
+    const seatId = dbSeat.id;
+    if (lockingSeats[seatId]) return;
 
-      if (isSel) {
+    // Bỏ chọn ghế (hủy giữ chỗ)
+    if (selected[seatId]) {
+      const bookingId = selected[seatId].bookingId;
+      if (!bookingId) return; // Đang trong quá trình lock, từ chối hủy
+
+      const backupSeat = selected[seatId];
+      // Optimistic update: xóa ngay khỏi UI
+      setSelected(prev => {
         const next = { ...prev };
-        delete next[dbSeat.id];
-        // Báo người khác: ghế này available trở lại
-        emit('seat_deselecting', { eventId, seatId: dbSeat.id });
+        delete next[seatId];
         return next;
-      }
+      });
+      setLockingSeats(prev => ({ ...prev, [seatId]: true }));
 
-      if (Object.keys(prev).length >= 4) {
-        showToast('Tối đa 4 ghế mỗi lần đặt');
-        return prev;
+      try {
+        await bookingService.releaseSeat(bookingId);
+        refreshCart();
+      } catch (err) {
+        // Rollback nếu lỗi
+        setSelected(prev => ({ ...prev, [seatId]: backupSeat }));
+        showToast('Không thể hủy giữ ghế. ' + (err.response?.data?.message || ''));
+      } finally {
+        setLockingSeats(prev => {
+          const next = { ...prev };
+          delete next[seatId];
+          return next;
+        });
       }
+      return;
+    }
 
-      // Báo người khác: ghế này đang được xem
-      emit('seat_selecting', { eventId, seatId: dbSeat.id });
-      return {
-        ...prev,
-        [dbSeat.id]: {
-          seatDbId: dbSeat.id,
-          label:    dbSeat.label,
-          row:      dbSeat.row,
-          col:      dbSeat.col,
-          zoneKey:  dbZone.name,
-          zoneId:   dbZone.id,
-          price:    Number(dbZone.price || 0),
-          color:    layoutZone.color,
-        },
-      };
+    // Chọn ghế (khóa chỗ)
+    if (Object.keys(selected).length >= 4) {
+      showToast('Tối đa 4 ghế mỗi lần đặt');
+      return;
+    }
+
+    // Optimistic update: thêm ngay vào UI với trạng thái đang xử lý (expiresAt = null)
+    const optSeat = {
+      seatDbId: seatId,
+      bookingId: null,
+      expiresAt: null,
+      label:    dbSeat.label,
+      row:      dbSeat.row,
+      col:      dbSeat.col,
+      zoneKey:  dbZone.name,
+      zoneId:   dbZone.id,
+      price:    Number(dbZone.price || 0),
+      color:    layoutZone.color,
+    };
+
+    setSelected(prev => ({ ...prev, [seatId]: optSeat }));
+    setLockingSeats(prev => ({ ...prev, [seatId]: true }));
+
+    try {
+      const res = await bookingService.lockSeat(seatId, getSocketId());
+      const data = res.data;
+      
+      // Cập nhật lại với dữ liệu thật từ DB
+      setSelected(prev => {
+        if (!prev[seatId]) return prev; // Đã bị xóa bởi logic khác?
+        return {
+          ...prev,
+          [seatId]: {
+            ...prev[seatId],
+            bookingId: data.bookingId,
+            expiresAt: data.expiresAt,
+          }
+        };
+      });
+      refreshCart();
+    } catch (err) {
+      // Rollback nếu lỗi
+      setSelected(prev => {
+        const next = { ...prev };
+        delete next[seatId];
+        return next;
+      });
+      showToast(err.response?.data?.message || 'Không thể giữ ghế lúc này');
+    } finally {
+      setLockingSeats(prev => {
+        const next = { ...prev };
+        delete next[seatId];
+        return next;
+      });
+    }
+  }, [selected, lockingSeats, getSocketId]);
+
+  // Hủy tự động khi hết hạn (onExpire từ Countdown)
+  const handleSeatExpire = useCallback((seatId) => {
+    setSelected(prev => {
+      const next = { ...prev };
+      delete next[seatId];
+      return next;
     });
-  }, [emit, eventId]);
+    
+    // Proactively set status to AVAILABLE to prevent flashing grey before socket event arrives
+    setZones(prev =>
+      prev.map(zone => ({
+        ...zone,
+        seats: zone.seats?.map(seat =>
+          seat.id === seatId ? { ...seat, status: 'AVAILABLE' } : seat
+        ),
+      }))
+    );
+
+    showToast('Một ghế bạn chọn đã hết thời gian giữ chỗ');
+  }, []);
 
   // ── Tiến hành thanh toán ───────────────────────────────────────────────────
   async function handlePay() {
     const keys = Object.keys(selected);
     if (keys.length === 0) return;
 
+    if (keys.some(k => !selected[k].bookingId)) {
+      showToast('Đang xử lý khóa ghế, vui lòng đợi giây lát...');
+      return;
+    }
+
     setBooking(true);
     try {
-      const mySocketId = getSocketId();
-      const lockResults = [];
-      for (const k of keys) {
-        const res = await bookingService.lockSeat(selected[k].seatDbId, mySocketId);
-        lockResults.push(res);
-      }
-      const bookings = lockResults.map(r => r.data).filter(Boolean);
-      if (bookings.length === 0) {
-        showToast('Không thể giữ ghế. Vui lòng thử lại.');
-        return;
-      }
+      const bookings = keys.map(k => ({
+        bookingId: selected[k].bookingId,
+        seatId: selected[k].seatDbId,
+        seatLabel: selected[k].label,
+        zoneName: selected[k].zoneKey,
+        totalPrice: selected[k].price,
+        status: 'PENDING',
+        expiresAt: selected[k].expiresAt,
+      }));
+
       navigate('/checkout', {
         state: {
           bookings,
@@ -206,7 +353,7 @@ export default function SeatSelectionPage() {
         },
       });
     } catch (err) {
-      showToast(err.response?.data?.message || 'Đặt vé thất bại. Vui lòng thử lại.');
+      showToast('Có lỗi xảy ra, vui lòng thử lại.');
     } finally {
       setBooking(false);
     }
@@ -295,19 +442,11 @@ export default function SeatSelectionPage() {
           <div className="ss-fullscreen__legend">
             <div className="ss-fullscreen__legend-title">Chú thích</div>
             <div className="ss-fullscreen__legend-items">
-              {(Array.isArray(event?.seatmapJson?.zones) ? event.seatmapJson.zones : [])
-                .filter(z => z.blockType !== 'floor')
-                .map((z, i) => (
-                  <div key={z.id ?? z.name ?? i} className="ss-fullscreen__legend-item">
-                    <div style={{ width: 12, height: 12, borderRadius: 3, background: z.color, flexShrink: 0 }} />
-                    {z.name} còn trống
-                  </div>
-                ))}
               {[
-                { color: '#FFA500', label: 'Người khác đang xem' },
-                { color: '#888', label: 'Đang bị khóa / giữ' },
-                { color: '#e44', label: 'Đã được bán' },
-                { color: '#FF6B35', label: 'Bạn đang chọn' },
+                { color: '#4CAF50', label: 'Ghế có thể chọn' },
+                { color: '#888888', label: 'Ghế đang bị khóa/giữ' },
+                { color: '#FFA500', label: 'Ghế bạn đang chọn' },
+                { color: '#F44336', label: 'Ghế đã được bán' },
               ].map(item => (
                 <div key={item.label} className="ss-fullscreen__legend-item">
                   <div style={{ width: 12, height: 12, borderRadius: 3, background: item.color, flexShrink: 0 }} />
@@ -322,14 +461,6 @@ export default function SeatSelectionPage() {
         <div className="ss-fullscreen__panel">
           <div className="ss-fullscreen__panel-top">
             <div className="ss-fullscreen__panel-heading">Ghế đang chọn</div>
-            <div className="ss-timer-box" style={{ margin: 0 }}>
-              <div className="ss-timer-box__top">
-                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
-                </svg>
-                Giữ chỗ: <Countdown seconds={LOCK_SECONDS} />
-              </div>
-            </div>
           </div>
 
           <div className="ss-fullscreen__seat-list">
@@ -345,12 +476,21 @@ export default function SeatSelectionPage() {
                       <div className="ss-fullscreen__seat-zone">{s.zoneKey}</div>
                       <div className="ss-fullscreen__seat-label">{s.label || `Hàng ${s.row} · Ghế ${s.col}`}</div>
                     </div>
-                    <div className="ss-fullscreen__seat-price">{fmt(s.price)}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', marginRight: '10px' }}>
+                      <div className="ss-fullscreen__seat-price" style={{ margin: 0 }}>{fmt(s.price)}</div>
+                      <div style={{ fontSize: '11px', color: '#ff6b35', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
+                        </svg>
+                        {s.expiresAt ? (
+                          <Countdown expiresAt={s.expiresAt} onExpire={() => handleSeatExpire(key)} />
+                        ) : (
+                          <span>Đang khóa...</span>
+                        )}
+                      </div>
+                    </div>
                     <button
-                      onClick={() => {
-                        emit('seat_deselecting', { eventId, seatId: key });
-                        setSelected(prev => { const next = { ...prev }; delete next[key]; return next; });
-                      }}
+                      onClick={() => handleSeatClick({ id: key }, null, null)}
                       className="ss-seat-item__remove"
                     >×</button>
                   </div>
