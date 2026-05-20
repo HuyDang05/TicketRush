@@ -68,9 +68,14 @@
   color: var(--text);
 }
 
-.cart-table th:not(:last-child),
-.cart-table td:not(:last-child) {
+.cart-table th,
+.cart-table td {
   border-right: 1px solid var(--border);
+}
+
+.cart-table th.col-actions,
+.cart-table td.col-actions {
+  border-right: none;
 }
 
 .cart-table tbody tr:hover {

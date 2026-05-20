@@ -72,7 +72,9 @@ export default function CartPage() {
     navigate('/cart/checkout');
   };
 
-  const total = cartItems.reduce((acc, item) => acc + item.totalPrice, 0);
+  const subtotal = cartItems.reduce((acc, item) => acc + item.totalPrice, 0);
+  const serviceFee = Math.round(subtotal * 0.05);
+  const grandTotal = subtotal + serviceFee;
 
   // Group items by eventId
   const eventGroups = cartItems.reduce((acc, item) => {
@@ -114,7 +116,7 @@ export default function CartPage() {
                   <th style={{ textAlign: 'center' }}>Thời gian còn lại để thanh toán</th>
                   <th style={{ textAlign: 'center' }}>Giá</th>
                   <th style={{ textAlign: 'center', width: '60px' }}></th>
-                  <th style={{ textAlign: 'center', width: '120px' }}></th>
+                  <th className="col-actions" style={{ textAlign: 'center', width: '120px' }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -146,7 +148,7 @@ export default function CartPage() {
                         </button>
                       </td>
                       {index === 0 && (
-                        <td rowSpan={group.items.length} style={{ verticalAlign: 'middle', textAlign: 'center' }}>
+                        <td className="col-actions" rowSpan={group.items.length} style={{ verticalAlign: 'middle', textAlign: 'center' }}>
                           <button onClick={() => handleEdit(group.eventId)} className="cart-action-btn cart-btn-edit" style={{ width: '100%' }}>
                             Chỉnh sửa
                           </button>
@@ -160,10 +162,21 @@ export default function CartPage() {
           </div>
 
           <div className="cart-footer">
-            <div className="cart-total">
-              Tổng đơn hàng: <span className="cart-total-value">{fmt(total)}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', minWidth: '340px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '15px', color: 'var(--text-soft)' }}>
+                <span>Tổng đơn giá:</span>
+                <span style={{ fontWeight: '500', color: 'var(--text)' }}>{fmt(subtotal)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '15px', color: 'var(--text-soft)' }}>
+                <span>Phí dịch vụ (5%):</span>
+                <span style={{ fontWeight: '500', color: 'var(--text)' }}>{fmt(serviceFee)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '18px', borderTop: '1px solid var(--border)', paddingTop: '12px', marginTop: '4px' }}>
+                <span style={{ fontWeight: 'bold' }}>Cần thanh toán:</span>
+                <span className="cart-total-value" style={{ fontSize: '22px' }}>{fmt(grandTotal)}</span>
+              </div>
             </div>
-            <button onClick={handleCheckout} className="cart-checkout-btn">
+            <button onClick={handleCheckout} className="cart-checkout-btn" style={{ width: '100%', maxWidth: '340px', marginTop: '8px' }}>
               Thanh toán
             </button>
           </div>
