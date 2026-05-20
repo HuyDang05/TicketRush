@@ -153,15 +153,13 @@ function SeatNode({ x, y, size = SEAT_SIZE, zone, row, col, label, isCircle, dbZ
   if (!dbSeat) {
     fill = 'transparent'; stroke = palette.noSeatStroke;
   } else if (isSelected) {
-    fill = '#FF6B35'; stroke = '#FF6B35'; strokeW = 1;
+    fill = '#FFA500'; stroke = '#FFA500'; strokeW = 1;
   } else if (status === 'SOLD') {
-    fill = palette.soldFill; stroke = palette.soldFill;
-  } else if (status === 'LOCKED') {
-    fill = palette.lockedFill; stroke = palette.lockedFill;
-  } else if (isOtherSelecting) {
-    fill = 'rgba(255,165,0,0.25)'; stroke = '#FFA500'; strokeW = 1.2; dash = [3, 2];
+    fill = '#F44336'; stroke = '#F44336';
+  } else if (status === 'LOCKED' || isOtherSelecting) {
+    fill = '#888888'; stroke = '#888888'; strokeW = 1; dash = isOtherSelecting ? [3, 2] : undefined;
   } else {
-    fill = hexToRgba(zone.color, 0.55); stroke = zone.color;
+    fill = '#4CAF50'; stroke = '#4CAF50';
   }
 
   // Ghế đang bị người khác xem vẫn có thể click (chỉ là soft-select, chưa lock)
@@ -412,9 +410,13 @@ export default function CustomerSeatmapCanvas({ layoutZones, dbZones, selectedSe
     return () => ro.disconnect();
   }, []);
 
-  // Only auto-center when layoutZones reference changes (stable via useMemo in parent)
+  const initialCentered = useRef(false);
+
+  // Only auto-center when layoutZones is first loaded
   useEffect(() => {
     if (!layoutZones || layoutZones.length === 0 || !size.width || !size.height) return;
+    if (initialCentered.current) return; // Đã center rồi thì không reset lại nữa khi zones thay đổi (socket update)
+    
     const bbox = computeBBox(layoutZones);
     if (!bbox) return;
     setStageScale(1);
@@ -422,6 +424,7 @@ export default function CustomerSeatmapCanvas({ layoutZones, dbZones, selectedSe
       x: size.width  / 2 - (bbox.minX + bbox.w / 2),
       y: size.height / 2 - (bbox.minY + bbox.h / 2),
     });
+    initialCentered.current = true;
   }, [layoutZones, size.width, size.height]);
 
   const handleWheel = (e) => {

@@ -25,9 +25,8 @@ async function releaseSeat(bookingId, seatId, jobId) {
   const seatLabel = booking.seat.label;
 
   await prisma.$transaction([
-    prisma.booking.update({
+    prisma.booking.delete({
       where: { id: bookingId },
-      data:  { status: 'CANCELLED' },
     }),
     prisma.seat.update({
       where: { id: seatId },
