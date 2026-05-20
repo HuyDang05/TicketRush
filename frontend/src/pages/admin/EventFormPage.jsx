@@ -18,13 +18,13 @@ const CATEGORIES = ['Âm nhạc', 'Thể thao', 'Sân khấu', 'Hội thảo', '
 
 // ─── Shared input styles ──────────────────────────────────────────────────────
 const INPUT = {
-  width: '100%', background: '#1A1A1A', border: '1px solid #333333',
-  borderRadius: 8, padding: '11px 16px', color: '#fff',
+  width: '100%', background: 'var(--bg)', border: '1px solid var(--border)',
+  borderRadius: 8, padding: '11px 16px', color: 'var(--text)',
   fontFamily: 'inherit', fontSize: 13, outline: 'none',
   transition: 'border-color .2s, box-shadow .2s',
 };
 const LABEL = {
-  display: 'block', fontSize: 12, color: '#AAAAAA',
+  display: 'block', fontSize: 12, color: 'var(--muted)',
   fontWeight: 700, marginBottom: 7, letterSpacing: 0.3,
 };
 
@@ -45,8 +45,8 @@ function Field({ label, children, style }) {
 }
 
 // ─── Focusable input helpers ──────────────────────────────────────────────────
-const focusOn  = e => { e.target.style.borderColor = '#FF6B35'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,53,.08)'; };
-const focusOff = e => { e.target.style.borderColor = '#333333'; e.target.style.boxShadow = 'none'; };
+const focusOn  = e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,53,.08)'; };
+const focusOff = e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; };
 
 // ─── Zone Row ─────────────────────────────────────────────────────────────────
 function ZoneRow({ zone, onChange, onRemove }) {
@@ -56,45 +56,45 @@ function ZoneRow({ zone, onChange, onRemove }) {
   const pillTxt = `= ${seats} ghế · ${revStr}`;
 
   const miniInput = {
-    flex: 1, background: '#242424', border: '1px solid #333333', borderRadius: 6,
-    padding: '8px 10px', color: '#fff', fontFamily: 'inherit', fontSize: 12,
+    flex: 1, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 6,
+    padding: '8px 10px', color: 'var(--text)', fontFamily: 'inherit', fontSize: 12,
     outline: 'none', transition: 'border-color .2s', minWidth: 0,
   };
 
   return (
     <div style={{
-      background: '#1A1A1A', border: '1px solid #333333', borderRadius: 8,
+      background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8,
       padding: '14px 16px', marginBottom: 10, transition: 'border-color .2s',
     }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,.1)'}
-      onMouseLeave={e => e.currentTarget.style.borderColor = '#333333'}
+      onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(120,120,120,0.2)'}
+      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
     >
       {/* Top row: drag handle, color dot, name, trash */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <svg style={{ color: '#333333', flexShrink: 0, cursor: 'grab' }} width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <svg style={{ color: 'var(--border)', flexShrink: 0, cursor: 'grab' }} width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01"/>
         </svg>
         <div style={{
           width: 16, height: 16, borderRadius: 4, flexShrink: 0, cursor: 'pointer',
-          background: zone.color, border: '2px solid rgba(255,255,255,.1)',
+          background: zone.color, border: '2px solid rgba(120,120,120,0.2)',
         }} />
         <input
           value={zone.name}
           onChange={e => onChange('name', e.target.value)}
           style={{
             flex: 1, background: 'transparent', border: 'none',
-            borderBottom: '1px solid #333333', color: '#fff',
+            borderBottom: '1px solid var(--border)', color: 'var(--text)',
             fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
             padding: '4px 0', outline: 'none', transition: 'border-color .2s',
           }}
-          onFocus={e => e.target.style.borderColor = '#FF6B35'}
-          onBlur={e => e.target.style.borderColor = '#333333'}
+          onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+          onBlur={e => e.target.style.borderColor = 'var(--border)'}
         />
         <button
           onClick={onRemove}
-          style={{ background: 'transparent', border: 'none', color: '#AAAAAA', cursor: 'pointer', padding: 4, borderRadius: 4, display: 'flex', alignItems: 'center', transition: 'color .2s, background .2s' }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.background = 'rgba(239,68,68,.08)'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#AAAAAA'; e.currentTarget.style.background = 'transparent'; }}
+          style={{ background: 'transparent', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: 4, borderRadius: 4, display: 'flex', alignItems: 'center', transition: 'color .2s, background .2s' }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--danger)'; e.currentTarget.style.background = 'rgba(239,68,68,.08)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.background = 'transparent'; }}
         >
           <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
         </button>
@@ -108,7 +108,7 @@ function ZoneRow({ zone, onChange, onRemove }) {
           { label: 'Giá vé (đ)',  key: 'price', val: zone.price, min: 0, step: 50000 },
         ].map(({ label, key, val, min, max, step }) => (
           <div key={key} style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10, color: '#AAAAAA', marginBottom: 3, fontWeight: 700, letterSpacing: 0.3 }}>{label}</div>
+            <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3, fontWeight: 700, letterSpacing: 0.3 }}>{label}</div>
             <input
               type="number"
               value={val}
@@ -117,14 +117,14 @@ function ZoneRow({ zone, onChange, onRemove }) {
               step={step}
               onChange={e => onChange(key, Number(e.target.value))}
               style={miniInput}
-              onFocus={e => e.target.style.borderColor = '#FF6B35'}
-              onBlur={e => e.target.style.borderColor = '#333333'}
+              onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+              onBlur={e => e.target.style.borderColor = 'var(--border)'}
             />
           </div>
         ))}
         <div style={{
           background: 'rgba(255,107,53,.12)', border: '1px solid rgba(255,107,53,.3)',
-          color: '#FF6B35', fontSize: 11, fontWeight: 700, padding: '5px 10px',
+          color: 'var(--accent)', fontSize: 11, fontWeight: 700, padding: '5px 10px',
           borderRadius: 6, whiteSpace: 'nowrap', flexShrink: 0, alignSelf: 'flex-end',
         }}>{pillTxt}</div>
       </div>
@@ -282,13 +282,13 @@ export default function EventFormPage() {
 
   // ── Section heading ───────────────────────────────────────────────
   const SectionHeading = ({ children }) => (
-    <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 20, paddingLeft: 12, borderLeft: '3px solid #FF6B35', display: 'flex', alignItems: 'center', gap: 8, color: '#fff' }}>
+    <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 20, paddingLeft: 12, borderLeft: '3px solid var(--accent)', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text)' }}>
       {children}
     </div>
   );
 
   const SectionCard = ({ children, style }) => (
-    <div style={{ background: '#242424', border: '1px solid #333333', borderRadius: 12, padding: 24, marginBottom: 20, ...style }}>
+    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 20, ...style }}>
       {children}
     </div>
   );
@@ -296,7 +296,7 @@ export default function EventFormPage() {
   if (loading) {
     return (
       <AdminLayout>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#AAAAAA', fontSize: 13 }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
           Đang tải...
         </div>
       </AdminLayout>
@@ -382,7 +382,7 @@ export default function EventFormPage() {
                     onFocus={focusOn} onBlur={focusOff}
                   >
                     {CATEGORIES.map(c => (
-                      <option key={c} value={c} style={{ background: '#242424' }}>
+                      <option key={c} value={c} style={{ background: 'var(--card)' }}>
                         {CAT_EMOJIS[c]} {c}
                       </option>
                     ))}
@@ -401,7 +401,7 @@ export default function EventFormPage() {
 
               <Field label="Địa điểm">
                 <div style={{ position: 'relative' }}>
-                  <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#AAAAAA', pointerEvents: 'none' }} width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', pointerEvents: 'none' }} width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/>
                   </svg>
                   <input
@@ -455,12 +455,12 @@ export default function EventFormPage() {
                 style={{
                   width: '100%', padding: 12,
                   border: '1.5px dashed rgba(255,107,53,.4)', borderRadius: 8,
-                  background: 'transparent', color: '#FF6B35',
+                  background: 'transparent', color: 'var(--accent)',
                   fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
                   cursor: 'pointer', transition: 'all .2s',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#FF6B35'; e.currentTarget.style.background = 'rgba(255,107,53,.05)'; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'rgba(255,107,53,.05)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,107,53,.4)'; e.currentTarget.style.background = 'transparent'; }}
               >
                 <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
@@ -473,17 +473,17 @@ export default function EventFormPage() {
           <div style={{ position: 'sticky', top: 0 }}>
 
             {/* Live Preview Card */}
-            <div style={{ background: '#242424', border: '1px solid #333333', borderRadius: 12, padding: 20, marginBottom: 16 }}>
+            <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, marginBottom: 16 }}>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
                 <div style={{
-                  width: 7, height: 7, borderRadius: '50%', background: '#FF6B35',
+                  width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)',
                   animation: 'blink 1.5s ease-in-out infinite',
                 }} />
                 Xem trước
               </div>
 
               {/* Mini event card */}
-              <div style={{ background: '#1A1A1A', border: '1px solid #333333', borderRadius: 8, overflow: 'hidden' }}>
+              <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
                 <div style={{
                   height: 90, background: CAT_COLORS[form.category] || CAT_COLORS['Âm nhạc'],
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -493,23 +493,23 @@ export default function EventFormPage() {
                   <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,.5), transparent)' }} />
                 </div>
                 <div style={{ padding: 12 }}>
-                  <div style={{ fontSize: 10, color: '#FF6B35', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 5 }}>
+                  <div style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 5 }}>
                     {form.category}
                   </div>
                   <div style={{
                     fontSize: 13, fontWeight: form.name ? 700 : 400, lineHeight: 1.3, marginBottom: 8,
-                    color: form.name ? '#fff' : '#AAAAAA', fontStyle: form.name ? 'normal' : 'italic',
+                    color: form.name ? 'var(--text)' : 'var(--muted)', fontStyle: form.name ? 'normal' : 'italic',
                     minHeight: 36,
                   }}>
                     {form.name || 'Tên sự kiện...'}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div style={{ fontSize: 11, color: '#AAAAAA', display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <svg style={{ color: '#FF6B35', flexShrink: 0 }} width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <svg style={{ color: 'var(--accent)', flexShrink: 0 }} width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
                       {prevDate}
                     </div>
-                    <div style={{ fontSize: 11, color: '#AAAAAA', display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <svg style={{ color: '#FF6B35', flexShrink: 0 }} width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <svg style={{ color: 'var(--accent)', flexShrink: 0 }} width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
                       {form.location || 'Chưa có địa điểm'}
                     </div>
                   </div>
@@ -518,31 +518,31 @@ export default function EventFormPage() {
             </div>
 
             {/* Seat Summary Card */}
-            <div style={{ background: '#242424', border: '1px solid #333333', borderRadius: 12, padding: 20 }}>
+            <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Tổng quan ghế</div>
 
               {zones.map((zone, i) => (
                 <div key={zone.id} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '8px 0', borderBottom: i < zones.length - 1 ? '1px solid rgba(255,255,255,.04)' : 'none',
+                  padding: '8px 0', borderBottom: i < zones.length - 1 ? '1px solid rgba(120,120,120,0.1)' : 'none',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600 }}>
                     <div style={{ width: 10, height: 10, borderRadius: 3, flexShrink: 0, background: zone.color }} />
                     {zone.name}
                   </div>
-                  <span style={{ fontSize: 12, color: '#AAAAAA' }}>{(zone.rows * zone.cols).toLocaleString()} ghế</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>{(zone.rows * zone.cols).toLocaleString()} ghế</span>
                 </div>
               ))}
 
-              <div style={{ height: 1, background: '#333333', margin: '14px 0' }} />
+              <div style={{ height: 1, background: 'var(--border)', margin: '14px 0' }} />
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <span style={{ fontSize: 13, color: '#AAAAAA' }}>Tổng số ghế</span>
+                <span style={{ fontSize: 13, color: 'var(--muted)' }}>Tổng số ghế</span>
                 <span style={{ fontSize: 14, fontWeight: 800 }}>{totalSeats.toLocaleString()} ghế</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 13, color: '#AAAAAA' }}>Doanh thu tối đa</span>
-                <span style={{ fontSize: 14, fontWeight: 800, color: '#FF6B35' }}>{revStr}</span>
+                <span style={{ fontSize: 13, color: 'var(--muted)' }}>Doanh thu tối đa</span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--accent)' }}>{revStr}</span>
               </div>
             </div>
           </div>
@@ -555,9 +555,9 @@ export default function EventFormPage() {
       <style>{`
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
         ::-webkit-scrollbar { width: 5px }
-        ::-webkit-scrollbar-track { background: #111111 }
-        ::-webkit-scrollbar-thumb { background: #333333; border-radius: 3px }
-        ::-webkit-scrollbar-thumb:hover { background: #FF6B35 }
+        ::-webkit-scrollbar-track { background: var(--nav) }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent) }
       `}</style>
     </AdminLayout>
   );
