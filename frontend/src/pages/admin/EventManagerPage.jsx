@@ -142,16 +142,6 @@ function StatCard({ label, value, valueColor, change, changeUp }) {
   );
 }
 
-const THUMB_GRADIENTS = [
-  'linear-gradient(135deg,#2d1000,#8b3500)',
-  'linear-gradient(135deg,#0d2200,#1a4400)',
-  'linear-gradient(135deg,#1a1000,#5a3a00)',
-  'linear-gradient(135deg,#0a1a2d,#0a3d6b)',
-  'linear-gradient(135deg,#1a001a,#6a006a)',
-  'linear-gradient(135deg,#1a0010,#6a0040)',
-];
-const THUMB_EMOJIS = ['🎤', '⚽', '🎷', '🎹', '🎪', '🎭'];
-
 export default function EventManagerPage() {
   const navigate = useNavigate();
   const { openModal } = useModalStore();
@@ -353,7 +343,7 @@ export default function EventManagerPage() {
                   <tr><td colSpan="7" className="admin-table__empty">Đang tải...</td></tr>
                 ) : events.length === 0 ? (
                   <tr><td colSpan="7" className="admin-table__empty">Không tìm thấy sự kiện nào</td></tr>
-                ) : events.map((ev, i) => {
+                ) : events.map((ev) => {
                   const name = ev.title || ev.name || 'Sự kiện';
                   const totalSeats = Number(ev.totalSeats || 0);
                   const soldSeats  = Number(ev.soldSeats  || 0);
@@ -368,13 +358,25 @@ export default function EventManagerPage() {
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div style={{ width: 44, height: 44, borderRadius: 8, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, background: THUMB_GRADIENTS[i % THUMB_GRADIENTS.length] }}>
-                            {THUMB_EMOJIS[i % THUMB_EMOJIS.length]}
+                        <div>
+                          <div
+                            style={{
+                              fontWeight: 700,
+                              fontSize: 13,
+                              lineHeight: 1.3,
+                              marginBottom: 2,
+                            }}
+                          >
+                            {name}
                           </div>
-                          <div>
-                            <div style={{ fontWeight: 700, fontSize: 13, lineHeight: 1.3, marginBottom: 2 }}>{name}</div>
-                            <div style={{ fontSize: 11, color: '#AAAAAA' }}>{ev.category || 'Sự kiện'}</div>
+
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: '#AAAAAA',
+                            }}
+                          >
+                            {ev.category || 'Sự kiện'}
                           </div>
                         </div>
                       </td>
