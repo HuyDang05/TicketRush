@@ -4,6 +4,12 @@ import eventService from '../../services/event.service';
 import AdminLayout from '../../components/shared/AdminLayout';
 import './admin.css';
 import useModalStore from '../../store/modalStore';
+import {
+  MAX_DESCRIPTION_LENGTH,
+  MAX_EVENT_TITLE_LENGTH,
+  MAX_SEARCH_LENGTH,
+  MAX_VENUE_LENGTH,
+} from '../../utils/inputValidation';
 
 
 function Toast({ msg, onDone }) {
@@ -33,15 +39,19 @@ function EventModal({ event, onClose, onSaved, onCreated }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
-    if (!form.name.trim()) return;
+    const title = form.name.trim();
+    const venue = form.location.trim();
+    const description = form.description.trim();
+    if (title.length < 3 || title.length > MAX_EVENT_TITLE_LENGTH) return;
+    if (venue.length < 3 || venue.length > MAX_VENUE_LENGTH) return;
+    if (description.length > MAX_DESCRIPTION_LENGTH) return;
     setSaving(true);
     try {
       const payload = {
-        title: form.name.trim(),
-        date: form.date && form.time ? `${form.date}T${form.time}:00` : form.date,
-        venue: form.location.trim(),
-        category: form.category,
-        description: form.description.trim(),
+        title,
+        startDate: form.date && form.time ? `${form.date}T${form.time}:00` : form.date,
+        venue,
+        description,
       };
       if (isEdit) {
         await eventService.updateEvent(event.id, payload);
@@ -168,7 +178,7 @@ export default function EventManagerPage() {
       const res = await eventService.getAdminEvents({
         page: currentPage,
         limit: PAGE_SIZE,
-        ...(search     && { search }),
+        ...(search.trim() && { search: search.trim().slice(0, MAX_SEARCH_LENGTH) }),
         ...(statusFilter && { status: statusFilter }),
       });
       const data = res.data;
@@ -306,7 +316,8 @@ export default function EventManagerPage() {
               <div style={{ position: 'relative' }}>
                 <input
                   value={search}
-                  onChange={e => setSearch(e.target.value)}
+                  maxLength={MAX_SEARCH_LENGTH}
+                  onChange={e => setSearch(e.target.value.slice(0, MAX_SEARCH_LENGTH))}
                   placeholder="Tìm sự kiện..."
                   className="event-manager-search"
                   onFocus={e => e.target.style.borderColor = '#FF6B35'}

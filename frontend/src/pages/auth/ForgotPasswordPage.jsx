@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
+import { emailRegex, MAX_EMAIL_LENGTH } from '../../utils/inputValidation';
 import './auth.css';
 
 export default function ForgotPasswordPage() {
@@ -12,9 +13,14 @@ export default function ForgotPasswordPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!emailRegex.test(normalizedEmail) || normalizedEmail.length > MAX_EMAIL_LENGTH) {
+      setError('Email không hợp lệ');
+      return;
+    }
     setIsLoading(true);
     try {
-      await api.post('/auth/forgot-password', { email });
+      await api.post('/auth/forgot-password', { email: normalizedEmail });
       setSent(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Đã có lỗi xảy ra, thử lại sau.');

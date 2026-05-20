@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { emailRegex, MAX_EMAIL_LENGTH } from '../../utils/inputValidation';
 import './auth.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -24,6 +25,7 @@ export default function LoginPage() {
   const { login, isLoading, error } = useAuth();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
+  const [localError, setLocalError] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,8 +34,14 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLocalError('');
+    const email = formData.email.trim().toLowerCase();
+    if (!emailRegex.test(email) || email.length > MAX_EMAIL_LENGTH || !formData.password) {
+      setLocalError('Email hoặc mật khẩu không hợp lệ');
+      return;
+    }
     try {
-      const data = await login(formData.email, formData.password);
+      const data = await login(email, formData.password);
       const role = data?.user?.role || data?.role || 'CUSTOMER';
       if (role === 'ADMIN') {
         navigate('/admin/dashboard', { replace: true });
@@ -94,7 +102,7 @@ export default function LoginPage() {
             <Link to="/register">Đăng ký ngay</Link>
           </p>
 
-          {error && <div className="auth-error">{error}</div>}
+          {(localError || error) && <div className="auth-error">{localError || error}</div>}
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="auth-field">

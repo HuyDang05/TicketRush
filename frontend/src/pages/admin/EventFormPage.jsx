@@ -2,6 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import eventService from '../../services/event.service';
 import AdminLayout from '../../components/shared/AdminLayout';
+import {
+  MAX_DESCRIPTION_LENGTH,
+  MAX_EVENT_TITLE_LENGTH,
+  MAX_PRICE,
+  MAX_VENUE_LENGTH,
+} from '../../utils/inputValidation';
 import './admin.css';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -214,7 +220,7 @@ export default function EventFormPage() {
     title: form.name.trim(),
     description: form.description.trim(),
     venue: form.location.trim(),
-    date: form.date && form.time ? `${form.date}T${form.time}:00` : form.date,
+    startDate: form.date && form.time ? `${form.date}T${form.time}:00` : form.date,
     imageUrl: form.thumbnailUrl.trim(),
     zones: zones.map(z => ({
       name: z.name.trim(),
@@ -225,9 +231,14 @@ export default function EventFormPage() {
   });
 
   const validateForm = () => {
-    if (!form.name.trim()) return 'Vui lòng nhập tên sự kiện';
-    if (!form.description.trim()) return 'Vui lòng nhập mô tả sự kiện';
-    if (!form.location.trim()) return 'Vui lòng nhập địa điểm';
+    const title = form.name.trim();
+    const description = form.description.trim();
+    const venue = form.location.trim();
+    if (title.length < 3) return 'Tên sự kiện cần ít nhất 3 ký tự';
+    if (title.length > MAX_EVENT_TITLE_LENGTH) return `Tên sự kiện tối đa ${MAX_EVENT_TITLE_LENGTH} ký tự`;
+    if (description.length > MAX_DESCRIPTION_LENGTH) return `Mô tả tối đa ${MAX_DESCRIPTION_LENGTH} ký tự`;
+    if (venue.length < 3) return 'Địa điểm cần ít nhất 3 ký tự';
+    if (venue.length > MAX_VENUE_LENGTH) return `Địa điểm tối đa ${MAX_VENUE_LENGTH} ký tự`;
     if (!form.date || !form.time) return 'Vui lòng chọn ngày và giờ diễn';
     if (!form.thumbnailUrl.trim()) return 'Vui lòng nhập URL ảnh thumbnail';
 
@@ -237,10 +248,11 @@ export default function EventFormPage() {
     if (zones.length < 1) return 'Phải có ít nhất 1 khu vực';
 
     for (const zone of zones) {
-      if (!zone.name.trim()) return 'Tên khu vực không được để trống';
+      if (!zone.name.trim() || zone.name.trim().length > 80) return 'Tên khu vực cần 1-80 ký tự';
       if (Number(zone.rows) < 1) return 'Số hàng phải >= 1';
       if (Number(zone.cols) < 1) return 'Số cột phải >= 1';
       if (Number(zone.price) <= 0) return 'Giá vé phải > 0';
+      if (Number(zone.price) > MAX_PRICE) return `Giá vé tối đa ${MAX_PRICE.toLocaleString('vi-VN')} đ`;
     }
 
     return null;

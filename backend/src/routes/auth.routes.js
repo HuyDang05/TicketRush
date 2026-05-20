@@ -4,13 +4,20 @@ const { register, login } = require('../controllers/auth.controller');
 const { forgotPassword, resetPassword } = require('../controllers/password.controller');
 const { googleCallback, googleRedirect } = require('../controllers/google.controller');
 const { facebookRedirect, facebookCallback } = require('../controllers/facebook.controller');
+const validate = require('../middlewares/validate.middleware');
+const {
+  forgotPasswordBody,
+  loginBody,
+  registerBody,
+  resetPasswordBody,
+} = require('../validators/auth.validator');
 
 const router = express.Router();
 
-router.post('/register', register);
-router.post('/login', login);
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
+router.post('/register', validate({ body: registerBody }), register);
+router.post('/login', validate({ body: loginBody }), login);
+router.post('/forgot-password', validate({ body: forgotPasswordBody }), forgotPassword);
+router.post('/reset-password', validate({ body: resetPasswordBody }), resetPassword);
 
 // Google OAuth
 router.get('/google', googleRedirect);

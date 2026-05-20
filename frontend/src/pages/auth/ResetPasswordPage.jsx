@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import api from '../../services/api';
+import { validatePassword } from '../../utils/inputValidation';
 import './auth.css';
 
 export default function ResetPasswordPage() {
@@ -18,8 +19,9 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (password.length < 8) {
-      setError('Mật khẩu phải có ít nhất 8 ký tự.');
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
     if (password !== confirm) {

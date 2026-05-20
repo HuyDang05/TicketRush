@@ -51,7 +51,7 @@ async function main() {
     // 1. Tạo users
     console.log('👥 Tạo users...');
     const adminPassword = await hashPassword('admin123');
-    const customerPassword = await hashPassword('12345');
+    const customerPassword = await hashPassword('123456789');
 
     const admin = await prisma.user.create({
       data: {
