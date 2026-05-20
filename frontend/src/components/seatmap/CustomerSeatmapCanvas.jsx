@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Stage, Layer, Rect, Circle, Text, Group, Arc } from 'react-konva';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -9,6 +9,10 @@ const SEAT_STEP   = SEAT_SIZE + SEAT_GAP;
 const MIN_ZOOM    = 0.2;
 const MAX_ZOOM    = 4;
 const ZOOM_FACTOR = 1.12;
+const WORLD_W         = 1200;
+const WORLD_H         = 900;
+const STAGE_LABEL_X   = WORLD_W / 2 - 120;
+const STAGE_LABEL_Y   = 16;
 
 function hexToRgba(hex, alpha) {
   if (!hex) return `rgba(255,255,255,${alpha})`;
@@ -153,15 +157,13 @@ function SeatNode({ x, y, size = SEAT_SIZE, zone, row, col, label, isCircle, dbZ
   if (!dbSeat) {
     fill = 'transparent'; stroke = palette.noSeatStroke;
   } else if (isSelected) {
-    fill = '#FF6B35'; stroke = '#FF6B35'; strokeW = 1;
+    fill = '#FFA500'; stroke = '#FFA500'; strokeW = 1;
   } else if (status === 'SOLD') {
-    fill = palette.soldFill; stroke = palette.soldFill;
-  } else if (status === 'LOCKED') {
-    fill = palette.lockedFill; stroke = palette.lockedFill;
-  } else if (isOtherSelecting) {
-    fill = 'rgba(255,165,0,0.25)'; stroke = '#FFA500'; strokeW = 1.2; dash = [3, 2];
+    fill = '#F44336'; stroke = '#F44336';
+  } else if (status === 'LOCKED' || isOtherSelecting) {
+    fill = '#888888'; stroke = '#888888'; strokeW = 1; dash = isOtherSelecting ? [3, 2] : undefined;
   } else {
-    fill = hexToRgba(zone.color, 0.55); stroke = zone.color;
+    fill = '#4CAF50'; stroke = '#4CAF50';
   }
 
   // Ghế đang bị người khác xem vẫn có thể click (chỉ là soft-select, chưa lock)
@@ -249,11 +251,28 @@ function TableBlock({ zone, dbZone, selectedSeats, othersSelectingSeats, onSeatC
 
 function FloorBlock({ zone, dbZones, selectedSeats, othersSelectingSeats, onSeatClick, palette }) {
   const children  = zone.children || [];
-  const isGrouped = zone.grouped !== false;
   const FRAME_PAD = 20;
+  const zoneProps = { dbZones, selectedSeats, othersSelectingSeats, onSeatClick, palette };
+
+  // Ungrouped floor (grouped === false): frame + children at absolute canvas coordinates
+  if (zone.grouped === false) {
+    const w = zone.width ?? 400;
+    const h = zone.height ?? 300;
+    return (
+      <>
+        <Group x={zone.x ?? 60} y={zone.y ?? 60} rotation={zone.rotation ?? 0}>
+          <Rect width={w} height={h} fill={hexToRgba(zone.color, 0.03)} stroke={hexToRgba(zone.color, 0.45)} strokeWidth={1.5} dash={[8, 4]} cornerRadius={10} listening={false} />
+          <Rect x={0} y={0} width={100} height={22} fill={hexToRgba(zone.color, 0.2)} cornerRadius={[10, 0, 8, 0]} listening={false} />
+          <Text x={8} y={5} text={`▦  ${zone.name}`} fontSize={10} fontStyle="bold" fill={zone.color} listening={false} />
+        </Group>
+        {children.map(child => (
+          <ZoneBlock key={child.id} zone={child} {...zoneProps} />
+        ))}
+      </>
+    );
+  }
 
   const { w, h } = (() => {
-    if (!isGrouped) return { w: zone.width ?? 400, h: zone.height ?? 300 };
     if (children.length === 0) return { w: 240, h: 100 };
     let maxR = 0, maxB = 0;
     children.forEach(child => {
@@ -270,7 +289,7 @@ function FloorBlock({ zone, dbZones, selectedSeats, othersSelectingSeats, onSeat
       <Rect x={0} y={0} width={80} height={20} fill={hexToRgba(zone.color, 0.25)} cornerRadius={[10, 0, 8, 0]} listening={false} />
       <Text x={8} y={4} text={`▦  ${zone.name}`} fontSize={10} fontStyle="bold" fill={zone.color} listening={false} />
 
-      {isGrouped && children.map(child => {
+      {children.map(child => {
         const cx     = child.x ?? FRAME_PAD;
         const cy     = child.y ?? FRAME_PAD;
         const bt     = child.blockType || 'rows';
@@ -400,7 +419,28 @@ export default function CustomerSeatmapCanvas({ layoutZones, dbZones, selectedSe
   const [size, setSize] = useState({ width: 800, height: 600 });
   const [stagePos,   setStagePos]   = useState({ x: 0, y: 0 });
   const [stageScale, setStageScale] = useState(1);
+  const stageScaleRef = useRef(1);
+  const stagePosRef   = useRef({ x: 0, y: 0 });
   const stageDraggedRef = useRef(false);
+
+  const applyZoomAtPoint = useCallback((newScale, pointX, pointY) => {
+    const stage    = stageRef.current;
+    const oldScale = stage ? stage.scaleX() : stageScaleRef.current;
+    const pos      = stage ? { x: stage.x(), y: stage.y() } : stagePosRef.current;
+    const clamped  = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, newScale));
+    const mpt = {
+      x: (pointX - pos.x) / oldScale,
+      y: (pointY - pos.y) / oldScale,
+    };
+    const newPos = {
+      x: pointX - mpt.x * clamped,
+      y: pointY - mpt.y * clamped,
+    };
+    stageScaleRef.current = clamped;
+    stagePosRef.current   = newPos;
+    setStageScale(clamped);
+    setStagePos(newPos);
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -412,53 +452,59 @@ export default function CustomerSeatmapCanvas({ layoutZones, dbZones, selectedSe
     return () => ro.disconnect();
   }, []);
 
-  // Only auto-center when layoutZones reference changes (stable via useMemo in parent)
+  const initialCentered = useRef(false);
+
+  // Only auto-center when layoutZones is first loaded
   useEffect(() => {
     if (!layoutZones || layoutZones.length === 0 || !size.width || !size.height) return;
+    if (initialCentered.current) return; // Đã center rồi thì không reset lại nữa khi zones thay đổi (socket update)
+    
     const bbox = computeBBox(layoutZones);
     if (!bbox) return;
-    setStageScale(1);
-    setStagePos({
+    const newPos = {
       x: size.width  / 2 - (bbox.minX + bbox.w / 2),
       y: size.height / 2 - (bbox.minY + bbox.h / 2),
-    });
+    };
+    stageScaleRef.current = 1;
+    stagePosRef.current   = newPos;
+    setStageScale(1);
+    setStagePos(newPos);
+    initialCentered.current = true;
   }, [layoutZones, size.width, size.height]);
 
   const handleWheel = (e) => {
     e.evt.preventDefault();
-    const stage    = stageRef.current;
-    const oldScale = stageScale;
-    const pointer  = stage.getPointerPosition();
-    const mpt      = { x: (pointer.x - stagePos.x) / oldScale, y: (pointer.y - stagePos.y) / oldScale };
-    const dir      = e.evt.deltaY < 0 ? 1 : -1;
-    const newScale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, oldScale * (dir > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR)));
-    setStageScale(newScale);
-    setStagePos({ x: pointer.x - mpt.x * newScale, y: pointer.y - mpt.y * newScale });
+    const stage = stageRef.current;
+    if (!stage) return;
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+    const oldScale  = stage.scaleX();
+    const direction = e.evt.deltaY < 0 ? 1 : -1;
+    const newScale  = oldScale * (direction > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR);
+    applyZoomAtPoint(newScale, pointer.x, pointer.y);
   };
 
   const zoomBy = (dir) => {
-    const center   = { x: size.width / 2, y: size.height / 2 };
-    const oldScale = stageScale;
-    const newScale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, oldScale * (dir > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR)));
-    const mpt      = { x: (center.x - stagePos.x) / oldScale, y: (center.y - stagePos.y) / oldScale };
-    setStageScale(newScale);
-    setStagePos({ x: center.x - mpt.x * newScale, y: center.y - mpt.y * newScale });
+    const factor   = dir > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
+    const newScale = stageScaleRef.current * factor;
+    applyZoomAtPoint(newScale, size.width / 2, size.height / 2);
   };
 
   const zoomTo100 = () => {
     const bbox = computeBBox(layoutZones);
-    setStageScale(1);
-    setStagePos({
+    const newPos = {
       x: size.width  / 2 - (bbox ? bbox.minX + bbox.w / 2 : 0),
       y: size.height / 2 - (bbox ? bbox.minY + bbox.h / 2 : 0),
-    });
+    };
+    stageScaleRef.current = 1;
+    stagePosRef.current   = newPos;
+    setStageScale(1);
+    setStagePos(newPos);
   };
 
   const zoomPct = Math.round(stageScale * 100);
-  const gridOffX = ((-stagePos.x / stageScale) % GRID_SIZE + GRID_SIZE) % GRID_SIZE;
-  const gridOffY = ((-stagePos.y / stageScale) % GRID_SIZE + GRID_SIZE) % GRID_SIZE;
-  const gridW    = size.width  / stageScale + GRID_SIZE * 2;
-  const gridH    = size.height / stageScale + GRID_SIZE * 2;
+  const contentBBox = computeBBox(layoutZones || []);
+  const stageLabelX = contentBBox ? contentBBox.minX + contentBBox.w / 2 - 120 : STAGE_LABEL_X;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: palette.canvasBg, height: '100%' }}>
@@ -507,22 +553,30 @@ export default function CustomerSeatmapCanvas({ layoutZones, dbZones, selectedSe
           onMouseEnter={e => { e.target.getStage().container().style.cursor = 'grab'; }}
           onMouseLeave={e => { e.target.getStage().container().style.cursor = 'default'; }}
           onDragStart={e => { if (e.target === stageRef.current) { stageDraggedRef.current = true; stageRef.current.container().style.cursor = 'grabbing'; } }}
-          onDragEnd={e => { if (e.target === stageRef.current) { setStagePos({ x: e.target.x(), y: e.target.y() }); stageDraggedRef.current = false; stageRef.current.container().style.cursor = 'grab'; } }}
+          onDragEnd={e => {
+            if (e.target === stageRef.current) {
+              const p = { x: e.target.x(), y: e.target.y() };
+              stagePosRef.current = p;
+              setStagePos(p);
+              stageDraggedRef.current = false;
+              stageRef.current.container().style.cursor = 'grab';
+            }
+          }}
         >
           <Layer listening={false}>
             {(() => {
               const lines = [];
-              for (let x = -gridOffX; x < gridW; x += GRID_SIZE)
-                lines.push(<Rect key={`gv${x}`} x={x - stagePos.x / stageScale} y={-stagePos.y / stageScale} width={0.5} height={gridH} fill={palette.gridLine} />);
-              for (let y = -gridOffY; y < gridH; y += GRID_SIZE)
-                lines.push(<Rect key={`gh${y}`} x={-stagePos.x / stageScale} y={y - stagePos.y / stageScale} width={gridW} height={0.5} fill={palette.gridLine} />);
+              for (let x = 0; x <= WORLD_W; x += GRID_SIZE)
+                lines.push(<Rect key={`gv${x}`} x={x} y={0} width={0.5} height={WORLD_H} fill={palette.gridLine} />);
+              for (let y = 0; y <= WORLD_H; y += GRID_SIZE)
+                lines.push(<Rect key={`gh${y}`} x={0} y={y} width={WORLD_W} height={0.5} fill={palette.gridLine} />);
               return lines;
             })()}
           </Layer>
 
           <Layer listening={false}>
-            <Rect x={size.width / stageScale / 2 - 120} y={16} width={240} height={32} fill="#FF6B35" cornerRadius={[6, 6, 0, 0]} />
-            <Text x={size.width / stageScale / 2 - 120} y={22} width={240} text="★  SÂN KHẤU  ★" fontSize={11} fontStyle="bold" fill="#fff" align="center" letterSpacing={2} />
+            <Rect x={stageLabelX} y={STAGE_LABEL_Y} width={240} height={32} fill="#FF6B35" cornerRadius={[6, 6, 0, 0]} />
+            <Text x={stageLabelX} y={STAGE_LABEL_Y + 6} width={240} text="★  SÂN KHẤU  ★" fontSize={11} fontStyle="bold" fill="#fff" align="center" letterSpacing={2} />
           </Layer>
 
           <Layer>

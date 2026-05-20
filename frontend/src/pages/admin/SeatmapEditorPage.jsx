@@ -4,6 +4,7 @@ import SeatmapCanvas from '../../components/seatmap/SeatmapCanvas';
 import SeatmapPreview from '../../components/seatmap/SeatmapPreview';
 import eventService from '../../services/event.service';
 import { generateSeatsForZone } from '../../lib/seatGenerator';
+import { zonesFromSeatmapJson, flattenZonesForDb, buildLayoutForSave } from '../../lib/seatmapLayout';
 import './SeatmapEditorPage.css';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -141,8 +142,8 @@ function PriceInput({ value, onChange }) {
         value={raw}
         className="sme-price-input"
         onChange={handleChange}
-        onBlur={e => { e.target.parentElement.style.borderColor = '#333'; handleBlur(); }}
-        onFocus={e => e.target.parentElement.style.borderColor = '#FF6B35'}
+        onBlur={e => { e.target.parentElement.style.borderColor = 'var(--border)'; handleBlur(); }}
+        onFocus={e => e.target.parentElement.style.borderColor = 'var(--accent)'}
       />
       <span className="sme-price-suffix">đ</span>
     </div>
@@ -181,8 +182,8 @@ function PropertyPanel({ zone, onChange, onRemove, onFlip }) {
   const bt = zone.blockType || 'rows';
   const totalSeats = countZoneSeats(zone);
 
-  const focusOn  = e => { e.target.style.borderColor = '#FF6B35'; };
-  const focusOff = e => { e.target.style.borderColor = '#333'; };
+  const focusOn  = e => { e.target.style.borderColor = 'var(--accent)'; };
+  const focusOff = e => { e.target.style.borderColor = 'var(--border)'; };
 
 
 
@@ -250,7 +251,7 @@ function PropertyPanel({ zone, onChange, onRemove, onFlip }) {
                 {ZONE_COLORS.map(c => (
                   <button key={c} onClick={() => { onChange('color', c); setColorInput(c); }}
                     className="sme-swatch"
-                    style={{ background: c, border: zone.color === c ? '2px solid #fff' : '1px solid transparent' }} />
+                    style={{ background: c, border: zone.color === c ? '2px solid var(--text)' : '1px solid transparent' }} />
                 ))}
               </div>
               <PropRow label="Giá vé">
@@ -383,8 +384,8 @@ function FloorPropertyPanel({ zone, ungroupedChildren, onChange, onRemove, onAdd
   const [colorInput, setColorInput] = useState(zone.color);
   useEffect(() => { setColorInput(zone.color); }, [zone.color]);
 
-  const focusOn  = e => { e.target.style.borderColor = '#FF6B35'; };
-  const focusOff = e => { e.target.style.borderColor = '#333'; };
+  const focusOn  = e => { e.target.style.borderColor = 'var(--accent)'; };
+  const focusOff = e => { e.target.style.borderColor = 'var(--border)'; };
 
   const totalSeats = countZoneSeats(zone);
 
@@ -395,13 +396,13 @@ function FloorPropertyPanel({ zone, ungroupedChildren, onChange, onRemove, onAdd
         <div className="prop-panel__title">
           {zone.name}
         </div>
-        <span className="floor-tag">TANG</span>
+        <span className="floor-tag">TẦNG</span>
         {zone.grouped ? (
           <button
             onClick={onUngroup}
             title="Tach cac khoi seat thanh doc lap"
             className="floor-ungroup-btn"
-          >Tach nhom</button>
+          >Ungroup</button>
         ) : (
           <button
             onClick={onGroup}
@@ -419,12 +420,12 @@ function FloorPropertyPanel({ zone, ungroupedChildren, onChange, onRemove, onAdd
             Thong tin tang
           </div>
           <div className="prop-row">
-            <span className="prop-row__label">Ten tang</span>
+            <span className="prop-row__label">Tên tầng</span>
             <input value={zone.name} className="sme-input" onFocus={focusOn} onBlur={focusOff}
               onChange={e => onChange('name', e.target.value)} />
           </div>
           <div className="prop-row">
-            <span className="prop-row__label">Mau sac</span>
+            <span className="prop-row__label">Màu sắc</span>
             <div className="sme-color-row">
               <div className="sme-color-preview--sm" style={{ background: zone.color }} />
               <input value={colorInput} maxLength={7} className="sme-input"
@@ -440,7 +441,7 @@ function FloorPropertyPanel({ zone, ungroupedChildren, onChange, onRemove, onAdd
             {ZONE_COLORS.map(c => (
               <button key={c} onClick={() => { onChange('color', c); setColorInput(c); }}
                 className="sme-swatch"
-                style={{ background: c, border: zone.color === c ? '2px solid #fff' : '1px solid transparent' }} />
+                style={{ background: c, border: zone.color === c ? '2px solid var(--text)' : '1px solid transparent' }} />
             ))}
           </div>
         </div>
@@ -452,7 +453,7 @@ function FloorPropertyPanel({ zone, ungroupedChildren, onChange, onRemove, onAdd
             return (
               <>
                 <div className="floor-section-label">
-                  Khu ghe trong tang ({displayChildren.length})
+                  Khu ghế trong tầng ({displayChildren.length})
                   {!zone.grouped && displayChildren.length > 0 && (
                     <span className="floor-ungroup-warn">— chua group</span>
                   )}
@@ -462,8 +463,8 @@ function FloorPropertyPanel({ zone, ungroupedChildren, onChange, onRemove, onAdd
                     onClick={() => onSelectChild(child.id)}
                     className="floor-child-item"
                     style={{
-                      background: selectedChildId === child.id ? 'rgba(255,107,53,.1)' : '#1A1A1A',
-                      border: `1px solid ${selectedChildId === child.id ? 'rgba(255,107,53,.4)' : '#2A2A2A'}`,
+                      background: selectedChildId === child.id ? 'rgba(255,107,53,.1)' : 'var(--bg)',
+                      border: `1px solid ${selectedChildId === child.id ? 'rgba(255,107,53,.4)' : 'var(--card-hover)'}`,
                     }}
                   >
                     <div className="floor-child-item__dot" style={{ background: child.color }} />
@@ -474,10 +475,10 @@ function FloorPropertyPanel({ zone, ungroupedChildren, onChange, onRemove, onAdd
                   </div>
                 ))}
                 {displayChildren.length === 0 && (
-                  <div className="floor-no-children">Chua co khu ghe nao</div>
+                  <div className="floor-no-children">Chưa có khu ghế nào</div>
                 )}
                 {/* Add child block buttons */}
-                <div className="floor-add-label">Them khu ghe:</div>
+                <div className="floor-add-label">Thêm khu ghế:</div>
                 <div className="floor-add-btns">
                   {CHILD_BLOCK_TYPES.map(bt => (
                     <button key={bt.type} onClick={() => onAddChild(bt.type, bt.defaultConfig)}
@@ -509,11 +510,11 @@ function FloorPropertyPanel({ zone, ungroupedChildren, onChange, onRemove, onAdd
         {/* Stats */}
         <div className="sme-stats">
           <div className="sme-stats__row">
-            <span className="sme-stats__label">Tong ghe (tang)</span>
+            <span className="sme-stats__label">Tổng ghế</span>
             <span className="sme-stats__value sme-stats__value--green">{totalSeats.toLocaleString('vi-VN')}</span>
           </div>
           <div className="sme-stats__row">
-            <span className="sme-stats__label">So khu ghe</span>
+            <span className="sme-stats__label">Số khu ghế</span>
             <span className="sme-stats__value sme-stats__value--orange">{(zone.grouped ? (zone.children || []) : (ungroupedChildren || [])).length}</span>
           </div>
         </div>
@@ -527,8 +528,8 @@ function ChildEditor({ child, onChange }) {
   const bt = child.blockType || 'rows';
   const updateConfig = (key, val) => onChange('config', { ...(child.config || {}), [key]: val });
 
-  const focusOn  = e => { e.target.style.borderColor = '#FF6B35'; };
-  const focusOff = e => { e.target.style.borderColor = '#333'; };
+  const focusOn  = e => { e.target.style.borderColor = 'var(--accent)'; };
+  const focusOff = e => { e.target.style.borderColor = 'var(--border)'; };
 
 
 
@@ -579,7 +580,7 @@ function ChildEditor({ child, onChange }) {
 function EmptyPanel() {
   return (
     <div className="empty-panel">
-      <svg width="48" height="48" fill="none" stroke="#333" strokeWidth="1.5" viewBox="0 0 24 24">
+      <svg width="48" height="48" fill="none" stroke="var(--border)" strokeWidth="1.5" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/>
       </svg>
       <p className="empty-panel__hint">Chọn khu ghế để chỉnh sửa</p>
@@ -630,19 +631,11 @@ export default function SeatmapEditorPage() {
       .then(([seatmapRes, eventRes]) => {
         const { seatmapJson, seatmapVersion: ver } = seatmapRes.data;
         setSeatmapVersion(ver ?? 1);
-        if (seatmapJson?.zones?.length) {
-          setZones(seatmapJson.zones.map((z, i) => ({
-            id:        z.id        || mkZoneId(),
-            name:      z.name      || `Khu ${i + 1}`,
-            color:     z.color     || ZONE_COLORS[i % ZONE_COLORS.length],
-            blockType: z.blockType || 'rows',
-            config:    z.config    || {},
-            rows:      z.config?.rows ?? z.rows ?? 5,
-            cols:      z.config?.cols ?? z.cols ?? 10,
-            price:     typeof z.price === 'number' ? z.price : Number(z.price) || 500000,
-            x:         z.x        ?? 60,
-            y:         z.y        ?? 60,
-            rotation:  z.rotation ?? 0,
+        const loaded = zonesFromSeatmapJson(seatmapJson);
+        if (loaded.length) {
+          setZones(loaded.map((z, i) => ({
+            ...z,
+            color: z.color || ZONE_COLORS[i % ZONE_COLORS.length],
           })));
         }
         const ev = eventRes?.data?.event || eventRes?.data || null;
@@ -898,11 +891,7 @@ export default function SeatmapEditorPage() {
   const handleSave = useCallback(async () => {
     if (zones.length === 0) { setToast('⚠ Phải có ít nhất 1 khu vực'); return false; }
     // Flatten: grouped floors expand to children; ungrouped floors are skipped (their zones are top-level); regular zones included
-    const flatZones = zones.flatMap(z => {
-      if (z.blockType === 'floor') return z.grouped ? (z.children || []) : [];
-      if (z._floorId) return [z]; // ungrouped child still top-level
-      return [z];
-    });
+    const flatZones = flattenZonesForDb(zones);
     if (flatZones.length === 0) { setToast('⚠ Phải có ít nhất 1 khu vực có ghế'); return false; }
     for (const z of flatZones) {
       if (!z.name.trim())        { setToast('⚠ Tên khu vực không được để trống'); return false; }
@@ -911,30 +900,9 @@ export default function SeatmapEditorPage() {
     }
     setSaving(true);
     try {
-      // layout = full zone tree (floors preserved) for customer canvas rendering
-      const buildLayout = (zoneList) => zoneList
-        .filter(z => !z._floorId)
-        .map(z => {
-          const base = {
-            id: z.id, name: z.name.trim(), color: z.color, price: z.price,
-            blockType: z.blockType || 'rows',
-            config: z.config || {}, rows: z.rows, cols: z.cols,
-            x: z.x ?? 60, y: z.y ?? 60, rotation: z.rotation ?? 0,
-            width: z.width, height: z.height,
-          };
-          if (z.blockType === 'floor') {
-            const ungroupedKids = zoneList.filter(c => c._floorId === z.id);
-            base.grouped = z.grouped;
-            base.children = z.grouped
-              ? (z.children || [])
-              : ungroupedKids.map(c => ({ ...c }));
-          }
-          return base;
-        });
-
       const seatmapPayload = {
         venue: event?.venue || '',
-        layout: buildLayout(zones),
+        layout: buildLayoutForSave(zones),
         zones: flatZones.map(z => {
           const generated = generateSeatsForZone(z);
           const seats = generated.map(s => ({
@@ -988,9 +956,9 @@ export default function SeatmapEditorPage() {
       opacity: disabled ? 0.6 : 1,
     };
     const variants = {
-      ghost:        { background: 'transparent', color: '#AAAAAA', border: '1px solid #333' },
-      'orange-ghost': { background: 'transparent', color: '#FF6B35', border: '1px solid rgba(255,107,53,0.5)' },
-      orange:       { background: '#FF6B35', color: '#FFF', border: '1px solid #FF6B35' },
+      ghost:        { background: 'transparent', color: 'var(--muted)', border: '1px solid var(--border)' },
+      'orange-ghost': { background: 'transparent', color: 'var(--accent)', border: '1px solid rgba(255,107,53,0.5)' },
+      orange:       { background: 'var(--accent)', color: 'var(--text)', border: '1px solid var(--accent)' },
     };
     return (
       <button style={{ ...base, ...variants[variant], ...sx }} onClick={onClick} disabled={disabled}
@@ -1140,7 +1108,7 @@ export default function SeatmapEditorPage() {
                 { color: '#6b7280', label: 'Đang khóa' },
                 { color: '#7f1d1d', label: 'Đã bán' },
               ].map(({ color, label }) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', fontSize: 12, color: '#AAAAAA' }}>
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', fontSize: 12, color: 'var(--muted)' }}>
                   <div style={{ width: 12, height: 12, borderRadius: 3, background: color, flexShrink: 0 }} />
                   {label}
                 </div>
@@ -1161,9 +1129,9 @@ export default function SeatmapEditorPage() {
                 className="sme-zone-row"
                 style={{
                   borderLeft: `2px solid ${selectedZoneId === z.id ? z.color : 'transparent'}`,
-                  background: selectedZoneId === z.id ? 'rgba(255,255,255,.04)' : 'transparent',
+                  background: selectedZoneId === z.id ? 'rgba(120,120,120,0.1)' : 'transparent',
                 }}
-                onMouseEnter={e => { if (selectedZoneId !== z.id) e.currentTarget.style.background = '#1E1E1E'; }}
+                onMouseEnter={e => { if (selectedZoneId !== z.id) e.currentTarget.style.background = 'var(--card-hover)'; }}
                 onMouseLeave={e => { if (selectedZoneId !== z.id) e.currentTarget.style.background = 'transparent'; }}
               >
                 {z.blockType === 'floor'
@@ -1171,7 +1139,7 @@ export default function SeatmapEditorPage() {
                   : <div className="sme-zone-row__dot" style={{ background: z.color }} />}
                 <span className="sme-zone-row__name">{z.name}</span>
                 {z.blockType === 'floor' && (
-                  <span style={{ fontSize: 9, color: z.grouped ? '#FF6B35' : '#facc15', marginRight: 4, fontWeight: 600 }}>
+                  <span style={{ fontSize: 9, color: z.grouped ? 'var(--accent)' : '#facc15', marginRight: 4, fontWeight: 600 }}>
                     {z.grouped ? 'TANG' : 'TANG*'}
                   </span>
                 )}
@@ -1188,7 +1156,7 @@ export default function SeatmapEditorPage() {
                     className="sme-child-row"
                     style={{
                       borderLeft: `2px solid ${selectedChildId === child.id ? child.color : 'transparent'}`,
-                      background: selectedChildId === child.id ? 'rgba(255,255,255,.03)' : 'transparent',
+                      background: selectedChildId === child.id ? 'rgba(120,120,120,0.08)' : 'transparent',
                     }}
                     onMouseEnter={e => { if (selectedChildId !== child.id) e.currentTarget.style.background = '#181818'; }}
                     onMouseLeave={e => { if (selectedChildId !== child.id) e.currentTarget.style.background = 'transparent'; }}

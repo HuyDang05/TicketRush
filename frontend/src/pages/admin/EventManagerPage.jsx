@@ -73,40 +73,40 @@ function EventModal({ event, onClose, onSaved, onCreated }) {
         <div className="event-form-field">
           <label className="event-form-label">Tên sự kiện</label>
           <input className="event-form-input" placeholder="Vd: Đêm nhạc Mỹ Tâm 2026" value={form.name} onChange={e => set('name', e.target.value)}
-            onFocus={e => e.target.style.borderColor = '#FF6B35'} onBlur={e => e.target.style.borderColor = '#333333'} />
+            onFocus={e => e.target.style.borderColor = 'var(--accent)'} onBlur={e => e.target.style.borderColor = 'var(--border)'} />
         </div>
 
         <div className="event-form-grid">
           <div className="event-form-field">
             <label className="event-form-label">Ngày tổ chức</label>
             <input className="event-form-input" style={{ colorScheme: 'dark' }} type="date" value={form.date} onChange={e => set('date', e.target.value)}
-              onFocus={e => e.target.style.borderColor = '#FF6B35'} onBlur={e => e.target.style.borderColor = '#333333'} />
+              onFocus={e => e.target.style.borderColor = 'var(--accent)'} onBlur={e => e.target.style.borderColor = 'var(--border)'} />
           </div>
           <div className="event-form-field">
             <label className="event-form-label">Giờ bắt đầu</label>
             <input className="event-form-input" style={{ colorScheme: 'dark' }} type="time" value={form.time} onChange={e => set('time', e.target.value)}
-              onFocus={e => e.target.style.borderColor = '#FF6B35'} onBlur={e => e.target.style.borderColor = '#333333'} />
+              onFocus={e => e.target.style.borderColor = 'var(--accent)'} onBlur={e => e.target.style.borderColor = 'var(--border)'} />
           </div>
         </div>
 
         <div className="event-form-field">
           <label className="event-form-label">Địa điểm</label>
           <input className="event-form-input" placeholder="Vd: SVĐ Mỹ Đình, Hà Nội" value={form.location} onChange={e => set('location', e.target.value)}
-            onFocus={e => e.target.style.borderColor = '#FF6B35'} onBlur={e => e.target.style.borderColor = '#333333'} />
+            onFocus={e => e.target.style.borderColor = 'var(--accent)'} onBlur={e => e.target.style.borderColor = 'var(--border)'} />
         </div>
 
         <div className="event-form-grid">
           <div className="event-form-field">
             <label className="event-form-label">Thể loại</label>
             <select className="event-form-input event-form-select" value={form.category} onChange={e => set('category', e.target.value)}
-              onFocus={e => e.target.style.borderColor = '#FF6B35'} onBlur={e => e.target.style.borderColor = '#333333'}>
+              onFocus={e => e.target.style.borderColor = 'var(--accent)'} onBlur={e => e.target.style.borderColor = 'var(--border)'}>
               {['Âm nhạc', 'Thể thao', 'Sân khấu', 'Hội thảo', 'Lễ hội'].map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
           <div className="event-form-field">
             <label className="event-form-label">Mô tả ngắn</label>
             <input className="event-form-input" placeholder="Mô tả sự kiện..." value={form.description} onChange={e => set('description', e.target.value)}
-              onFocus={e => e.target.style.borderColor = '#FF6B35'} onBlur={e => e.target.style.borderColor = '#333333'} />
+              onFocus={e => e.target.style.borderColor = 'var(--accent)'} onBlur={e => e.target.style.borderColor = 'var(--border)'} />
           </div>
         </div>
 
@@ -131,9 +131,9 @@ function StatCard({ label, value, valueColor, change, changeUp }) {
     <div className="admin-stat-card">
       <div className="admin-stat-card__glow" />
       <div className="admin-stat-card__label">{label}</div>
-      <div className="admin-stat-card__value" style={{ color: valueColor || '#fff' }}>{value}</div>
+      <div className="admin-stat-card__value" style={{ color: valueColor || 'var(--text)' }}>{value}</div>
       {change && (
-        <div className="admin-stat-card__change" style={{ color: changeUp ? '#22c55e' : '#AAAAAA' }}>
+        <div className="admin-stat-card__change" style={{ color: changeUp ? '#22c55e' : 'var(--muted)' }}>
           {changeUp && <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>}
           {change}
         </div>
@@ -270,7 +270,7 @@ export default function EventManagerPage() {
       onClick={onClick}
       className="act-btn"
       onMouseEnter={e => Object.assign(e.currentTarget.style, hoverStyle)}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = '#333333'; e.currentTarget.style.color = '#AAAAAA'; e.currentTarget.style.background = 'transparent'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.background = 'transparent'; }}
     >{children}</button>
   );
 
@@ -278,7 +278,7 @@ export default function EventManagerPage() {
     <AdminLayout>
       <div className="dash-topbar">
         <div className="dash-topbar__breadcrumb">
-          Admin <span style={{ opacity: .4 }}>/</span> <span style={{ color: '#fff', fontWeight: 600 }}>Quản lý sự kiện</span>
+          Admin <span style={{ opacity: .4 }}>/</span> <span style={{ color: 'var(--text)', fontWeight: 600 }}>Quản lý sự kiện</span>
         </div>
         <button
           className="btn-primary"
@@ -294,9 +294,9 @@ export default function EventManagerPage() {
 
         <div className="event-manager-stats">
           <StatCard label="Tổng sự kiện" value={total} change="+2 tháng này" changeUp />
-          <StatCard label="Đang mở bán" value={pubCount} valueColor="#FF6B35" change="Đang hoạt động" />
+          <StatCard label="Đang mở bán" value={pubCount} valueColor="var(--accent)" change="Đang hoạt động" />
           <StatCard label="Vé đã bán" value={totalSold.toLocaleString('vi-VN')} change="+18% so với tháng trước" changeUp />
-          <StatCard label="Trang hiện tại" value={`${safePage}/${totalPages}`} valueColor="#FF6B35" change="Server-side pagination" />
+          <StatCard label="Trang hiện tại" value={`${safePage}/${totalPages}`} valueColor="var(--accent)" change="Server-side pagination" />
         </div>
 
         <div className="event-manager-table-card">
@@ -309,8 +309,8 @@ export default function EventManagerPage() {
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Tìm sự kiện..."
                   className="event-manager-search"
-                  onFocus={e => e.target.style.borderColor = '#FF6B35'}
-                  onBlur={e => e.target.style.borderColor = '#333333'}
+                  onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+                  onBlur={e => e.target.style.borderColor = 'var(--border)'}
                 />
                 <span className="event-manager-search-icon">
                   <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
@@ -354,7 +354,7 @@ export default function EventManagerPage() {
                     <tr
                       key={ev.id}
                       style={{ opacity: isDeleting ? 0.4 : 1 }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.03)'}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(120,120,120,0.08)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       <td>
@@ -373,17 +373,17 @@ export default function EventManagerPage() {
                           <div
                             style={{
                               fontSize: 11,
-                              color: '#AAAAAA',
+                              color: 'var(--muted)',
                             }}
                           >
                             {ev.category || 'Sự kiện'}
                           </div>
                         </div>
                       </td>
-                      <td style={{ color: '#AAAAAA', fontSize: 12, whiteSpace: 'nowrap' }}>
+                      <td style={{ color: 'var(--muted)', fontSize: 12, whiteSpace: 'nowrap' }}>
                         {ev.venue || ev.location || '—'}
                       </td>
-                      <td style={{ color: '#AAAAAA', whiteSpace: 'nowrap', fontSize: 12 }}>
+                      <td style={{ color: 'var(--muted)', whiteSpace: 'nowrap', fontSize: 12 }}>
                         {ev.date ? new Date(ev.date).toLocaleDateString('vi-VN') : '—'}
                       </td>
                       <td>
@@ -399,14 +399,14 @@ export default function EventManagerPage() {
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
                           <ActBtn
                             title="Xem Dashboard"
-                            hoverStyle={{ borderColor: 'rgba(255,255,255,.25)', color: '#fff', background: 'rgba(255,255,255,.05)' }}
+                            hoverStyle={{ borderColor: 'rgba(120,120,120,0.35)', color: 'var(--text)', background: 'rgba(120,120,120,0.12)' }}
                             onClick={() => navigate(`/admin?eventId=${ev.id}`)}
                           >📊</ActBtn>
 
                           {ev.status === 'DRAFT' && (
                             <ActBtn
                               title="Chỉnh sửa"
-                              hoverStyle={{ borderColor: '#FF6B35', color: '#FF6B35', background: 'rgba(255,107,53,.08)' }}
+                              hoverStyle={{ borderColor: 'var(--accent)', color: 'var(--accent)', background: 'rgba(255,107,53,.08)' }}
                               onClick={() => navigate(`/admin/events/${ev.id}/edit`)}
                             >✏️</ActBtn>
                           )}
@@ -445,7 +445,7 @@ export default function EventManagerPage() {
           </div>
 
           <div className="event-manager-table-footer">
-            <div style={{ fontSize: 12, color: '#AAAAAA' }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>
               Hiển thị {total === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, total)} trong {total} sự kiện
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -475,7 +475,7 @@ export default function EventManagerPage() {
                 }
                 return pages.map((p, i) =>
                   p === '…'
-                    ? <span key={`e${i}`} style={{ color: '#555', fontSize: 13, padding: '0 2px' }}>…</span>
+                    ? <span key={`e${i}`} style={{ color: 'var(--muted)', fontSize: 13, padding: '0 2px' }}>…</span>
                     : <button
                         key={p}
                         className={`page-btn${p === safePage ? ' page-btn--active' : ''}`}

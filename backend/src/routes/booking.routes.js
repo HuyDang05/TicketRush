@@ -4,6 +4,8 @@ const requireRole = require('../middlewares/role.middleware');
 const {
   lockSeatHandler,
   getMyTicketsHandler,
+  releaseSeatHandler,
+  getMyPendingLocksHandler,
 } = require('../controllers/booking.controller');
 const { checkoutHandler } = require('../controllers/checkout.controller');
 
@@ -29,6 +31,14 @@ router.get(
   getMyTicketsHandler
 );
 
+// GET /api/bookings/pending
+router.get(
+  '/pending',
+  authMiddleware,
+  requireRole(['CUSTOMER', 'ADMIN']),
+  getMyPendingLocksHandler
+);
+
 // POST /api/bookings/lock
 router.post(
   '/lock',
@@ -43,6 +53,14 @@ router.post(
   authMiddleware,
   requireRole(['CUSTOMER', 'ADMIN']),
   checkoutHandler
+);
+
+// DELETE /api/bookings/:bookingId/release
+router.delete(
+  '/:bookingId/release',
+  authMiddleware,
+  requireRole(['CUSTOMER', 'ADMIN']),
+  releaseSeatHandler
 );
 
 module.exports = router;

@@ -19,6 +19,7 @@ model User {
   dob         DateTime?
   gender      Gender?
   createdAt   DateTime             @default(now())
+  lastLoginAt DateTime?
   bookings    Booking[]
   events      Event[]              @relation("AdminEvents")
   resetTokens PasswordResetToken[]

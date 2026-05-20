@@ -80,9 +80,6 @@ async function lockSeat(userId, seatId, socketId) {
       });
 
       return { booking: newBooking, zone, eventId, seatLabel: lockedSeat.label };
-    }, {
-      // SERIALIZABLE đảm bảo không có phantom read khi đếm locks
-      isolationLevel: 'Serializable',
     });
 
     booking = result.booking;
@@ -179,7 +176,110 @@ async function getMyTickets(userId) {
   });
 }
 
+async function releaseSeatUser(userId, bookingId) {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: { seat: { include: { zone: true } } },
+  });
+
+  if (!booking) {
+    const err = new Error('Không tìm thấy thông tin đặt chỗ');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (booking.userId !== userId) {
+    const err = new Error('Không có quyền thực hiện thao tác này');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  if (booking.status !== 'PENDING') {
+    const err = new Error('Ghế không ở trạng thái đang khóa');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const eventId = booking.seat.zone.eventId;
+  const seatId = booking.seatId;
+  const seatLabel = booking.seat.label;
+
+  await prisma.$transaction([
+    prisma.booking.delete({
+      where: { id: bookingId },
+    }),
+    prisma.seat.update({
+      where: { id: seatId },
+      data: { status: 'AVAILABLE', lockedAt: null },
+    }),
+  ]);
+
+  try {
+    emitSeatEvent(eventId, 'seat_released', { seatId, label: seatLabel });
+  } catch {
+    // Socket failure
+  }
+
+  return { success: true, message: 'Đã hủy giữ chỗ thành công' };
+}
+
+async function getMyPendingLocks(userId, eventId) {
+  const whereCondition = {
+    userId,
+    status: 'PENDING',
+  };
+  
+  if (eventId) {
+    whereCondition.seat = {
+      zone: {
+        eventId
+      }
+    };
+  }
+
+  const pendingBookings = await prisma.booking.findMany({
+    where: whereCondition,
+    include: {
+      seat: {
+        include: {
+          zone: {
+            include: {
+              event: true
+            }
+          }
+        }
+      }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+
+  return pendingBookings.map((b) => {
+    const baseTime = b.seat.lockedAt ? b.seat.lockedAt.getTime() : b.createdAt.getTime();
+    const expiresAt = new Date(baseTime + LOCK_DURATION_MS);
+    return {
+      bookingId: b.id,
+      seatId: b.seatId,
+      seatLabel: b.seat.label,
+      row: b.seat.row,
+      col: b.seat.col,
+      zoneId: b.seat.zoneId,
+      zoneName: b.seat.zone.name,
+      eventId: b.seat.zone.eventId,
+      eventTitle: b.seat.zone.event.title,
+      eventImageUrl: b.seat.zone.event.cardImageUrl || b.seat.zone.event.imageUrl,
+      totalPrice: Number(b.totalPrice),
+      status: b.status,
+      expiresAt: expiresAt,
+      createdAt: b.createdAt
+    };
+  });
+}
+
 module.exports = {
   lockSeat,
   getMyTickets,
+  releaseSeatUser,
+  getMyPendingLocks,
 };

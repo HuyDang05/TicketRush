@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import bookingService from '../../services/booking.service';
 import { useAuth } from '../../hooks/useAuth';
-import { useCountdown } from '../../hooks/useCountdown';
-import { useSocket } from '../../hooks/useSocket';
 import { useCart } from '../../context/CartContext';
+import { useCountdown } from '../../hooks/useCountdown';
 import './checkout.css';
 
 function fmtVND(n) {
@@ -13,9 +12,16 @@ function fmtVND(n) {
   return value.toLocaleString('vi-VN') + ' đ';
 }
 
-function CheckoutCountdown({ expiresAt }) {
+function CheckoutCountdown({ expiresAt, onExpire }) {
   const { minutes, seconds, isExpired } = useCountdown(expiresAt);
   const urgent = minutes < 3;
+  
+  useEffect(() => {
+    if (isExpired && onExpire) {
+      onExpire();
+    }
+  }, [isExpired, onExpire]);
+
   return (
     <span style={{
       fontSize: 26, fontWeight: 800, letterSpacing: 1,
@@ -44,77 +50,61 @@ function PayOption({ name, logo, logoBg, title, subtitle, selected, onSelect }) 
   );
 }
 
-export default function CheckoutPage() {
+export default function CartCheckoutPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { user } = useAuth();
-  const { refreshCart } = useCart();
-
-  const { bookings, eventId, eventTitle, eventVenue, eventDate } = location.state || {};
+  const { cartItems, refreshCart } = useCart();
 
   const [payMethod, setPayMethod] = useState('card');
   const [confirming, setConfirming] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const [currentBookings, setCurrentBookings] = useState(bookings || []);
-  const { on } = useSocket(eventId);
-
   useEffect(() => {
-    if (!on) return;
-    const offReleased = on('seat_released', ({ seatId, label }) => {
-      setCurrentBookings((prev) => {
-        const next = prev.filter((b) => b.seatId !== seatId);
-        if (next.length !== prev.length) {
-          toast.error(`Ghế ${label || ''} đã hết thời gian giữ chỗ!`);
-        }
-        return next;
-      });
-    });
-    return () => offReleased();
-  }, [on]);
-
-  useEffect(() => {
-    if (currentBookings.length === 0) {
-      toast.error('Tất cả đơn hàng đã hết hạn hoặc không tồn tại');
-      navigate(eventId ? `/events/${eventId}/seats` : '/', { replace: true });
+    if (cartItems.length === 0 && !success) {
+      toast.error('Giỏ hàng trống hoặc các vé đã hết hạn');
+      navigate('/cart', { replace: true });
     }
-  }, [currentBookings, navigate, eventId]);
+  }, [cartItems, navigate, success]);
 
-  if (currentBookings.length === 0) return null;
+  if (cartItems.length === 0 && !success) return null;
 
-  const subtotal = currentBookings.reduce(
+  const subtotal = cartItems.reduce(
     (sum, b) => sum + Number(b.totalPrice || 0),
     0
   );
 
   const serviceFee = Math.round(Number(subtotal) * 0.05);
-
   const grandTotal = Number(subtotal) + Number(serviceFee);
 
-  const dateStr = eventDate
-    ? new Date(eventDate).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
-    : '';
-  const timeStr = eventDate
-    ? new Date(eventDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-    : '';
+  // Group items by event for display
+  const eventGroups = cartItems.reduce((acc, item) => {
+    if (!acc[item.eventId]) {
+      acc[item.eventId] = {
+        title: item.eventTitle,
+        items: []
+      };
+    }
+    acc[item.eventId].items.push(item);
+    return acc;
+  }, {});
 
   async function handleConfirm() {
     if (confirming || success) return;
     setConfirming(true);
     try {
-      const bookingIds = currentBookings.map((b) => b.bookingId);
+      const bookingIds = cartItems.map((b) => b.bookingId);
       await bookingService.checkout(bookingIds);
       setSuccess(true);
-      refreshCart(); // Refresh cart to clear checked out items globally
+      refreshCart(); // clear cart locally
       toast.success('Mua vé thành công!', { description: 'Vé điện tử đã được gửi vào email của bạn.' });
       setTimeout(() => navigate('/my-tickets', { replace: true }), 1800);
     } catch (err) {
       const status = err.response?.status;
       const msg = err.response?.data?.message || 'Thanh toán thất bại. Vui lòng thử lại.';
       if (status === 410 || status === 409) {
-        toast.error('Phiên giữ chỗ đã hết hạn', { description: 'Vui lòng chọn lại ghế.' });
+        toast.error('Phiên giữ chỗ đã hết hạn', { description: 'Một số ghế trong giỏ hàng đã hết thời gian giữ chỗ.' });
         refreshCart();
-        setTimeout(() => navigate(eventId ? `/events/${eventId}` : '/', { replace: true }), 1800);
+        setTimeout(() => navigate('/cart', { replace: true }), 1800);
       } else {
         toast.error(msg);
       }
@@ -132,7 +122,7 @@ export default function CheckoutPage() {
           <div className="checkout-stepper__circle checkout-stepper__circle--done">
             <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
           </div>
-          <span className="checkout-stepper__label">1. Chọn ghế</span>
+          <span className="checkout-stepper__label">1. Giỏ hàng</span>
         </div>
         <div className="checkout-stepper__line checkout-stepper__line--done" />
         <div className="checkout-stepper__inner">
@@ -150,13 +140,9 @@ export default function CheckoutPage() {
       <div className="checkout-breadcrumb">
         <Link to="/">Trang chủ</Link>
         <span className="checkout-breadcrumb__sep">/</span>
-        {eventId && (
-          <>
-            <Link to={`/events/${eventId}`}>{eventTitle || 'Sự kiện'}</Link>
-            <span className="checkout-breadcrumb__sep">/</span>
-          </>
-        )}
-        <span className="checkout-breadcrumb__current">Xác nhận thanh toán</span>
+        <Link to="/cart">Giỏ hàng</Link>
+        <span className="checkout-breadcrumb__sep">/</span>
+        <span className="checkout-breadcrumb__current">Xác nhận thanh toán toàn bộ</span>
       </div>
 
       {/* MAIN */}
@@ -165,43 +151,32 @@ export default function CheckoutPage() {
         {/* LEFT */}
         <div className="checkout-left">
 
-          {/* Event info */}
+          {/* Seat list grouped by event */}
           <div className="checkout-card">
-            <div className="checkout-card__label">Sự kiện</div>
-            <div className="checkout-event">
-              <div className="checkout-event__thumb">🎤</div>
-              <div className="checkout-event__meta">
-                <div className="checkout-event__name">{eventTitle || 'Sự kiện'}</div>
-                {dateStr && (
-                  <div className="checkout-event__meta-item">
-                    <svg width="12" height="12" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                    {dateStr}{timeStr && ` · ${timeStr}`}
+            <div className="checkout-card__title">Chi tiết đơn hàng ({cartItems.length} vé)</div>
+            
+            {Object.keys(eventGroups).map(eventId => {
+              const group = eventGroups[eventId];
+              return (
+                <div key={eventId} style={{ marginBottom: '20px', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '16px', color: 'var(--accent)', marginBottom: '12px' }}>
+                    {group.title}
                   </div>
-                )}
-                {eventVenue && (
-                  <div className="checkout-event__meta-item">
-                    <svg width="12" height="12" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                    {eventVenue}
+                  <div className="checkout-ticket-list">
+                    {group.items.map((b) => (
+                      <div key={b.bookingId} className="checkout-ticket">
+                        <div className="checkout-ticket__badge">{b.zoneName} · {b.seatLabel}</div>
+                        <span className="checkout-ticket__desc">{b.zoneName} — Ghế {b.seatLabel}</span>
+                        <span className="checkout-ticket__price">{fmtVND(b.totalPrice)}</span>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Seat list */}
-          <div className="checkout-card">
-            <div className="checkout-card__title">Chi tiết vé ({currentBookings.length} vé)</div>
-            <div className="checkout-ticket-list">
-              {currentBookings.map((b) => (
-                <div key={b.bookingId} className="checkout-ticket">
-                  <div className="checkout-ticket__badge">{b.zoneName} · {b.seatLabel}</div>
-                  <span className="checkout-ticket__desc">{b.zoneName} — Ghế {b.seatLabel}</span>
-                  <span className="checkout-ticket__price">{fmtVND(b.totalPrice)}</span>
                 </div>
-              ))}
-            </div>
+              );
+            })}
+            
             <div className="checkout-ticket-footer">
-              <span className="checkout-ticket-footer__count">{bookings.length} vé</span>
+              <span className="checkout-ticket-footer__count">Tổng số {cartItems.length} vé</span>
               <span className="checkout-ticket-footer__total">{fmtVND(subtotal)}</span>
             </div>
           </div>
@@ -243,16 +218,16 @@ export default function CheckoutPage() {
           <div className="checkout-summary">
             <div className="checkout-summary__title">Tóm tắt đơn hàng</div>
 
-            <div className="checkout-countdown-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
-              {currentBookings.map((b) => (
+            <div className="checkout-countdown-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px', maxHeight: '300px', overflowY: 'auto', paddingRight: '8px' }}>
+              {cartItems.map((b) => (
                 <div key={b.bookingId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255, 107, 53, 0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255, 107, 53, 0.2)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#FF6B35' }}></div>
-                    <span style={{ fontWeight: 600, color: '#f8fafc' }}>{b.seatLabel}</span>
+                    <span style={{ fontWeight: 600, color: '#f8fafc', fontSize: '12px' }}>{b.eventTitle.length > 15 ? b.eventTitle.substring(0, 15) + '...' : b.eventTitle} <br/> <span style={{color: '#94a3b8'}}>{b.seatLabel}</span></span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <svg width="14" height="14" fill="none" stroke="#FF6B35" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-                    <CheckoutCountdown expiresAt={b.expiresAt} />
+                    <CheckoutCountdown expiresAt={b.expiresAt} onExpire={refreshCart} />
                   </div>
                 </div>
               ))}
@@ -271,10 +246,18 @@ export default function CheckoutPage() {
 
             <div className="checkout-divider" />
 
+            <div className="checkout-price-rows">
+              <div className="checkout-price-row" style={{ marginTop: '12px' }}>
+                <span className="checkout-price-row__label" style={{ fontWeight: 'bold', fontSize: '18px', color: '#f8fafc' }}>Tổng cộng</span>
+                <span className="checkout-price-row__value" style={{ fontWeight: 'bold', fontSize: '20px', color: '#10b981' }}>{fmtVND(grandTotal)}</span>
+              </div>
+            </div>
+
             <button
               className={`checkout-confirm-btn${success ? ' checkout-confirm-btn--success' : ''}`}
               onClick={handleConfirm}
               disabled={confirming || success}
+              style={{ marginTop: '24px' }}
             >
               {success ? (
                 <>

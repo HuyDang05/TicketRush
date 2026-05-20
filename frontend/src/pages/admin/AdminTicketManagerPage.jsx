@@ -67,7 +67,7 @@ export default function AdminTicketManagerPage() {
       <div
         style={{
           padding: 32,
-          color: '#fff',
+          color: 'var(--text)',
           height: '100vh',
           overflowY: 'auto',
           boxSizing: 'border-box',
@@ -84,7 +84,7 @@ export default function AdminTicketManagerPage() {
         >
           <div>
             <h1 style={{ margin: 0, fontSize: 28 }}>Doanh thu</h1>
-            <p style={{ marginTop: 8, color: '#aaa' }}>
+            <p style={{ marginTop: 8, color: 'var(--muted)' }}>
               Theo dõi số vé đã bán, vé còn lại và tổng doanh thu của từng sự kiện.
             </p>
           </div>
@@ -92,9 +92,9 @@ export default function AdminTicketManagerPage() {
           <button
             onClick={loadRevenue}
             style={{
-              background: '#ff6b35',
+              background: 'var(--accent)',
               border: 'none',
-              color: '#fff',
+              color: 'var(--text)',
               padding: '10px 16px',
               borderRadius: 10,
               fontWeight: 700,
@@ -120,7 +120,7 @@ export default function AdminTicketManagerPage() {
 
           <div style={statCardStyle}>
             <div style={statLabelStyle}>Tổng doanh thu</div>
-            <div style={{ ...statValueStyle, color: '#ff6b35' }}>
+            <div style={{ ...statValueStyle, color: 'var(--accent)' }}>
               {formatMoney(totalRevenue)}
             </div>
           </div>
@@ -128,8 +128,8 @@ export default function AdminTicketManagerPage() {
 
         <div
           style={{
-            background: '#202020',
-            border: '1px solid #333',
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
             borderRadius: 18,
             overflow: 'hidden',
           }}
@@ -141,7 +141,7 @@ export default function AdminTicketManagerPage() {
               justifyContent: 'space-between',
               gap: 16,
               alignItems: 'center',
-              borderBottom: '1px solid #333',
+              borderBottom: '1px solid var(--border)',
             }}
           >
             <h2 style={{ margin: 0, fontSize: 20 }}>
@@ -154,9 +154,9 @@ export default function AdminTicketManagerPage() {
               placeholder="Tìm sự kiện..."
               style={{
                 width: 280,
-                background: '#111',
-                border: '1px solid #333',
-                color: '#fff',
+                background: 'var(--nav)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
                 padding: '10px 12px',
                 borderRadius: 10,
                 outline: 'none',
@@ -173,7 +173,7 @@ export default function AdminTicketManagerPage() {
               }}
             >
               <thead>
-                <tr style={{ background: '#151515' }}>
+                <tr style={{ background: 'var(--bg-strong)' }}>
                   <th style={thStyle}>Tên sự kiện</th>
                   <th style={thStyle}>Tổng số vé</th>
                   <th style={thStyle}>Số vé đã bán</th>
@@ -199,13 +199,13 @@ export default function AdminTicketManagerPage() {
                   paginatedEvents.map((event) => (
                     <tr
                       key={event.id}
-                      style={{ borderBottom: '1px solid #333' }}
+                      style={{ borderBottom: '1px solid var(--border)' }}
                     >
                       <td style={tdStyle}>
                         <div style={{ fontWeight: 700 }}>
                           {event.title}
                         </div>
-                        <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>
+                        <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 4 }}>
                           {event.venue || 'TBD'}
                         </div>
                       </td>
@@ -214,11 +214,11 @@ export default function AdminTicketManagerPage() {
                         {Number(event.totalTickets || 0).toLocaleString('vi-VN')}
                       </td>
 
-                      <td style={{ ...tdStyle, color: '#4ade80', fontWeight: 700 }}>
+                      <td style={{ ...tdStyle, color: 'var(--success)', fontWeight: 700 }}>
                         {Number(event.soldTickets || 0).toLocaleString('vi-VN')}
                       </td>
 
-                      <td style={{ ...tdStyle, color: '#ff6b35', fontWeight: 700 }}>
+                      <td style={{ ...tdStyle, color: 'var(--accent)', fontWeight: 700 }}>
                         {Number(event.availableTickets || 0).toLocaleString('vi-VN')}
                       </td>
 
@@ -234,13 +234,13 @@ export default function AdminTicketManagerPage() {
             <div
               style={{
                 padding: '14px 16px',
-                borderTop: '1px solid #333',
+                borderTop: '1px solid var(--border)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
               }}
             >
-              <div style={{ fontSize: 12, color: '#aaa' }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)' }}>
                 Hiển thị {filteredEvents.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}
                 –
                 {Math.min(safePage * PAGE_SIZE, filteredEvents.length)}
@@ -276,7 +276,7 @@ export default function AdminTicketManagerPage() {
 
                   return pages.map((p, index) =>
                     p === '...' ? (
-                      <span key={index} style={{ color: '#777', padding: '0 4px' }}>
+                      <span key={index} style={{ color: 'var(--muted-2)', padding: '0 4px' }}>
                         ...
                       </span>
                     ) : (
@@ -285,9 +285,9 @@ export default function AdminTicketManagerPage() {
                         onClick={() => setPage(p)}
                         style={{
                           ...pageBtnStyle,
-                          background: p === safePage ? '#ff6b35' : '#151515',
-                          color: p === safePage ? '#fff' : '#aaa',
-                          borderColor: p === safePage ? '#ff6b35' : '#333',
+                          background: p === safePage ? 'var(--accent)' : 'var(--bg-strong)',
+                          color: p === safePage ? 'var(--text)' : 'var(--muted)',
+                          borderColor: p === safePage ? 'var(--accent)' : 'var(--border)',
                         }}
                       >
                         {p}
@@ -313,14 +313,14 @@ export default function AdminTicketManagerPage() {
 }
 
 const statCardStyle = {
-  background: '#202020',
-  border: '1px solid #333',
+  background: 'var(--card)',
+  border: '1px solid var(--border)',
   borderRadius: 18,
   padding: 20,
 };
 
 const statLabelStyle = {
-  color: '#aaa',
+  color: 'var(--muted)',
   fontSize: 13,
   textTransform: 'uppercase',
   fontWeight: 700,
@@ -328,7 +328,7 @@ const statLabelStyle = {
 
 const statValueStyle = {
   marginTop: 10,
-  color: '#fff',
+  color: 'var(--text)',
   fontSize: 32,
   fontWeight: 800,
 };
@@ -336,19 +336,19 @@ const statValueStyle = {
 const thStyle = {
   textAlign: 'left',
   padding: '14px 12px',
-  color: '#aaa',
+  color: 'var(--muted)',
   fontSize: 12,
   textTransform: 'uppercase',
 };
 
 const tdStyle = {
   padding: '16px 12px',
-  color: '#fff',
+  color: 'var(--text)',
 };
 
 const emptyStyle = {
   padding: 28,
-  color: '#aaa',
+  color: 'var(--muted)',
   textAlign: 'center',
 };
 
@@ -356,8 +356,8 @@ const pageBtnStyle = {
   minWidth: 34,
   height: 34,
   borderRadius: 8,
-  border: '1px solid #333',
-  background: '#151515',
-  color: '#aaa',
+  border: '1px solid var(--border)',
+  background: 'var(--bg-strong)',
+  color: 'var(--muted)',
   cursor: 'pointer',
 };

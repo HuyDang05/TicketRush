@@ -155,7 +155,10 @@ const getEventById = async (req, res) => {
 const createEvent = async (req, res) => {
   try {
     const { title, description, venue, startDate, endDate, imageUrl, cardImageUrl, rows, cols, zones } = req.body;
-    const createdBy = req.user.id;
+    const createdBy = req.user?.id;
+    if (!createdBy) {
+      return res.status(401).json({ message: 'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.' });
+    }
 
     if (!startDate) {
       return res.status(400).json({ message: 'Ngày bắt đầu là bắt buộc' });
@@ -194,6 +197,11 @@ const createEvent = async (req, res) => {
     });
   } catch (error) {
     console.error('[Event][createEvent] Error:', error);
+    if (error?.code === 'P2003') {
+      return res.status(401).json({
+        message: 'Phiên đăng nhập không còn hợp lệ (tài khoản không tồn tại). Vui lòng đăng nhập lại.',
+      });
+    }
     return res.status(500).json({ message: 'Đã có lỗi xảy ra' });
   }
 };
