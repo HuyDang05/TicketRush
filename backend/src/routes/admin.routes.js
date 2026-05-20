@@ -3,6 +3,7 @@ const express = require('express');
 const authenticate = require('../middlewares/auth.middleware');
 const { requireAdmin } = require('../middlewares/role.middleware');
 const { createEvent, updateEvent, publishEvent, endEvent, deleteEvent, getAdminEvents, getAdminEventById, getSeatmap, saveSeatmap } = require('../controllers/event.controller');
+const { getAdminAccounts, createAdminAccount } = require('../controllers/admin-accounts.controller');
 const { uploadImage } = require('../controllers/upload.controller');
 const upload = require('../config/multer');
 
@@ -13,6 +14,9 @@ router.get('/profile', authenticate, requireAdmin, (req, res) => {
     user: req.user,
   });
 });
+
+router.get('/accounts', authenticate, requireAdmin, getAdminAccounts);
+router.post('/accounts', authenticate, requireAdmin, createAdminAccount);
 
 // Upload ảnh sự kiện lên Cloudinary
 router.post('/upload', authenticate, requireAdmin, upload.single('image'), uploadImage);

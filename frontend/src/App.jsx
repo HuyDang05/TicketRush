@@ -30,6 +30,7 @@ import AdminTicketManagerPage from './pages/admin/AdminTicketManagerPage';
 import VirtualQueuePage from './pages/customer/VirtualQueuePage';
 import AdminAudiencePage from './pages/admin/AdminAudiencePage';
 import AdminAudienceDetailPage from './pages/admin/AdminAudienceDetailPage';
+import AdminAccountManagementPage from './pages/admin/AdminAccountManagementPage';
 
 function CustomerLayout() {
   const { user } = useAuthStore();
@@ -209,6 +210,14 @@ function App() {
           element={
             <ProtectedRoute requiredRole="ADMIN">
               <AdminAudienceDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/account-management"
+          element={
+            <ProtectedRoute requiredRole="ADMIN">
+              <AdminAccountManagementPage />
             </ProtectedRoute>
           }
         />

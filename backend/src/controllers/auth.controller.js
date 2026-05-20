@@ -154,6 +154,11 @@ const login = async (req, res) => {
       role: user.role,
     });
 
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
     return res.status(200).json({
       token,
       user: toPublicUser(user),
