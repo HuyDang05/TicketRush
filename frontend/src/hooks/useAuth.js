@@ -43,8 +43,8 @@ export function useAuth() {
     [setUser, setLoading, setError]
   );
 
-  const handleLogout = useCallback(() => {
-    authService.logout();
+  const handleLogout = useCallback(async () => {
+    await authService.logout();
     logout();
   }, [logout]);
 

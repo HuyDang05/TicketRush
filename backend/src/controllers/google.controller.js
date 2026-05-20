@@ -1,6 +1,6 @@
 const { OAuth2Client } = require('google-auth-library');
 const prisma = require('../config/prisma');
-const { signAccessToken } = require('../utils/jwt.util');
+const { issueAuthTokens } = require('../services/auth-token.service');
 const { toPublicUser } = require('../utils/user.util');
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3001';
@@ -57,7 +57,7 @@ const googleCallback = async (req, res) => {
       });
     }
 
-    const token = signAccessToken({ id: user.id, email: user.email, role: user.role });
+    const token = await issueAuthTokens(res, user);
     const publicUser = toPublicUser(user);
 
     // Redirect về frontend kèm token
