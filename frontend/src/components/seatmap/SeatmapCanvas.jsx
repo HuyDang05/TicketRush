@@ -9,6 +9,11 @@ const SEAT_STEP   = SEAT_SIZE + SEAT_GAP;
 const MIN_ZOOM    = 0.2;
 const MAX_ZOOM    = 4;
 const ZOOM_FACTOR = 1.12;
+// Fixed world coordinate space — all blocks, grid, and stage label share these coords
+const WORLD_W         = 1200;
+const WORLD_H         = 900;
+const STAGE_LABEL_X   = WORLD_W / 2 - 120;
+const STAGE_LABEL_Y   = 16;
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const snap = (v) => Math.round(v / GRID_SIZE) * GRID_SIZE;
@@ -615,6 +620,27 @@ export default function SeatmapCanvas({
 
   const [stagePos,  setStagePos]  = useState({ x: 0, y: 0 });
   const [stageScale, setStageScale] = useState(1);
+  const stageScaleRef = useRef(1);
+  const stagePosRef   = useRef({ x: 0, y: 0 });
+
+  const applyZoomAtPoint = useCallback((newScale, pointX, pointY) => {
+    const stage    = stageRef.current;
+    const oldScale = stage ? stage.scaleX() : stageScaleRef.current;
+    const pos      = stage ? { x: stage.x(), y: stage.y() } : stagePosRef.current;
+    const clamped  = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, newScale));
+    const mpt = {
+      x: (pointX - pos.x) / oldScale,
+      y: (pointY - pos.y) / oldScale,
+    };
+    const newPos = {
+      x: pointX - mpt.x * clamped,
+      y: pointY - mpt.y * clamped,
+    };
+    stageScaleRef.current = clamped;
+    stagePosRef.current   = newPos;
+    setStageScale(clamped);
+    setStagePos(newPos);
+  }, []);
 
   const [history,  setHistory]  = useState([[]]);
   const [histIdx,  setHistIdx]  = useState(0);
@@ -657,21 +683,10 @@ export default function SeatmapCanvas({
 
   // ── Zoom step helpers ─────────────────────────────────────────────────────
   const zoomBy = (direction) => {
-    const stage = stageRef.current;
-    if (!stage) return;
-    const center = { x: size.width / 2, y: size.height / 2 };
-    const oldScale = stageScale;
-    const newScale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM,
-      oldScale * (direction > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR)));
-    const mousePointTo = {
-      x: (center.x - stagePos.x) / oldScale,
-      y: (center.y - stagePos.y) / oldScale,
-    };
-    setStageScale(newScale);
-    setStagePos({
-      x: center.x - mousePointTo.x * newScale,
-      y: center.y - mousePointTo.y * newScale,
-    });
+    const oldScale = stageScaleRef.current;
+    const factor   = direction > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
+    const newScale = oldScale * factor;
+    applyZoomAtPoint(newScale, size.width / 2, size.height / 2);
   };
 
   // ── History helpers ────────────────────────────────────────────────────────
@@ -709,21 +724,14 @@ export default function SeatmapCanvas({
   // ── Wheel zoom ─────────────────────────────────────────────────────────────
   const handleWheel = (e) => {
     e.evt.preventDefault();
-    const stage    = stageRef.current;
-    const oldScale = stageScale;
-    const pointer  = stage.getPointerPosition();
-    const mousePointTo = {
-      x: (pointer.x - stagePos.x) / oldScale,
-      y: (pointer.y - stagePos.y) / oldScale,
-    };
-    const direction  = e.evt.deltaY < 0 ? 1 : -1;
-    const newScale   = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, oldScale * (direction > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR)));
-    const newPos = {
-      x: pointer.x - mousePointTo.x * newScale,
-      y: pointer.y - mousePointTo.y * newScale,
-    };
-    setStageScale(newScale);
-    setStagePos(newPos);
+    const stage = stageRef.current;
+    if (!stage) return;
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+    const oldScale  = stage.scaleX();
+    const direction = e.evt.deltaY < 0 ? 1 : -1;
+    const newScale  = oldScale * (direction > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR);
+    applyZoomAtPoint(newScale, pointer.x, pointer.y);
   };
 
   // ── Drop from palette ──────────────────────────────────────────────────────
@@ -827,7 +835,12 @@ export default function SeatmapCanvas({
 
         {/* Reset view */}
         <button
-          onClick={() => { setStageScale(1); setStagePos({ x: 0, y: 0 }); }}
+          onClick={() => {
+            stageScaleRef.current = 1;
+            stagePosRef.current = { x: 0, y: 0 };
+            setStageScale(1);
+            setStagePos({ x: 0, y: 0 });
+          }}
           title="Đặt lại vị trí và zoom"
           style={{
             display: 'flex', alignItems: 'center', gap: 5,
@@ -853,7 +866,12 @@ export default function SeatmapCanvas({
             onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = '#262626'; }}
             onMouseLeave={e => { e.currentTarget.style.color = '#aaa'; e.currentTarget.style.background = 'transparent'; }}
           >−</button>
-          <button onClick={() => { setStageScale(1); setStagePos({ x: 0, y: 0 }); }} title="Đặt lại zoom"
+          <button onClick={() => {
+            stageScaleRef.current = 1;
+            stagePosRef.current = { x: 0, y: 0 };
+            setStageScale(1);
+            setStagePos({ x: 0, y: 0 });
+          }} title="Đặt lại zoom"
             style={{ background: 'transparent', border: 'none', color: '#aaa', padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', minWidth: 46, textAlign: 'center', transition: 'color .15s' }}
             onMouseEnter={e => { e.currentTarget.style.color = '#fff'; }}
             onMouseLeave={e => { e.currentTarget.style.color = '#aaa'; }}
@@ -879,7 +897,9 @@ export default function SeatmapCanvas({
           onDragStart={e => { if (e.target === stageRef.current) stageDraggedRef.current = true; }}
           onDragEnd={e => {
             if (e.target === stageRef.current) {
-              setStagePos({ x: e.target.x(), y: e.target.y() });
+              const p = { x: e.target.x(), y: e.target.y() };
+              stagePosRef.current = p;
+              setStagePos(p);
               stageDraggedRef.current = false;
             }
           }}
@@ -892,12 +912,10 @@ export default function SeatmapCanvas({
             <Layer listening={false}>
               {(() => {
                 const lines = [];
-                const gw = size.width / stageScale + 200;
-                const gh = size.height / stageScale + 200;
-                for (let x = 0; x < gw; x += GRID_SIZE)
-                  lines.push(<Rect key={`gv${x}`} x={x} y={0} width={0.5} height={gh} fill="#1e1e1e" />);
-                for (let y = 0; y < gh; y += GRID_SIZE)
-                  lines.push(<Rect key={`gh${y}`} x={0} y={y} width={gw} height={0.5} fill="#1e1e1e" />);
+                for (let x = 0; x <= WORLD_W; x += GRID_SIZE)
+                  lines.push(<Rect key={`gv${x}`} x={x} y={0} width={0.5} height={WORLD_H} fill="#1e1e1e" />);
+                for (let y = 0; y <= WORLD_H; y += GRID_SIZE)
+                  lines.push(<Rect key={`gh${y}`} x={0} y={y} width={WORLD_W} height={0.5} fill="#1e1e1e" />);
                 return lines;
               })()}
             </Layer>
@@ -912,9 +930,9 @@ export default function SeatmapCanvas({
 
           {/* Stage label */}
           <Layer listening={false}>
-            <Rect x={size.width / stageScale / 2 - 120} y={16} width={240} height={32}
+            <Rect x={STAGE_LABEL_X} y={STAGE_LABEL_Y} width={240} height={32}
               fill="#FF6B35" cornerRadius={[6, 6, 0, 0]} />
-            <Text x={size.width / stageScale / 2 - 120} y={22} width={240}
+            <Text x={STAGE_LABEL_X} y={STAGE_LABEL_Y + 6} width={240}
               text="★  SÂN KHẤU  ★" fontSize={11} fontStyle="bold"
               fill="#fff" align="center" letterSpacing={2} />
           </Layer>

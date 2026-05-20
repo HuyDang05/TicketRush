@@ -9,6 +9,9 @@ const SEAT_STEP   = SEAT_SIZE + SEAT_GAP;
 const MIN_ZOOM    = 0.15;
 const MAX_ZOOM    = 4;
 const ZOOM_FACTOR = 1.12;
+const WORLD_W         = 1200;
+const STAGE_LABEL_X   = WORLD_W / 2 - 120;
+const STAGE_LABEL_Y   = 16;
 
 // ── Seat status palette ────────────────────────────────────────────────────────
 const STATUS_COLOR = {
@@ -375,7 +378,28 @@ export default function SeatmapPreview({ zones, onClose }) {
   const [size,        setSize]        = useState({ width: 0, height: 0 });
   const [stagePos,    setStagePos]    = useState({ x: 0, y: 0 });
   const [stageScale,  setStageScale]  = useState(1);
+  const stageScaleRef = useRef(1);
+  const stagePosRef   = useRef({ x: 0, y: 0 });
   const [selectedIds, setSelectedIds] = useState(new Set());
+
+  const applyZoomAtPoint = useCallback((newScale, pointX, pointY) => {
+    const stage    = stageRef.current;
+    const oldScale = stage ? stage.scaleX() : stageScaleRef.current;
+    const pos      = stage ? { x: stage.x(), y: stage.y() } : stagePosRef.current;
+    const clamped  = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, newScale));
+    const mpt = {
+      x: (pointX - pos.x) / oldScale,
+      y: (pointY - pos.y) / oldScale,
+    };
+    const newPos = {
+      x: pointX - mpt.x * clamped,
+      y: pointY - mpt.y * clamped,
+    };
+    stageScaleRef.current = clamped;
+    stagePosRef.current   = newPos;
+    setStageScale(clamped);
+    setStagePos(newPos);
+  }, []);
 
   // Resize observer
   useEffect(() => {
@@ -413,11 +437,14 @@ export default function SeatmapPreview({ zones, onClose }) {
     const contentW = maxX - minX + pad * 2;
     const contentH = maxY - minY + pad * 2;
     const scale    = Math.min(MAX_ZOOM, Math.min((size.width - 40) / contentW, (size.height - 40) / contentH));
-    setStageScale(scale);
-    setStagePos({
+    const newPos = {
       x: (size.width  - contentW * scale) / 2 - (minX - pad) * scale,
       y: (size.height - contentH * scale) / 2 - (minY - pad) * scale,
-    });
+    };
+    stageScaleRef.current = scale;
+    stagePosRef.current   = newPos;
+    setStageScale(scale);
+    setStagePos(newPos);
   }, [zones, size]);
 
   useEffect(() => { fitView(); }, [fitView]);
@@ -427,22 +454,18 @@ export default function SeatmapPreview({ zones, onClose }) {
     e.evt.preventDefault();
     const stage = stageRef.current;
     if (!stage) return;
-    const oldScale = stageScale;
-    const pointer  = stage.getPointerPosition();
-    const to       = { x: (pointer.x - stagePos.x) / oldScale, y: (pointer.y - stagePos.y) / oldScale };
-    const dir      = e.evt.deltaY < 0 ? 1 : -1;
-    const newScale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, oldScale * (dir > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR)));
-    setStageScale(newScale);
-    setStagePos({ x: pointer.x - to.x * newScale, y: pointer.y - to.y * newScale });
-  }, [stageScale, stagePos]);
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+    const oldScale  = stage.scaleX();
+    const direction = e.evt.deltaY < 0 ? 1 : -1;
+    const newScale  = oldScale * (direction > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR);
+    applyZoomAtPoint(newScale, pointer.x, pointer.y);
+  }, [applyZoomAtPoint]);
 
   const zoomBy = (dir) => {
     const factor   = dir > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
-    const cx = size.width / 2, cy = size.height / 2;
-    const to = { x: (cx - stagePos.x) / stageScale, y: (cy - stagePos.y) / stageScale };
-    const newScale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, stageScale * factor));
-    setStageScale(newScale);
-    setStagePos({ x: cx - to.x * newScale, y: cy - to.y * newScale });
+    const newScale = stageScaleRef.current * factor;
+    applyZoomAtPoint(newScale, size.width / 2, size.height / 2);
   };
 
   const toggleSeat = useCallback((seatId) => {
@@ -507,20 +530,23 @@ export default function SeatmapPreview({ zones, onClose }) {
               y={stagePos.y}
               draggable
               onDragEnd={e => {
-                if (e.target === stageRef.current)
-                  setStagePos({ x: e.target.x(), y: e.target.y() });
+                if (e.target === stageRef.current) {
+                  const p = { x: e.target.x(), y: e.target.y() };
+                  stagePosRef.current = p;
+                  setStagePos(p);
+                }
               }}
               onWheel={handleWheel}
             >
               {/* Stage label */}
               <Layer listening={false}>
                 <Rect
-                  x={size.width / stageScale / 2 - 120} y={16}
+                  x={STAGE_LABEL_X} y={STAGE_LABEL_Y}
                   width={240} height={32}
                   fill="#FF6B35" cornerRadius={[6, 6, 0, 0]}
                 />
                 <Text
-                  x={size.width / stageScale / 2 - 120} y={22}
+                  x={STAGE_LABEL_X} y={STAGE_LABEL_Y + 6}
                   width={240} text="★  SÂN KHẤU  ★"
                   fontSize={11} fontStyle="bold"
                   fill="#fff" align="center" letterSpacing={2}

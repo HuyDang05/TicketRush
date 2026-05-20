@@ -363,13 +363,18 @@ export default function SeatSelectionPage() {
   const layoutZones = useMemo(() => {
     const sj = event?.seatmapJson;
     if (!sj) return [];
-    const raw = Array.isArray(sj.layout) ? sj.layout
-              : Array.isArray(sj.zones)  ? sj.zones
-              : [];
+    // Prefer layout tree (floor frames + grouped children); fall back to flat zones
+    const raw = Array.isArray(sj.layout) && sj.layout.length > 0
+      ? sj.layout
+      : Array.isArray(sj.zones) ? sj.zones : [];
     return raw.map(z => {
-      if (z.id) return z;
-      const match = zones.find(d => d.name === z.name);
-      return match ? { ...z, id: match.id } : z;
+      const withId = z.id
+        ? z
+        : (() => {
+            const match = zones.find(d => d.name === z.name);
+            return match ? { ...z, id: match.id } : z;
+          })();
+      return withId;
     });
   }, [event?.seatmapJson, zones]);
 
