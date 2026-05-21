@@ -29,17 +29,17 @@ function StepBar({ step }) {
               <div style={{
                 width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0,
-                background: done ? '#22c55e' : active ? '#FF6B35' : '#333',
-                color: '#fff', transition: 'background 0.3s',
+                background: done ? '#22c55e' : active ? 'var(--accent)' : 'var(--border)',
+                color: 'var(--text)', transition: 'background 0.3s',
               }}>
                 {done ? '✓' : idx}
               </div>
-              <span style={{ fontSize: 13, fontWeight: active ? 700 : 400, color: active ? '#fff' : '#777', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 13, fontWeight: active ? 700 : 400, color: active ? 'var(--text)' : 'var(--muted-2)', whiteSpace: 'nowrap' }}>
                 {label}
               </span>
             </div>
             {i < steps.length - 1 && (
-              <div style={{ flex: 1, height: 1, background: done ? '#22c55e' : '#333', margin: '0 12px', transition: 'background 0.3s' }} />
+              <div style={{ flex: 1, height: 1, background: done ? '#22c55e' : 'var(--border)', margin: '0 12px', transition: 'background 0.3s' }} />
             )}
           </div>
         );
@@ -253,18 +253,18 @@ export default function EventCreateWizard() {
         <div className="dash-topbar__breadcrumb">
           Admin <span style={{ opacity: .4 }}>/</span>{' '}
           <span
-            style={{ color: '#AAAAAA', cursor: 'pointer', fontWeight: 400 }}
+            style={{ color: 'var(--muted)', cursor: 'pointer', fontWeight: 400 }}
             onClick={() => navigate('/admin/events')}
           >Sự kiện</span>
           {' '}<span style={{ opacity: .4 }}>/</span>{' '}
-          <span style={{ color: '#fff', fontWeight: 600 }}>
+          <span style={{ color: 'var(--text)', fontWeight: 600 }}>
             {isEdit ? 'Chỉnh sửa sự kiện' : 'Tạo sự kiện mới'}
           </span>
         </div>
       </div>
 
       {loadingEvent ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, color: '#AAAAAA', fontSize: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, color: 'var(--muted)', fontSize: 14 }}>
           ⏳ Đang tải dữ liệu sự kiện...
         </div>
       ) : (
@@ -280,21 +280,21 @@ export default function EventCreateWizard() {
 
                   {/* Banner image */}
                   <div>
-                    <div style={{ marginBottom: 8, color: '#AAAAAA', fontSize: 13, fontWeight: 600 }}>🖼 Ảnh banner</div>
-                    <div style={{ width: 240, height: 135, borderRadius: 8, background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: imageError ? '1.5px solid #f87171' : '1px solid #222' }}>
+                    <div style={{ marginBottom: 8, color: 'var(--muted)', fontSize: 13, fontWeight: 600 }}>🖼 Ảnh banner</div>
+                    <div style={{ width: 240, height: 135, borderRadius: 8, background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: imageError ? '1.5px solid var(--danger)' : '1px solid var(--border)' }}>
                       {imagePreview
                         ? <img src={imagePreview} alt="banner preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         : (
                           <div style={{ textAlign: 'center', padding: 12 }}>
                             <div style={{ fontSize: 24, marginBottom: 4 }}>🖼️</div>
-                            <div style={{ color: '#555', fontSize: 11, lineHeight: 1.5 }}>Chưa có ảnh</div>
+                            <div style={{ color: 'var(--muted)', fontSize: 11, lineHeight: 1.5 }}>Chưa có ảnh</div>
                           </div>
                         )}
                     </div>
                     {imageError && (
-                      <div style={{ fontSize: 11, color: '#f87171', marginTop: 6, lineHeight: 1.5 }}>⚠ {imageError}</div>
+                      <div style={{ fontSize: 11, color: 'var(--danger)', marginTop: 6, lineHeight: 1.5 }}>⚠ {imageError}</div>
                     )}
-                    <div style={{ fontSize: 11, color: '#555', marginTop: 4 }}>Yêu cầu: 1280×720px</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Yêu cầu: 1280×720px</div>
                     <label style={{ display: 'block', marginTop: 6, cursor: 'pointer' }}>
                       <input type="file" accept="image/*" style={{ display: 'none' }}
                         onChange={e => handleImageChange(e.target.files?.[0] || null)} />
@@ -304,21 +304,21 @@ export default function EventCreateWizard() {
 
                   {/* Card image */}
                   <div>
-                    <div style={{ marginBottom: 8, color: '#AAAAAA', fontSize: 13, fontWeight: 600 }}>🃏 Ảnh card</div>
-                    <div style={{ width: 120, height: 160, borderRadius: 8, background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: cardImageError ? '1.5px solid #f87171' : '1px solid #222' }}>
+                    <div style={{ marginBottom: 8, color: 'var(--muted)', fontSize: 13, fontWeight: 600 }}>🃏 Ảnh card</div>
+                    <div style={{ width: 120, height: 160, borderRadius: 8, background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: cardImageError ? '1.5px solid var(--danger)' : '1px solid var(--border)' }}>
                       {cardImagePreview
                         ? <img src={cardImagePreview} alt="card preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         : (
                           <div style={{ textAlign: 'center', padding: 8 }}>
                             <div style={{ fontSize: 20, marginBottom: 4 }}>🃏</div>
-                            <div style={{ color: '#555', fontSize: 10, lineHeight: 1.5 }}>Chưa có ảnh</div>
+                            <div style={{ color: 'var(--muted)', fontSize: 10, lineHeight: 1.5 }}>Chưa có ảnh</div>
                           </div>
                         )}
                     </div>
                     {cardImageError && (
-                      <div style={{ fontSize: 11, color: '#f87171', marginTop: 6, lineHeight: 1.5 }}>⚠ {cardImageError}</div>
+                      <div style={{ fontSize: 11, color: 'var(--danger)', marginTop: 6, lineHeight: 1.5 }}>⚠ {cardImageError}</div>
                     )}
-                    <div style={{ fontSize: 11, color: '#555', marginTop: 4 }}>Yêu cầu: 720×958px</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Yêu cầu: 720×958px</div>
                     <label style={{ display: 'block', marginTop: 6, cursor: 'pointer' }}>
                       <input type="file" accept="image/*" style={{ display: 'none' }}
                         onChange={e => handleCardImageChange(e.target.files?.[0] || null)} />
@@ -343,7 +343,7 @@ export default function EventCreateWizard() {
                   <div className="event-form-section-title">🗓 Thời gian sự kiện</div>
                   <div className="event-form-grid">
                     <div className="event-form-field">
-                      <label className="event-form-label">Ngày &amp; giờ bắt đầu <span style={{ color: '#FF6B35' }}>*</span></label>
+                      <label className="event-form-label">Ngày &amp; giờ bắt đầu <span style={{ color: 'var(--accent)' }}>*</span></label>
                       <input
                         type="datetime-local"
                         className="event-form-input"
@@ -353,7 +353,7 @@ export default function EventCreateWizard() {
                       />
                     </div>
                     <div className="event-form-field">
-                      <label className="event-form-label">Ngày &amp; giờ kết thúc <span style={{ color: '#AAAAAA', fontWeight: 400 }}>(tuỳ chọn)</span></label>
+                      <label className="event-form-label">Ngày &amp; giờ kết thúc <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(tuỳ chọn)</span></label>
                       <input
                         type="datetime-local"
                         className="event-form-input"
@@ -365,7 +365,7 @@ export default function EventCreateWizard() {
                   </div>
 
                   {startDate && endDate && new Date(endDate) <= new Date(startDate) && (
-                    <div style={{ color: '#f87171', fontSize: 12, marginTop: -8, marginBottom: 8 }}>
+                    <div style={{ color: 'var(--danger)', fontSize: 12, marginTop: -8, marginBottom: 8 }}>
                       ⚠ Thời gian kết thúc phải sau thời gian bắt đầu
                     </div>
                   )}
@@ -389,8 +389,8 @@ export default function EventCreateWizard() {
       {/* Toast */}
       {toast && (
         <div className="admin-toast" style={{
-          borderColor: toast.type === 'error' ? '#f87171' : '#FF6B35',
-          color: toast.type === 'error' ? '#f87171' : '#fff',
+          borderColor: toast.type === 'error' ? 'var(--danger)' : 'var(--accent)',
+          color: toast.type === 'error' ? 'var(--danger)' : 'var(--text)',
         }}>
           {toast.msg}
         </div>

@@ -5,11 +5,14 @@ import GlobalModal from './components/shared/GlobalModal';
 import Footer from './components/shared/Footer';
 import ProtectedRoute from './components/shared/ProtectedRoute';
 import useAuthStore from './store/authStore';
+import { CartProvider } from './context/CartContext';
 
 // Pages
 import HomePage from './pages/customer/HomePage';
 import EventDetailPage from './pages/customer/EventDetailPage';
 import CheckoutPage from './pages/customer/CheckoutPage';
+import CartPage from './pages/customer/CartPage';
+import CartCheckoutPage from './pages/customer/CartCheckoutPage';
 import MyTicketsPage from './pages/customer/MyTicketsPage';
 import SeatSelectionPage from './pages/customer/SeatSelectionPage';
 import LoginPage from './pages/auth/LoginPage';
@@ -27,6 +30,7 @@ import AdminTicketManagerPage from './pages/admin/AdminTicketManagerPage';
 import VirtualQueuePage from './pages/customer/VirtualQueuePage';
 import AdminAudiencePage from './pages/admin/AdminAudiencePage';
 import AdminAudienceDetailPage from './pages/admin/AdminAudienceDetailPage';
+import AdminAccountManagementPage from './pages/admin/AdminAccountManagementPage';
 
 function CustomerLayout() {
   const { user } = useAuthStore();
@@ -51,11 +55,28 @@ function App() {
     <Router>
       <Toaster position="top-right" richColors />
       <GlobalModal />
+      <CartProvider>
       <Routes>
         {/* Customer + Auth Routes — wrapped in Header/Footer */}
         <Route element={<CustomerLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/events/:id" element={<EventDetailPage />} />
+          <Route
+            path="/cart"
+            element={
+              <ProtectedRoute requiredRole="CUSTOMER">
+                <CartPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cart/checkout"
+            element={
+              <ProtectedRoute requiredRole="CUSTOMER">
+                <CartCheckoutPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/checkout"
             element={
@@ -192,7 +213,16 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/account-management"
+          element={
+            <ProtectedRoute requiredRole="ADMIN">
+              <AdminAccountManagementPage />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
+      </CartProvider>
     </Router>
   );
 }

@@ -39,7 +39,7 @@ export default function AdminAudiencePage() {
       <div
         style={{
           padding: 32,
-          color: '#fff',
+          color: 'var(--text)',
           height: '100vh',
           overflowY: 'auto',
           boxSizing: 'border-box',
@@ -56,7 +56,7 @@ export default function AdminAudiencePage() {
         >
           <div>
             <h1 style={{ margin: 0, fontSize: 28 }}>Quản lý khán giả</h1>
-            <p style={{ marginTop: 8, color: '#aaa' }}>
+            <p style={{ marginTop: 8, color: 'var(--muted)' }}>
               Theo dõi số lượng khán giả đã mua vé theo từng sự kiện.
             </p>
           </div>
@@ -64,9 +64,9 @@ export default function AdminAudiencePage() {
           <button
             onClick={loadEvents}
             style={{
-              background: '#ff6b35',
+              background: 'var(--accent)',
               border: 'none',
-              color: '#fff',
+              color: 'var(--text)',
               padding: '10px 16px',
               borderRadius: 10,
               fontWeight: 700,
@@ -80,7 +80,7 @@ export default function AdminAudiencePage() {
         <h2 style={{ fontSize: 18, marginBottom: 14 }}>Danh sách sự kiện</h2>
 
         {loading ? (
-          <div style={{ color: '#aaa' }}>Đang tải dữ liệu...</div>
+          <div style={{ color: 'var(--muted)' }}>Đang tải dữ liệu...</div>
         ) : (
           <div
             style={{
@@ -106,18 +106,18 @@ export default function AdminAudiencePage() {
                     key={event.id}
                     onClick={() => navigate(`/admin/users/${event.id}`)}
                     onMouseEnter={(e) => {
-                        e.currentTarget.style.border = '1px solid #ff6b35';
+                        e.currentTarget.style.border = '1px solid var(--accent)';
                         e.currentTarget.style.boxShadow = '0 0 18px rgba(255,107,53,0.35)';
                         e.currentTarget.style.transform = 'translateY(-4px)';
                     }}
                     onMouseLeave={(e) => {
-                        e.currentTarget.style.border = '1px solid #333';
+                        e.currentTarget.style.border = '1px solid var(--border)';
                         e.currentTarget.style.boxShadow = 'none';
                         e.currentTarget.style.transform = 'translateY(0)';
                     }}
                     style={{
-                        background: '#202020',
-                        border: '1px solid #333',
+                        background: 'var(--card)',
+                        border: '1px solid var(--border)',
                         borderRadius: 18,
                         overflow: 'hidden',
                         cursor: 'pointer',
@@ -127,7 +127,7 @@ export default function AdminAudiencePage() {
                   <div
                     style={{
                       height: 140,
-                      background: '#111',
+                      background: 'var(--nav)',
                       overflow: 'hidden',
                     }}
                   >
@@ -148,7 +148,7 @@ export default function AdminAudiencePage() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#777',
+                          color: 'var(--muted-2)',
                         }}
                       >
                         Chưa có ảnh
@@ -167,11 +167,11 @@ export default function AdminAudiencePage() {
                       {event.title}
                     </h3>
 
-                    <p style={{ color: '#aaa', fontSize: 13, marginTop: 8 }}>
+                    <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 8 }}>
                       {event.venue || 'TBD'}
                     </p>
 
-                    <p style={{ color: '#aaa', fontSize: 13 }}>
+                    <p style={{ color: 'var(--muted)', fontSize: 13 }}>
                       {formatDate(event.date)}
                     </p>
 
@@ -180,18 +180,18 @@ export default function AdminAudiencePage() {
                         marginTop: 18,
                         padding: 14,
                         borderRadius: 14,
-                        background: '#151515',
-                        border: '1px solid #333',
+                        background: 'var(--bg-strong)',
+                        border: '1px solid var(--border)',
                       }}
                     >
-                      <div style={{ color: '#aaa', fontSize: 12 }}>
+                      <div style={{ color: 'var(--muted)', fontSize: 12 }}>
                         Khán giả đã mua vé
                       </div>
 
                       <div
                         style={{
                           marginTop: 6,
-                          color: '#ff6b35',
+                          color: 'var(--accent)',
                           fontSize: 30,
                           fontWeight: 800,
                         }}

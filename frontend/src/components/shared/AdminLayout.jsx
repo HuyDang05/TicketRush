@@ -71,6 +71,9 @@ export default function AdminLayout({ children }) {
           <NavItem to="/admin/users" label="Khán giả" icon={
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
           } />
+          <NavItem to="/admin/account-management" label="Quản lý tài khoản" icon={
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0113 0"/><path d="M17 11l2 2 4-4"/></svg>
+          } />
   
           <SectionLabel label="Cài đặt" />
           <NavItem to="/admin/settings" label="Cài đặt" icon={

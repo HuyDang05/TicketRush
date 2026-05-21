@@ -200,6 +200,11 @@ const createEvent = async (req, res) => {
     });
   } catch (error) {
     console.error('[Event][createEvent] Error:', error);
+    if (error?.code === 'P2003') {
+      return res.status(401).json({
+        message: 'Phiên đăng nhập không còn hợp lệ (tài khoản không tồn tại). Vui lòng đăng nhập lại.',
+      });
+    }
     return res.status(500).json({ message: 'Đã có lỗi xảy ra' });
   }
 };
