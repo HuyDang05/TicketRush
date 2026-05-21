@@ -35,6 +35,7 @@ model Event {
   title          String
   description    String?
   venue          String
+  category       String?
   geoLat         Float?
   geoLong        Float?
   date           DateTime

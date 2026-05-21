@@ -36,9 +36,19 @@ const validateEventDateOrder = (value) => {
   return new Date(value.endDate) > new Date(value.startDate);
 };
 
+const categorySlug = z.enum([
+  'music',
+  'seminarsworkshops',
+  'sport',
+  'theatersandart',
+  'attractionsexperiences',
+  'others',
+]);
+
 const createEventBody = eventBase
   .merge(eventDateFields)
   .extend({
+    category: categorySlug.optional(),
     zones: z.array(z.object({
       name: nonEmptyTrimmedString('Tên khu vực', 1, 80),
       rows: z.coerce.number().int().min(1).max(200),
@@ -54,6 +64,9 @@ const createEventBody = eventBase
 const updateEventBody = eventBase
   .partial()
   .merge(eventDateFields)
+  .extend({
+    category: categorySlug.optional(),
+  })
   .strict()
   .transform(normalizeEventDates)
   .refine((value) => Object.keys(value).some((key) => value[key] !== undefined), {
@@ -65,10 +78,13 @@ const adminEventsQuery = paginationQuery.extend({
   status: z.enum(['pub', 'draft', 'ended', 'PUBLISHED', 'DRAFT', 'ENDED']).optional(),
 });
 
-const publicEventsQuery = paginationQuery.strict();
+const publicEventsQuery = paginationQuery.extend({
+  category: categorySlug.optional(),
+}).strict();
 
 module.exports = {
   adminEventsQuery,
+  categorySlug,
   createEventBody,
   publicEventsQuery,
   updateEventBody,

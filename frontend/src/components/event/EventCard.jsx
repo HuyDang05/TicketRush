@@ -12,6 +12,14 @@ const CARD_GRADIENTS = [
   'linear-gradient(135deg,#001a0a,#004d20)',
 ];
 const CARD_EMOJIS = ['🎸', '🎹', '⚽', '🎪', '🎷', '🏊', '🎭', '🎤'];
+const CATEGORY_LABELS = {
+  music: 'Âm nhạc',
+  seminarsworkshops: 'Hội thảo',
+  sport: 'Thể thao',
+  theatersandart: 'Sân khấu',
+  attractionsexperiences: 'Trải nghiệm',
+  others: 'Khác',
+};
 
 function hashCode(str) {
   let h = 0;
@@ -40,6 +48,7 @@ export default function EventCard({ event }) {
   const minPrice = event.minPrice ?? (event.zones?.length
     ? Math.min(...event.zones.map(z => Number(z.price)))
     : null);
+  const categoryLabel = CATEGORY_LABELS[event.category] || event.category || 'Sự kiện';
 
   return (
     <Link to={`/events/${event.id}`} className="event-card">
@@ -52,7 +61,7 @@ export default function EventCard({ event }) {
           </div>
         )}
         {dateShort && <div className="event-card__date-badge">{dateShort}</div>}
-        <div className="event-card__cat-badge">Âm nhạc</div>
+        <div className="event-card__cat-badge">{categoryLabel}</div>
       </div>
 
       <div className="event-card__body">
