@@ -6,6 +6,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useCountdown } from '../../hooks/useCountdown';
 import { MAX_CHECKOUT_BOOKINGS } from '../../utils/inputValidation';
 import './checkout.css';
+import { useCart } from '../../context/CartContext';
+import { useSocket } from '../../hooks/useSocket';
 
 function fmtVND(n) {
   const value = Number(n) || 0;

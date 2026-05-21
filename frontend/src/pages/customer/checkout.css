@@ -374,13 +374,13 @@
 
 .checkout-countdown-box__label {
   font-size: 11px;
-  font-weight: 600;
-  color: #FF6B35;
+  font-weight: 700;
+  color: var(--text);
 }
 
 .checkout-countdown-box__sublabel {
   font-size: 11px;
-  color: #AAAAAA;
+  color: var(--accent);
 }
 
 .checkout-price-rows {
@@ -501,4 +501,15 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Dark theme: giữ màu đang ổn */
+[data-theme='dark'] .checkout-countdown-box__label,
+.dark .checkout-countdown-box__label {
+  color: #ffffff;
+}
+
+[data-theme='dark'] .checkout-countdown-box__sublabel,
+.dark .checkout-countdown-box__sublabel {
+  color: #ff6b35;
 }
