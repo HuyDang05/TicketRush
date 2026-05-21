@@ -1,9 +1,21 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+const axios = require('axios');
 
 const prisma = new PrismaClient({
   errorFormat: 'pretty',
 });
+
+const NOMINATIM_BASE_URL =
+  process.env.NOMINATIM_BASE_URL || 'https://nominatim.openstreetmap.org';
+const NOMINATIM_USER_AGENT =
+  process.env.NOMINATIM_USER_AGENT ||
+  'TicketRushSeeder/1.0 (admin@ticketrush.com)';
+const NOMINATIM_EMAIL = process.env.NOMINATIM_EMAIL || '';
+const NOMINATIM_DELAY_MS = Number(process.env.NOMINATIM_DELAY_MS || 2000);
+const NOMINATIM_MAX_RETRIES = Number(process.env.NOMINATIM_MAX_RETRIES || 2);
+
+let lastNominatimRequestAt = 0;
 
 async function hashPassword(password) {
   return bcrypt.hash(password, 10);
@@ -27,6 +39,154 @@ function getEventCategory(event) {
     throw new Error(`Category không hợp lệ trong events.json: ${category}`);
   }
   return category;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function normalizeVenue(venue) {
+  return typeof venue === 'string' ? venue.trim() : '';
+}
+
+function removeFirstVenueSegment(venue) {
+  const commaIndex = venue.indexOf(',');
+  if (commaIndex === -1) {
+    return '';
+  }
+
+  return normalizeVenue(venue.slice(commaIndex + 1));
+}
+
+async function waitForNominatimRateLimit() {
+  const elapsed = Date.now() - lastNominatimRequestAt;
+  const delay = Math.max(0, NOMINATIM_DELAY_MS - elapsed);
+  if (delay > 0) {
+    await sleep(delay);
+  }
+  lastNominatimRequestAt = Date.now();
+}
+
+async function searchNominatim(query) {
+  await waitForNominatimRateLimit();
+
+  const params = new URLSearchParams({
+    q: query,
+    format: 'jsonv2',
+    limit: '1',
+    countrycodes: 'vn',
+    addressdetails: '0',
+  });
+
+  if (NOMINATIM_EMAIL) {
+    params.set('email', NOMINATIM_EMAIL);
+  }
+
+  let response;
+  for (let attempt = 0; attempt <= NOMINATIM_MAX_RETRIES; attempt++) {
+    try {
+      response = await axios.get(`${NOMINATIM_BASE_URL}/search`, {
+        params,
+        timeout: 15000,
+        headers: {
+          'User-Agent': NOMINATIM_USER_AGENT,
+          Accept: 'application/json',
+          'Accept-Language': 'vi,en',
+        },
+      });
+      break;
+    } catch (error) {
+      const status = error.response?.status;
+      const shouldRetry = status === 429 || status === 503;
+      if (!shouldRetry || attempt === NOMINATIM_MAX_RETRIES) {
+        throw error;
+      }
+
+      const retryAfterSeconds = Number(error.response?.headers?.['retry-after']);
+      const retryDelay = Number.isFinite(retryAfterSeconds)
+        ? retryAfterSeconds * 1000
+        : NOMINATIM_DELAY_MS * (attempt + 2);
+
+      console.warn(
+        `  ⚠️ Nominatim trả ${status}, chờ ${Math.ceil(retryDelay / 1000)}s rồi thử lại...`
+      );
+      await sleep(retryDelay);
+    }
+  }
+
+  const firstResult = Array.isArray(response.data) ? response.data[0] : null;
+  const geoLat = firstResult?.lat != null ? Number(firstResult.lat) : null;
+  const geoLong = firstResult?.lon != null ? Number(firstResult.lon) : null;
+
+  return {
+    geoLat: Number.isFinite(geoLat) ? geoLat : null,
+    geoLong: Number.isFinite(geoLong) ? geoLong : null,
+  };
+}
+
+async function geocodeVenue(venue) {
+  const query = normalizeVenue(venue);
+  if (!query || query === 'TBD') {
+    return { geoLat: null, geoLong: null, attemptedQueries: [] };
+  }
+
+  const fallbackQuery = removeFirstVenueSegment(query);
+  const queries = [query];
+  if (fallbackQuery && fallbackQuery !== query) {
+    queries.push(fallbackQuery);
+  }
+
+  for (const currentQuery of queries) {
+    const coordinates = await searchNominatim(currentQuery);
+    if (coordinates.geoLat != null && coordinates.geoLong != null) {
+      return {
+        ...coordinates,
+        matchedQuery: currentQuery,
+        attemptedQueries: queries.slice(0, queries.indexOf(currentQuery) + 1),
+      };
+    }
+  }
+
+  return { geoLat: null, geoLong: null, attemptedQueries: queries };
+}
+
+async function getVenueCoordinates(venue, geocodeCache) {
+  const query = normalizeVenue(venue);
+  if (!query || query === 'TBD') {
+    return { geoLat: null, geoLong: null };
+  }
+
+  if (Object.prototype.hasOwnProperty.call(geocodeCache, query)) {
+    const cachedCoordinates = geocodeCache[query];
+    const hasCoordinates =
+      cachedCoordinates.geoLat != null && cachedCoordinates.geoLong != null;
+    const wasCheckedWithFallback = Array.isArray(cachedCoordinates.attemptedQueries);
+
+    if (hasCoordinates || wasCheckedWithFallback) {
+      return cachedCoordinates;
+    }
+  }
+
+  try {
+    const coordinates = await geocodeVenue(query);
+    geocodeCache[query] = coordinates;
+
+    if (coordinates.geoLat == null || coordinates.geoLong == null) {
+      console.warn(`  ⚠️ Không geocode được venue: ${query}`);
+    } else if (coordinates.matchedQuery && coordinates.matchedQuery !== query) {
+      console.log(
+        `  ↳ Geocode bằng query rút gọn: "${coordinates.matchedQuery}"`
+      );
+    }
+
+    return coordinates;
+  } catch (error) {
+    console.warn(
+      `  ⚠️ Lỗi geocode venue "${query}": ${error.response?.status || error.message}`
+    );
+    geocodeCache[query] = { geoLat: null, geoLong: null };
+    return geocodeCache[query];
+  }
 }
 
 // Tạo seats theo dạng vòng cung (arc layout)
@@ -111,18 +271,25 @@ async function main() {
     const fs = require('fs');
     const path = require('path');
     const eventsFilePath = path.join(__dirname, '../../crawler/events.json');
+    const geocodeCachePath = path.join(__dirname, '.nominatim-cache.json');
 
     if (fs.existsSync(eventsFilePath)) {
       const eventsData = JSON.parse(fs.readFileSync(eventsFilePath, 'utf8'));
       const eventsToCreate = eventsData.events;
+      const geocodeCache = fs.existsSync(geocodeCachePath)
+        ? JSON.parse(fs.readFileSync(geocodeCachePath, 'utf8'))
+        : {};
 
       console.log(`Đã tìm thấy ${eventsToCreate.length} events. Đang tiến hành tạo...`);
+      console.log(
+        `Geocoding venue bằng Nominatim (${Object.keys(geocodeCache).length} venue đã cache)...`
+      );
 
       let createdCount = 0;
       const categoryStats = {};
       for (const event of eventsToCreate) {
-        const geoLat = event.geo?.latitude != null ? Number(event.geo.latitude) : null;
-        const geoLong = event.geo?.longitude != null ? Number(event.geo.longitude) : null;
+        const venue = normalizeVenue(event.venue) || 'TBD';
+        const { geoLat, geoLong } = await getVenueCoordinates(venue, geocodeCache);
         const category = getEventCategory(event);
         if (category) {
           categoryStats[category] = (categoryStats[category] || 0) + 1;
@@ -132,10 +299,10 @@ async function main() {
           data: {
             title: event.title,
             description: event.description,
-            venue: event.venue || 'TBD',
+            venue,
             category,
-            geoLat: Number.isFinite(geoLat) ? geoLat : null,
-            geoLong: Number.isFinite(geoLong) ? geoLong : null,
+            geoLat,
+            geoLong,
             date: new Date(event.date),
             endDate: event.endDate ? new Date(event.endDate) : null,
             imageUrl: event.imageUrl,
@@ -181,8 +348,10 @@ async function main() {
         createdCount++;
         if (createdCount % 50 === 0) {
           console.log(`  Đã tạo ${createdCount}/${eventsToCreate.length} events...`);
+          fs.writeFileSync(geocodeCachePath, JSON.stringify(geocodeCache, null, 2));
         }
       }
+      fs.writeFileSync(geocodeCachePath, JSON.stringify(geocodeCache, null, 2));
       console.log(`✅ Tạo thành công ${createdCount} events từ file.`);
       console.log('📚 Category đã seed:', categoryStats);
     } else {
