@@ -12,7 +12,24 @@ import {
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
+const CATEGORY_OPTIONS = [
+  { value: 'music', label: 'Âm nhạc' },
+  { value: 'seminarsworkshops', label: 'Hội thảo' },
+  { value: 'sport', label: 'Thể thao' },
+  { value: 'theatersandart', label: 'Sân khấu' },
+  { value: 'attractionsexperiences', label: 'Trải nghiệm' },
+  { value: 'others', label: 'Khác' },
+];
 
+const CATEGORY_LABEL_TO_VALUE = CATEGORY_OPTIONS.reduce((acc, option) => {
+  acc[option.label] = option.value;
+  return acc;
+}, {});
+
+function normalizeCategory(value) {
+  if (!value) return 'music';
+  return CATEGORY_LABEL_TO_VALUE[value] || value;
+}
 
 /* ── Step indicator ── */
 function StepBar({ step }) {
@@ -125,7 +142,7 @@ export default function EventCreateWizard() {
     ward: '',
     houseNumber: '',
     street: '',
-    category: 'Âm nhạc',
+    category: 'music',
     shortDescription: '',
   });
 
@@ -162,7 +179,7 @@ export default function EventCreateWizard() {
           ...f,
           name: ev.title || '',
           venue: venueMain,
-          category: ev.category || 'Âm nhạc',
+          category: normalizeCategory(ev.category),
           shortDescription: ev.description || '',
         }));
         // Step 1 — dates
@@ -218,6 +235,7 @@ export default function EventCreateWizard() {
         title,
         description: description || undefined,
         venue: venueStr,
+        category: form.category,
         startDate,
         endDate: endDate || undefined,
         ...(imageUrl ? { imageUrl } : {}),
@@ -337,6 +355,21 @@ export default function EventCreateWizard() {
                   <div className="event-form-field">
                     <label className="event-form-label">Tên địa điểm</label>
                     <input className="event-form-input" value={form.venue} onChange={e => set('venue', e.target.value)} placeholder="Vd: SVĐ Mỹ Đình" />
+                  </div>
+
+                  <div className="event-form-field">
+                    <label className="event-form-label">Thể loại sự kiện</label>
+                    <select
+                      className="event-form-input event-form-select"
+                      value={form.category}
+                      onChange={e => set('category', e.target.value)}
+                    >
+                      {CATEGORY_OPTIONS.map((category) => (
+                        <option key={category.value} value={category.value}>
+                          {category.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                 <div className="event-form-card" style={{ marginTop: 24 }}>
