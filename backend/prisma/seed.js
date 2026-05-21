@@ -9,6 +9,26 @@ async function hashPassword(password) {
   return bcrypt.hash(password, 10);
 }
 
+const EVENT_CATEGORIES = new Set([
+  'music',
+  'seminarsworkshops',
+  'sport',
+  'theatersandart',
+  'attractionsexperiences',
+  'others',
+]);
+
+function getEventCategory(event) {
+  const category = event.category ?? event._source?.category ?? null;
+  if (category == null || category === '') {
+    return null;
+  }
+  if (!EVENT_CATEGORIES.has(category)) {
+    throw new Error(`Category không hợp lệ trong events.json: ${category}`);
+  }
+  return category;
+}
+
 // Tạo seats theo dạng vòng cung (arc layout)
 // arcRow: số thứ tự vòng cung (1, 2, 3, ...)
 // seatsPerArc: số ghế trong vòng cung
@@ -99,15 +119,21 @@ async function main() {
       console.log(`Đã tìm thấy ${eventsToCreate.length} events. Đang tiến hành tạo...`);
 
       let createdCount = 0;
+      const categoryStats = {};
       for (const event of eventsToCreate) {
         const geoLat = event.geo?.latitude != null ? Number(event.geo.latitude) : null;
         const geoLong = event.geo?.longitude != null ? Number(event.geo.longitude) : null;
+        const category = getEventCategory(event);
+        if (category) {
+          categoryStats[category] = (categoryStats[category] || 0) + 1;
+        }
 
         const createdEvent = await prisma.event.create({
           data: {
             title: event.title,
             description: event.description,
             venue: event.venue || 'TBD',
+            category,
             geoLat: Number.isFinite(geoLat) ? geoLat : null,
             geoLong: Number.isFinite(geoLong) ? geoLong : null,
             date: new Date(event.date),
@@ -158,6 +184,7 @@ async function main() {
         }
       }
       console.log(`✅ Tạo thành công ${createdCount} events từ file.`);
+      console.log('📚 Category đã seed:', categoryStats);
     } else {
       console.log('⚠️ Không tìm thấy file events.json. Bỏ qua tạo sự kiện.');
     }
