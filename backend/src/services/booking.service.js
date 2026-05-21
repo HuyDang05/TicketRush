@@ -1,13 +1,39 @@
 const { PrismaClient } = require('@prisma/client');
 const { seatReleaseQueue } = require('../jobs/queue');
 const { emitSeatEvent } = require('../config/socket');
+const { validateToken } = require('./queue.service');
 
 const prisma = new PrismaClient();
 
 const LOCK_DURATION_MS = 10 * 60 * 1000; // 10 phút
 const MAX_LOCKS_PER_EVENT = 4;
 
-async function lockSeat(userId, seatId, socketId) {
+async function lockSeat(userId, seatId, socketId, queueToken, queueSessionId) {
+  const seatForQueue = await prisma.seat.findUnique({
+    where: { id: seatId },
+    select: {
+      zone: {
+        select: { eventId: true },
+      },
+    },
+  });
+
+  if (!seatForQueue) {
+    const err = new Error('Ghế không tồn tại');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const queueAllowed = queueToken
+    ? await validateToken(seatForQueue.zone.eventId, userId, queueToken, queueSessionId)
+    : false;
+
+  if (!queueAllowed) {
+    const err = new Error('Bạn chưa đến lượt chọn ghế. Vui lòng vào lại từ trang sự kiện.');
+    err.statusCode = 403;
+    throw err;
+  }
+
   // Toàn bộ validation + mutation trong 1 transaction duy nhất với SERIALIZABLE
   // để tránh race condition khi nhiều user cùng click 1 ghế
   let booking;
@@ -103,18 +129,24 @@ async function lockSeat(userId, seatId, socketId) {
     data: { jobId: job.id.toString() },
   });
 
+  const expiresAt = new Date(Date.now() + LOCK_DURATION_MS);
+
   // Bước 7: Broadcast seat_locked qua Socket.IO
   try {
     emitSeatEvent(eventId, 'seat_locked', {
       seatId,
       label: seat.label,
+      userId,
+      bookingId: booking.id,
+      expiresAt,
+      zoneId: seat.zone.id,
+      zoneName: seat.zone.name,
+      totalPrice: Number(seat.zone.price),
       socketId: socketId ?? null,
     });
   } catch {
     // Socket lỗi không ảnh hưởng response
   }
-
-  const expiresAt = new Date(Date.now() + LOCK_DURATION_MS);
 
   return {
     bookingId: booking.id,
