@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EventList from '../../components/event/EventList';
+import LatestEventsSlider from '../../components/event/LatestEventsSlider';
 import eventService from '../../services/event.service';
+import { useLang } from '../../context/LangContext';
 import './home.css';
 
 const REVIEWS = [
@@ -18,6 +20,7 @@ const REVIEWS = [
 ];
 
 function ReviewCard({ name, initials, color, verified, stars, date, event, body }) {
+  const { t } = useLang();
   return (
     <div className="rv-card">
       <div className="rv-card__head">
@@ -37,7 +40,7 @@ function ReviewCard({ name, initials, color, verified, stars, date, event, body 
       </div>
       <div className="rv-card__body">{body}</div>
       <div className="rv-card__foot">
-        <span className="rv-card__tag">✓ Đã tham dự</span>
+        <span className="rv-card__tag">✓ {t("Đã tham dự")}</span>
         <span className="rv-card__event">{event}</span>
       </div>
     </div>
@@ -45,6 +48,7 @@ function ReviewCard({ name, initials, color, verified, stars, date, event, body 
 }
 
 function ReviewCarousel() {
+  const { t } = useLang();
   const half = Math.ceil(REVIEWS.length / 2);
   const row1 = REVIEWS.slice(0, half);
   const row2 = REVIEWS.slice(half).concat(REVIEWS.slice(0, 2));
@@ -54,9 +58,9 @@ function ReviewCarousel() {
   return (
     <section className="rv-section">
       <div className="rv-section__head">
-        <div className="rv-eyebrow">Khán giả nói gì</div>
-        <h2 className="rv-title">Hơn <span className="rv-title__accent">10.000+</span> khán giả hài lòng</h2>
-        <p className="rv-sub">Những trải nghiệm chân thực từ người tham dự các sự kiện do chúng tôi tổ chức.</p>
+        <div className="rv-eyebrow">{t("Khán giả nói gì")}</div>
+        <h2 className="rv-title">{t("Hơn")} <span className="rv-title__accent">10.000+</span> {t("khán giả hài lòng")}</h2>
+        <p className="rv-sub">{t("Những trải nghiệm chân thực từ người tham dự các sự kiện do chúng tôi tổ chức.")}</p>
         <div className="rv-stats">
           <div className="rv-stat">
             <span className="rv-stat__num">4.9</span>
@@ -65,12 +69,12 @@ function ReviewCarousel() {
           <div className="rv-stat__divider" />
           <div className="rv-stat">
             <span className="rv-stat__num">10.4K</span>
-            <span className="rv-stat__label">đánh giá</span>
+            <span className="rv-stat__label">{t("đánh giá")}</span>
           </div>
           <div className="rv-stat__divider" />
           <div className="rv-stat">
             <span className="rv-stat__num">98%</span>
-            <span className="rv-stat__label">giới thiệu</span>
+            <span className="rv-stat__label">{t("giới thiệu")}</span>
           </div>
         </div>
       </div>
@@ -89,7 +93,7 @@ function ReviewCarousel() {
 
       <div className="rv-cta">
         <button className="rv-cta__btn">
-          Xem tất cả đánh giá
+          {t("Xem tất cả đánh giá")}
           <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
@@ -107,6 +111,38 @@ const CATEGORIES = [
   { icon: '🎪', label: 'Lễ hội', count: '21 sự kiện' },
 ];
 
+function sortBySoldTickets(a, b) {
+  const soldDiff = Number(b.soldTickets || 0) - Number(a.soldTickets || 0);
+  if (soldDiff !== 0) return soldDiff;
+  return (a.title || '').localeCompare(b.title || '', 'vi', { sensitivity: 'base' });
+}
+
+function HomeHeroSkeleton() {
+  return (
+    <>
+      <div className="home-hero__content" aria-hidden="true">
+        <div className="home-hero-skeleton__badge" />
+        <div className="home-hero-skeleton__title" />
+        <div className="home-hero-skeleton__title home-hero-skeleton__title--short" />
+        <div className="home-hero-skeleton__meta">
+          <div className="home-hero-skeleton__meta-item" />
+          <div className="home-hero-skeleton__meta-item home-hero-skeleton__meta-item--wide" />
+        </div>
+        <div className="home-hero-skeleton__cta" />
+      </div>
+      <div className="home-hero__card home-hero__card--skeleton" aria-hidden="true">
+        <div className="home-hero-skeleton__card-thumb" />
+        <div className="home-hero__card-body">
+          <div className="home-hero-skeleton__card-title" />
+          <div className="home-hero-skeleton__card-date" />
+          <div className="home-hero-skeleton__card-price" />
+          <div className="home-hero-skeleton__card-btn" />
+        </div>
+      </div>
+    </>
+  );
+}
+
 function CategoryPill({ icon, label, count }) {
   return (
     <a
@@ -123,6 +159,7 @@ function CategoryPill({ icon, label, count }) {
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { t } = useLang();
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
@@ -132,24 +169,31 @@ export default function HomePage() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const featuredEvent = events[0] || null;
-  const sonTungEvent = events.find(e => e.title === 'DJ Sơn Tùng M-TP Live 2024');
-  const featuredEvents = useMemo(() => {
-    const sorted = [...events].sort((a, b) => {
-      const soldDiff = Number(b.soldTickets || 0) - Number(a.soldTickets || 0);
-      if (soldDiff !== 0) return soldDiff;
-      return (a.title || '').localeCompare(b.title || '', 'vi', { sensitivity: 'base' });
-    });
-
-    return sorted.slice(0, 12);
+  const featuredEvent = useMemo(() => {
+    if (!events.length) return null;
+    return [...events].sort(sortBySoldTickets)[0];
   }, [events]);
+
+  const featuredEvents = useMemo(() => {
+    return [...events].sort(sortBySoldTickets).slice(0, 12);
+  }, [events]);
+
+  const heroImageUrl = featuredEvent?.imageUrl || featuredEvent?.cardImageUrl || null;
+  const cardImageUrl = featuredEvent?.cardImageUrl || featuredEvent?.imageUrl || null;
 
   return (
     <div className="home-page">
 
       {/* ── HERO ── */}
       <section className="home-hero">
-        <div className="home-hero__bg" />
+        <div
+          className="home-hero__bg"
+          style={!isLoading && heroImageUrl ? {
+            backgroundImage: `url(${heroImageUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          } : undefined}
+        />
 
         {[
           { left: '25%', rot: '-15deg', color: '#FF6B35' },
@@ -172,81 +216,73 @@ export default function HomePage() {
 
         <div className="home-hero__overlay" />
 
-        <div className="home-hero__content">
-          <div className="home-hero__badge">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" /></svg>
-            Sự kiện nổi bật
-          </div>
-          <h1 className="home-hero__title">
-            {featuredEvent ? featuredEvent.title : 'Đêm nhạc Sơn Tùng MTP\n— Sky Tour 2026'}
-          </h1>
-          <div className="home-hero__meta">
-            {featuredEvent?.date && (
-              <span className="home-hero__meta-item">
-                <svg width="15" height="15" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
-                {new Date(featuredEvent.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-              </span>
-            )}
-            {featuredEvent?.venue && (
-              <span className="home-hero__meta-item">
-                <svg width="15" height="15" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.5" /></svg>
-                {featuredEvent.venue}
-              </span>
-            )}
-            {!featuredEvent && (
-              <>
-                <span className="home-hero__meta-item">
-                  <svg width="15" height="15" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
-                  15/06/2026
-                </span>
-                <span className="home-hero__meta-item">
-                  <svg width="15" height="15" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.5" /></svg>
-                  Sân vận động Mỹ Đình, Hà Nội
-                </span>
-              </>
-            )}
-          </div>
-          <button
-            className="home-hero__cta"
-            onClick={() => sonTungEvent && navigate(`/events/${sonTungEvent.id}`)}
-          >
-            Đặt vé ngay
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-          </button>
-        </div>
-
-        {featuredEvent && (
-          <div className="home-hero__card">
-            <div className="home-hero__card-thumb">🎤</div>
-            <div className="home-hero__card-body">
-              <div className="home-hero__card-title">{featuredEvent.title}</div>
-              <div className="home-hero__card-date">
-                📅 {new Date(featuredEvent.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+        {isLoading ? (
+          <HomeHeroSkeleton />
+        ) : featuredEvent ? (
+          <>
+            <div className="home-hero__content">
+              <div className="home-hero__badge">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" /></svg>
+                Sự kiện nổi bật
               </div>
-              {featuredEvent.minPrice != null && (
-                <div className="home-hero__card-price">
-                  Từ {featuredEvent.minPrice.toLocaleString('vi-VN')}đ
-                </div>
-              )}
-              <button
-                className="home-hero__card-btn"
-                onClick={() => navigate(`/event/${featuredEvent.id}`)}
-              >
-                Chọn vé →
-              </button>
+              <h1 className="home-hero__title">{featuredEvent.title}</h1>
+              <div className="home-hero__meta">
+                {featuredEvent.date && (
+                  <span className="home-hero__meta-item">
+                    <svg width="15" height="15" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+                    {new Date(featuredEvent.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                  </span>
+                )}
+                {featuredEvent.venue && (
+                  <span className="home-hero__meta-item">
+                    <svg width="15" height="15" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.5" /></svg>
+                    {featuredEvent.venue}
+                  </span>
+                )}
+              </div>
             </div>
+
+            <div className="home-hero__card">
+              <div className="home-hero__card-thumb">
+                {cardImageUrl ? (
+                  <img src={cardImageUrl} alt={featuredEvent.title} className="home-hero__card-thumb-img" />
+                ) : (
+                  '🎤'
+                )}
+              </div>
+              <div className="home-hero__card-body">
+                {featuredEvent.minPrice != null && (
+                  <div className="home-hero__card-price">
+                    Từ {featuredEvent.minPrice.toLocaleString('vi-VN')}đ
+                  </div>
+                )}
+                <button
+                  className="home-hero__card-btn"
+                  onClick={() => navigate(`/events/${featuredEvent.id}`)}
+                >
+                  Chọn vé →
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="home-hero__content">
+            <p className="home-hero__empty">Chưa có sự kiện nào.</p>
           </div>
         )}
       </section>
 
+      {/* ── LATEST EVENTS SLIDER ── */}
+      <LatestEventsSlider events={events} isLoading={isLoading} />
+
       {/* ── CATEGORIES ── */}
       <section className="home-categories">
         <div className="home-section-header">
-          <h2 className="home-section-title">Khám phá theo thể loại</h2>
+          <h2 className="home-section-title">{t("Khám phá theo thể loại") || "Khám phá theo thể loại"}</h2>
         </div>
         <div className="home-categories__grid">
           {CATEGORIES.map((cat) => (
-            <CategoryPill key={cat.label} {...cat} />
+            <CategoryPill key={cat.label} icon={cat.icon} count={cat.count.replace('sự kiện', t('sự kiện'))} label={t(cat.label)} />
           ))}
         </div>
       </section>
@@ -255,9 +291,9 @@ export default function HomePage() {
       <section className="home-events">
 
         <div className="home-section-header">
-          <h2 className="home-section-title">Sự kiện nổi bật</h2>
+          <h2 className="home-section-title">{t("Sự kiện nổi bật") || "Sự kiện nổi bật"}</h2>
           <a href="#" className="home-section-link" onClick={e => e.preventDefault()}>
-            Xem tất cả →
+            {t("Xem tất cả")} →
           </a>
         </div>
 
@@ -270,12 +306,12 @@ export default function HomePage() {
       {/* ── PROMO BANNER ── */}
       <div className="home-promo">
         <div>
-          <h2 className="home-promo__title">Tổ chức sự kiện của bạn?</h2>
+          <h2 className="home-promo__title">{t("Tổ chức sự kiện của bạn?")}</h2>
           <p className="home-promo__desc">
-            Đăng ký làm đối tác với <span className="home-promo__accent">TicketRush</span> — tiếp cận hàng triệu khán giả trên toàn quốc.
+            {t("Đăng ký làm đối tác với TicketRush — tiếp cận hàng triệu khán giả trên toàn quốc.")}
           </p>
         </div>
-        <button className="home-promo__btn">Liên hệ ngay →</button>
+        <button className="home-promo__btn">{t("Liên hệ ngay")} →</button>
       </div>
     </div>
   );
