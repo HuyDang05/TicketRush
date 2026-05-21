@@ -8,6 +8,8 @@ const {
   getMyPendingLocksHandler,
 } = require('../controllers/booking.controller');
 const { checkoutHandler } = require('../controllers/checkout.controller');
+const validate = require('../middlewares/validate.middleware');
+const { checkoutBody, lockSeatBody } = require('../validators/booking.validator');
 
 const router = Router();
 
@@ -44,6 +46,7 @@ router.post(
   '/lock',
   authMiddleware,
   requireRole(['CUSTOMER', 'ADMIN']),
+  validate({ body: lockSeatBody }),
   lockSeatHandler
 );
 
@@ -52,6 +55,7 @@ router.post(
   '/checkout',
   authMiddleware,
   requireRole(['CUSTOMER', 'ADMIN']),
+  validate({ body: checkoutBody }),
   checkoutHandler
 );
 

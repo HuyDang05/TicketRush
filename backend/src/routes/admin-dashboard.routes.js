@@ -2,6 +2,9 @@ const { Router } = require('express');
 
 const authMiddleware = require('../middlewares/auth.middleware');
 const requireRole = require('../middlewares/role.middleware');
+const validate = require('../middlewares/validate.middleware');
+const { eventIdParams } = require('../validators/common.validator');
+const { audienceQuery } = require('../validators/admin.validator');
 const {
   getAdminDashboardHandler,
 } = require('../controllers/admin-dashboard.controller');
@@ -32,6 +35,7 @@ router.get(
   '/dashboard/:eventId',
   authMiddleware,
   requireRole('ADMIN'),
+  validate({ params: eventIdParams }),
   getAdminDashboardHandler
 );
 
@@ -60,6 +64,7 @@ router.get(
   '/analytics/audience',
   authMiddleware,
   requireRole('ADMIN'),
+  validate({ query: audienceQuery }),
   getAudienceAnalyticsHandler
 );
 

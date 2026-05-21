@@ -1,7 +1,14 @@
 const bcrypt = require('bcryptjs');
 
 const prisma = require('../config/prisma');
-const { signAccessToken } = require('../utils/jwt.util');
+const {
+  REFRESH_COOKIE_NAME,
+  clearRefreshCookie,
+  getRefreshCookieOptions,
+  issueAuthTokens,
+  revokeRefreshToken,
+  rotateRefreshToken,
+} = require('../services/auth-token.service');
 const { toPublicUser } = require('../utils/user.util');
 
 const INVALID_CREDENTIALS_MESSAGE = 'Email ho\u1eb7c m\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u00fang';
@@ -95,7 +102,10 @@ const register = async (req, res) => {
       },
     });
 
+    const token = await issueAuthTokens(res, user);
+
     return res.status(201).json({
+      token,
       user: toPublicUser(user),
     });
   } catch (error) {
@@ -148,11 +158,7 @@ const login = async (req, res) => {
       });
     }
 
-    const token = signAccessToken({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    });
+    const token = await issueAuthTokens(res, user);
 
     await prisma.user.update({
       where: { id: user.id },
@@ -171,7 +177,44 @@ const login = async (req, res) => {
   }
 };
 
+const refresh = async (req, res) => {
+  const currentRefreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
+
+  if (!currentRefreshToken) {
+    clearRefreshCookie(res);
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const { accessToken, refreshToken, user } = await rotateRefreshToken(currentRefreshToken);
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, getRefreshCookieOptions());
+    return res.status(200).json({
+      token: accessToken,
+      user: toPublicUser(user),
+    });
+  } catch (error) {
+    await revokeRefreshToken(currentRefreshToken);
+    clearRefreshCookie(res);
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+};
+
+const logout = async (req, res) => {
+  const currentRefreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
+
+  try {
+    await revokeRefreshToken(currentRefreshToken);
+  } catch (error) {
+    console.error('[Auth][Logout] Error:', error);
+  }
+
+  clearRefreshCookie(res);
+  return res.status(200).json({ message: 'Đăng xuất thành công' });
+};
+
 module.exports = {
+  logout,
+  refresh,
   register,
   login,
 };

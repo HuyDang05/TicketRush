@@ -4,8 +4,7 @@ import { toast } from 'sonner';
 import bookingService from '../../services/booking.service';
 import { useAuth } from '../../hooks/useAuth';
 import { useCountdown } from '../../hooks/useCountdown';
-import { useSocket } from '../../hooks/useSocket';
-import { useCart } from '../../context/CartContext';
+import { MAX_CHECKOUT_BOOKINGS } from '../../utils/inputValidation';
 import './checkout.css';
 
 function fmtVND(n) {
@@ -100,9 +99,13 @@ export default function CheckoutPage() {
 
   async function handleConfirm() {
     if (confirming || success) return;
+    const bookingIds = bookings.map((b) => b.bookingId).filter(Boolean);
+    if (bookingIds.length === 0 || bookingIds.length > MAX_CHECKOUT_BOOKINGS) {
+      toast.error(`Chỉ được thanh toán 1-${MAX_CHECKOUT_BOOKINGS} vé mỗi lần`);
+      return;
+    }
     setConfirming(true);
     try {
-      const bookingIds = currentBookings.map((b) => b.bookingId);
       await bookingService.checkout(bookingIds);
       setSuccess(true);
       refreshCart(); // Refresh cart to clear checked out items globally

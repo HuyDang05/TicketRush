@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import {
+  emailRegex,
+  MAX_EMAIL_LENGTH,
+  validateFullName,
+  validatePassword,
+} from '../../utils/inputValidation';
 import './auth.css';
-
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const LIGHT_BEAMS = [
   { left: '15%', width: 180, rot: '-20deg', color: '#FF6B35' },
@@ -28,9 +32,12 @@ export default function RegisterPage() {
 
   const validate = () => {
     const next = {};
-    if (!formData.fullName.trim()) next.fullName = 'Họ tên không được để trống';
-    if (!emailRegex.test(formData.email)) next.email = 'Email không hợp lệ';
-    if (!formData.password || formData.password.length < 8) next.password = 'Mật khẩu cần ít nhất 8 ký tự';
+    const fullNameError = validateFullName(formData.fullName);
+    if (fullNameError) next.fullName = fullNameError;
+    const email = formData.email.trim();
+    if (!emailRegex.test(email) || email.length > MAX_EMAIL_LENGTH) next.email = 'Email không hợp lệ';
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) next.password = passwordError;
     if (formData.password !== formData.confirmPassword) next.confirmPassword = 'Xác nhận mật khẩu không khớp';
     if (!formData.dob) {
       next.dob = 'Vui lòng chọn ngày sinh';
@@ -52,7 +59,13 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!validate()) return;
     try {
-      await register({ email: formData.email, password: formData.password, fullName: formData.fullName, dob: formData.dob, gender: formData.gender });
+      await register({
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        fullName: formData.fullName.trim(),
+        dob: formData.dob,
+        gender: formData.gender,
+      });
       navigate('/');
     } catch (err) {
       console.error('Registration failed:', err);

@@ -33,7 +33,7 @@ const eventService = {
   uploadEventImage: (file) => {
     const form = new FormData();
     form.append('image', file);
-    return api.post('/admin/upload', form, {
+    return api.post('/admin/upload?type=banner', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },

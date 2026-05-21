@@ -4,7 +4,7 @@ import SeatmapCanvas from '../../components/seatmap/SeatmapCanvas';
 import SeatmapPreview from '../../components/seatmap/SeatmapPreview';
 import eventService from '../../services/event.service';
 import { generateSeatsForZone } from '../../lib/seatGenerator';
-import { zonesFromSeatmapJson, flattenZonesForDb, buildLayoutForSave } from '../../lib/seatmapLayout';
+import { MAX_PRICE, MAX_SEATS_PER_EVENT, MAX_ZONES } from '../../utils/inputValidation';
 import './SeatmapEditorPage.css';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -893,11 +893,32 @@ export default function SeatmapEditorPage() {
     // Flatten: grouped floors expand to children; ungrouped floors are skipped (their zones are top-level); regular zones included
     const flatZones = flattenZonesForDb(zones);
     if (flatZones.length === 0) { setToast('⚠ Phải có ít nhất 1 khu vực có ghế'); return false; }
+    if (flatZones.length > MAX_ZONES) { setToast(`⚠ Tối đa ${MAX_ZONES} khu vực`); return false; }
+    const zoneIds = new Set();
+    let totalSeatCount = 0;
     for (const z of flatZones) {
-      if (!z.name.trim())        { setToast('⚠ Tên khu vực không được để trống'); return false; }
+      if (zoneIds.has(z.id))     { setToast(`⚠ Trùng ID khu vực "${z.name}"`); return false; }
+      zoneIds.add(z.id);
+      if (!z.name.trim() || z.name.trim().length > 80) { setToast('⚠ Tên khu vực cần 1-80 ký tự'); return false; }
       if ((z.price || 0) <= 0)   { setToast('⚠ Giá vé phải lớn hơn 0'); return false; }
-      if (countZoneSeats(z) < 1) { setToast(`⚠ Khu "${z.name}" phải có ít nhất 1 ghế`); return false; }
+      if ((z.price || 0) > MAX_PRICE) { setToast(`⚠ Giá vé tối đa ${MAX_PRICE.toLocaleString('vi-VN')} đ`); return false; }
+      const seatCount = countZoneSeats(z);
+      totalSeatCount += seatCount;
+      if (seatCount < 1) { setToast(`⚠ Khu "${z.name}" phải có ít nhất 1 ghế`); return false; }
+      const generated = generateSeatsForZone(z);
+      const labels = new Set();
+      const positions = new Set();
+      for (const seat of generated) {
+        const label = String(seat.label || '').trim().toLowerCase();
+        const position = `${seat.row}:${seat.col}`;
+        if (!label || label.length > 20) { setToast(`⚠ Nhãn ghế trong khu "${z.name}" cần 1-20 ký tự`); return false; }
+        if (labels.has(label)) { setToast(`⚠ Trùng nhãn ghế trong khu "${z.name}"`); return false; }
+        if (positions.has(position)) { setToast(`⚠ Trùng vị trí ghế trong khu "${z.name}"`); return false; }
+        labels.add(label);
+        positions.add(position);
+      }
     }
+    if (totalSeatCount > MAX_SEATS_PER_EVENT) { setToast(`⚠ Tổng số ghế tối đa là ${MAX_SEATS_PER_EVENT}`); return false; }
     setSaving(true);
     try {
       const seatmapPayload = {

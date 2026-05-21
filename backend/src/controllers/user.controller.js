@@ -78,6 +78,10 @@ const changePassword = async (req, res) => {
       data: { password: hashedPassword },
     });
 
+    await prisma.refreshToken.deleteMany({
+      where: { userId: req.user.id },
+    });
+
     return res.json({ message: 'Đổi mật khẩu thành công' });
   } catch (error) {
     console.error('[User][ChangePassword]', error);
@@ -112,6 +116,10 @@ const deleteAccount = async (req, res) => {
       }
 
       await tx.passwordResetToken.deleteMany({
+        where: { userId },
+      });
+
+      await tx.refreshToken.deleteMany({
         where: { userId },
       });
 

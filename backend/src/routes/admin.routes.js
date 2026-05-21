@@ -6,6 +6,15 @@ const { createEvent, updateEvent, publishEvent, endEvent, deleteEvent, getAdminE
 const { getAdminAccounts, createAdminAccount } = require('../controllers/admin-accounts.controller');
 const { uploadImage } = require('../controllers/upload.controller');
 const upload = require('../config/multer');
+const validate = require('../middlewares/validate.middleware');
+const { idParams } = require('../validators/common.validator');
+const {
+  adminEventsQuery,
+  createEventBody,
+  updateEventBody,
+} = require('../validators/event.validator');
+const { saveSeatmapBody } = require('../validators/seatmap.validator');
+const { uploadQuery } = require('../validators/upload.validator');
 
 const router = express.Router();
 
@@ -19,17 +28,24 @@ router.get('/accounts', authenticate, requireAdmin, getAdminAccounts);
 router.post('/accounts', authenticate, requireAdmin, createAdminAccount);
 
 // Upload ảnh sự kiện lên Cloudinary
-router.post('/upload', authenticate, requireAdmin, upload.single('image'), uploadImage);
+router.post(
+  '/upload',
+  authenticate,
+  requireAdmin,
+  validate({ query: uploadQuery }),
+  upload.single('image'),
+  uploadImage
+);
 
 // Event management endpoints (Admin only)
-router.get('/events', authenticate, requireAdmin, getAdminEvents);
-router.get('/events/:id', authenticate, requireAdmin, getAdminEventById);
-router.post('/events', authenticate, requireAdmin, createEvent);
-router.put('/events/:id', authenticate, requireAdmin, updateEvent);
-router.get('/events/:id/seatmap', authenticate, requireAdmin, getSeatmap);
-router.put('/events/:id/seatmap', authenticate, requireAdmin, saveSeatmap);
-router.patch('/events/:id/publish', authenticate, requireAdmin, publishEvent);
-router.patch('/events/:id/end', authenticate, requireAdmin, endEvent);
-router.delete('/events/:id', authenticate, requireAdmin, deleteEvent);
+router.get('/events', authenticate, requireAdmin, validate({ query: adminEventsQuery }), getAdminEvents);
+router.get('/events/:id', authenticate, requireAdmin, validate({ params: idParams }), getAdminEventById);
+router.post('/events', authenticate, requireAdmin, validate({ body: createEventBody }), createEvent);
+router.put('/events/:id', authenticate, requireAdmin, validate({ params: idParams, body: updateEventBody }), updateEvent);
+router.get('/events/:id/seatmap', authenticate, requireAdmin, validate({ params: idParams }), getSeatmap);
+router.put('/events/:id/seatmap', authenticate, requireAdmin, validate({ params: idParams, body: saveSeatmapBody }), saveSeatmap);
+router.patch('/events/:id/publish', authenticate, requireAdmin, validate({ params: idParams }), publishEvent);
+router.patch('/events/:id/end', authenticate, requireAdmin, validate({ params: idParams }), endEvent);
+router.delete('/events/:id', authenticate, requireAdmin, validate({ params: idParams }), deleteEvent);
 
 module.exports = router;

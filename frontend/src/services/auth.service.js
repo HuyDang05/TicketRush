@@ -7,7 +7,12 @@ const authService = {
   register: (payload) =>
     api.post('/auth/register', payload),
 
-  logout: () => {
+  logout: async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // Local logout should still complete if the server session is already gone.
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   },

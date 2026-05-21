@@ -4,6 +4,11 @@ import AdminLayout from '../../components/shared/AdminLayout';
 import './admin.css';
 import provinces from '../../data/vietnam.json';
 import eventService from '../../services/event.service';
+import {
+  MAX_DESCRIPTION_LENGTH,
+  MAX_EVENT_TITLE_LENGTH,
+  MAX_VENUE_LENGTH,
+} from '../../utils/inputValidation';
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
@@ -64,6 +69,12 @@ export default function EventCreateWizard() {
   /* ── validate 1280×720 khi chọn ảnh ── */
   const handleImageChange = (file) => {
     if (!file) { setImageFile(null); setImagePreview(null); setImageError(null); return; }
+    if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) {
+      setImageError('Ảnh phải là file image và tối đa 10 MB');
+      setImageFile(null);
+      setImagePreview(null);
+      return;
+    }
     const img = new Image();
     const objUrl = URL.createObjectURL(file);
     img.onload = () => {
@@ -83,6 +94,12 @@ export default function EventCreateWizard() {
   /* ── validate 720×958 cho ảnh card ── */
   const handleCardImageChange = (file) => {
     if (!file) { setCardImageFile(null); setCardImagePreview(null); setCardImageError(null); return; }
+    if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) {
+      setCardImageError('Ảnh card phải là file image và tối đa 10 MB');
+      setCardImageFile(null);
+      setCardImagePreview(null);
+      return;
+    }
     const img = new Image();
     const objUrl = URL.createObjectURL(file);
     img.onload = () => {
@@ -169,6 +186,12 @@ export default function EventCreateWizard() {
   /* ── Submit ── */
   const handleSubmit = async () => {
     if (submitting) return;
+    const title = form.name.trim();
+    const venue = form.venue.trim();
+    const description = (form.shortDescription || '').trim();
+    if (title.length < 3 || title.length > MAX_EVENT_TITLE_LENGTH) { showToast(`Tên sự kiện cần 3-${MAX_EVENT_TITLE_LENGTH} ký tự`, 'error'); return; }
+    if (venue.length < 3 || venue.length > MAX_VENUE_LENGTH) { showToast(`Địa điểm cần 3-${MAX_VENUE_LENGTH} ký tự`, 'error'); return; }
+    if (description.length > MAX_DESCRIPTION_LENGTH) { showToast(`Mô tả tối đa ${MAX_DESCRIPTION_LENGTH} ký tự`, 'error'); return; }
     if (!startDate) { showToast('Vui lòng chọn ngày giờ bắt đầu', 'error'); return; }
     setSubmitting(true);
     try {
@@ -189,11 +212,11 @@ export default function EventCreateWizard() {
       // 2. Build full venue string
       const addressParts = [form.houseNumber, form.street, form.ward, form.district, form.province]
         .filter(Boolean).join(', ');
-      const venueStr = form.venue + (addressParts ? ` — ${addressParts}` : '');
+      const venueStr = venue + (addressParts ? ` — ${addressParts}` : '');
 
       const payload = {
-        title: form.name,
-        description: form.shortDescription || undefined,
+        title,
+        description: description || undefined,
         venue: venueStr,
         startDate,
         endDate: endDate || undefined,

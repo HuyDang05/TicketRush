@@ -4,6 +4,11 @@ import { toast } from 'sonner';
 import { useAuth } from '../../hooks/useAuth';
 import useAuthStore from '../../store/authStore';
 import userService from '../../services/user.service';
+import {
+  isValidHttpsOrDataImageUrl,
+  validateFullName,
+  validatePassword,
+} from '../../utils/inputValidation';
 import './PersonalAccountPage.css';
 
 export default function PersonalAccountPage() {
@@ -45,12 +50,23 @@ export default function PersonalAccountPage() {
   };
 
   const handleSaveProfile = async () => {
+    const nameError = validateFullName(fullName);
+    if (nameError) {
+      toast.error(nameError);
+      return;
+    }
+
+    if (!isValidHttpsOrDataImageUrl(avatarUrl)) {
+      toast.error('Avatar URL phải dùng https:// hoặc là ảnh đã chọn hợp lệ');
+      return;
+    }
+
     try {
       setLoading(true);
 
       const res = await userService.updateProfile({
-        fullName,
-        avatarUrl,
+        fullName: fullName.trim(),
+        avatarUrl: avatarUrl.trim(),
       });
 
       const token = localStorage.getItem('token');
@@ -65,8 +81,24 @@ export default function PersonalAccountPage() {
   };
 
   const handleChangePassword = async () => {
+    if (!currentPassword) {
+      toast.error('Vui lòng nhập mật khẩu hiện tại');
+      return;
+    }
+
+    const passwordError = validatePassword(newPassword, 'Mật khẩu mới');
+    if (passwordError) {
+      toast.error(passwordError);
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       toast.error('Mật khẩu xác nhận không khớp');
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      toast.error('Mật khẩu mới phải khác mật khẩu hiện tại');
       return;
     }
 

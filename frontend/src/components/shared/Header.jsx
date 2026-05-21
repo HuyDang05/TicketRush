@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { useCart } from '../../context/CartContext';
 import eventService from '../../services/event.service';
+import { MAX_SEARCH_LENGTH } from '../../utils/inputValidation';
 import './Header.css';
 
 export default function Header() {
@@ -38,17 +39,18 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const suggestions = search.trim().length > 0
+  const normalizedSearch = search.trim().slice(0, MAX_SEARCH_LENGTH);
+  const suggestions = normalizedSearch.length > 0
     ? allEvents.filter(e =>
-        e.title.toLowerCase().includes(search.toLowerCase()) ||
-        (e.venue && e.venue.toLowerCase().includes(search.toLowerCase()))
+        e.title.toLowerCase().includes(normalizedSearch.toLowerCase()) ||
+        (e.venue && e.venue.toLowerCase().includes(normalizedSearch.toLowerCase()))
       ).slice(0, 8)
     : [];
 
   const handleSearch = (e) => {
-    if (e.key === 'Enter' && search.trim()) {
+    if (e.key === 'Enter' && normalizedSearch) {
       setShowDropdown(false);
-      navigate(`/?search=${encodeURIComponent(search.trim())}`);
+      navigate(`/?search=${encodeURIComponent(normalizedSearch)}`);
     }
     if (e.key === 'Escape') setShowDropdown(false);
   };
@@ -79,16 +81,17 @@ export default function Header() {
             type="text"
             placeholder="Tìm kiếm sự kiện, nghệ sĩ..."
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setShowDropdown(true); }}
+            maxLength={MAX_SEARCH_LENGTH}
+            onChange={(e) => { setSearch(e.target.value.slice(0, MAX_SEARCH_LENGTH)); setShowDropdown(true); }}
             onFocus={() => setShowDropdown(true)}
             onKeyDown={handleSearch}
             className="header__search-input"
           />
           <button
             onClick={() => {
-              if (search.trim()) {
+              if (normalizedSearch) {
                 setShowDropdown(false);
-                navigate(`/?search=${encodeURIComponent(search.trim())}`);
+                navigate(`/?search=${encodeURIComponent(normalizedSearch)}`);
               }
             }}
             className="header__search-btn"

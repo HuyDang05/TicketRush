@@ -35,7 +35,10 @@ function validateSeatmapStructure(seatmap) {
 
 const getEvents = async (req, res) => {
   try {
-    const { search } = req.query;
+    const { search, page = 1, limit = 10 } = req.query;
+    const pageNum = Number(page);
+    const pageSize = Number(limit);
+    const skip = (pageNum - 1) * pageSize;
 
     const whereCondition = {
       status: 'PUBLISHED',
@@ -79,6 +82,8 @@ const getEvents = async (req, res) => {
       orderBy: {
         date: 'asc',
       },
+      skip,
+      take: pageSize,
     });
 
     const formattedEvents = events.map(event => {
@@ -154,11 +159,8 @@ const getEventById = async (req, res) => {
 
 const createEvent = async (req, res) => {
   try {
-    const { title, description, venue, startDate, endDate, imageUrl, cardImageUrl, rows, cols, zones } = req.body;
-    const createdBy = req.user?.id;
-    if (!createdBy) {
-      return res.status(401).json({ message: 'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.' });
-    }
+    const { title, description, venue, startDate, endDate, imageUrl, cardImageUrl } = req.body;
+    const createdBy = req.user.id;
 
     if (!startDate) {
       return res.status(400).json({ message: 'Ngày bắt đầu là bắt buộc' });
@@ -186,6 +188,7 @@ const createEvent = async (req, res) => {
         date: eventStartDate,
         endDate: eventEndDate,
         imageUrl,
+        cardImageUrl,
         status: 'DRAFT',
         createdBy,
       },
@@ -209,7 +212,7 @@ const createEvent = async (req, res) => {
 const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, venue, startDate, endDate, imageUrl } = req.body;
+    const { title, description, venue, startDate, endDate, imageUrl, cardImageUrl } = req.body;
 
     // Check event exists and is DRAFT
     const event = await prisma.event.findUnique({
@@ -272,8 +275,6 @@ const updateEvent = async (req, res) => {
         endDate: eventEndDate,
         imageUrl: imageUrl !== undefined ? imageUrl : event.imageUrl,
         cardImageUrl: cardImageUrl !== undefined ? cardImageUrl : event.cardImageUrl,
-        date: startDate ? new Date(startDate) : (date ? new Date(date) : event.date),
-        endDate: endDate !== undefined ? (endDate ? new Date(endDate) : null) : event.endDate,
       },
     });
 
