@@ -124,9 +124,15 @@
   transition: background 0.2s, transform 0.15s;
 }
 
-.home-hero__cta:hover {
+.home-hero__cta:hover:not(:disabled) {
   background: var(--accent-h);
   transform: translateY(-1px);
+}
+
+.home-hero__cta:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* Floating card */
@@ -152,6 +158,13 @@
   align-items: center;
   justify-content: center;
   font-size: 40px;
+  overflow: hidden;
+}
+
+.home-hero__card-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .home-hero__card-body {
@@ -194,6 +207,293 @@
 
 .home-hero__card-btn:hover {
   background: var(--accent-h);
+}
+
+.home-hero__empty {
+  font-size: 18px;
+  color: var(--text-soft);
+}
+
+/* Hero skeleton */
+.home-hero-skeleton__badge,
+.home-hero-skeleton__title,
+.home-hero-skeleton__meta-item,
+.home-hero-skeleton__cta,
+.home-hero-skeleton__card-thumb,
+.home-hero-skeleton__card-title,
+.home-hero-skeleton__card-date,
+.home-hero-skeleton__card-price,
+.home-hero-skeleton__card-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  animation: home-hero-skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.home-hero-skeleton__badge {
+  width: 140px;
+  height: 26px;
+  border-radius: 100px;
+  margin-bottom: 16px;
+}
+
+.home-hero-skeleton__title {
+  width: 90%;
+  max-width: 520px;
+  height: 48px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+}
+
+.home-hero-skeleton__title--short {
+  width: 65%;
+  max-width: 380px;
+  height: 48px;
+  margin-bottom: 20px;
+}
+
+.home-hero-skeleton__meta {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.home-hero-skeleton__meta-item {
+  width: 120px;
+  height: 18px;
+  border-radius: 6px;
+}
+
+.home-hero-skeleton__meta-item--wide {
+  width: 220px;
+}
+
+.home-hero-skeleton__cta {
+  width: 160px;
+  height: 48px;
+  border-radius: 8px;
+}
+
+.home-hero__card--skeleton {
+  pointer-events: none;
+}
+
+.home-hero-skeleton__card-thumb {
+  width: 100%;
+  height: 130px;
+  border-radius: 0;
+}
+
+.home-hero-skeleton__card-title {
+  width: 100%;
+  height: 14px;
+  margin-bottom: 8px;
+}
+
+.home-hero-skeleton__card-date {
+  width: 70%;
+  height: 11px;
+  margin-bottom: 12px;
+}
+
+.home-hero-skeleton__card-price {
+  width: 50%;
+  height: 12px;
+  margin-bottom: 10px;
+}
+
+.home-hero-skeleton__card-btn {
+  width: 100%;
+  height: 32px;
+  border-radius: 6px;
+}
+
+@keyframes home-hero-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* Latest events slider */
+.home-latest {
+  padding: 48px 40px 0;
+}
+
+.home-latest__slider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-latest__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.home-latest__viewport {
+  width: 100%;
+  overflow: hidden;
+}
+
+.home-latest__grid {
+  display: flex;
+  gap: 20px;
+  transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform;
+}
+
+.latest-slide-card {
+  flex: 0 0 calc((100% - 20px) / 2);
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  min-height: 220px;
+  background: var(--card);
+}
+
+.latest-slide-card__img,
+.latest-slide-card__placeholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.latest-slide-card__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.75) 0%,
+    rgba(0, 0, 0, 0.15) 45%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.latest-slide-card__footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 20px 24px;
+  z-index: 1;
+}
+
+.latest-slide-card__btn {
+  display: inline-block;
+  background: #fff;
+  color: #111;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.latest-slide-card__btn:hover {
+  background: #f0f0f0;
+  transform: translateY(-1px);
+}
+
+.latest-slide-card--skeleton {
+  background: rgba(255, 255, 255, 0.06);
+  animation: home-hero-skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.latest-slide-card--skeleton::after {
+  content: none;
+}
+
+.home-latest__arrow {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s, opacity 0.2s;
+}
+
+.home-latest__arrow:hover:not(:disabled) {
+  color: #fff;
+}
+
+.home-latest__arrow:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.home-latest__dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.home-latest__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: #ffffff;
+  cursor: pointer;
+  transition: background 0.25s ease, transform 0.2s ease, opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.home-latest__dot--active {
+  background: #3ecf8e;
+  transform: scale(1.15);
+  box-shadow: 0 0 10px rgba(62, 207, 142, 0.45);
+}
+
+.home-latest__dot:hover:not(.home-latest__dot--active) {
+  opacity: 0.75;
+}
+
+.home-latest__dot--skeleton {
+  background: rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+  animation: home-hero-skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.home-latest__dots--loading .home-latest__dot--skeleton:first-child {
+  background: rgba(62, 207, 142, 0.35);
+}
+
+@media (max-width: 900px) {
+  .latest-slide-card {
+    flex: 0 0 100%;
+    aspect-ratio: 16 / 10;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-latest {
+    padding: 40px 20px 0;
+  }
+
+  .home-latest__slider {
+    gap: 4px;
+  }
+
+  .home-latest__arrow {
+    width: 36px;
+  }
 }
 
 /* Categories */
@@ -648,11 +948,12 @@
   font-size: 28px;
   font-weight: 800;
   margin-bottom: 8px;
+  color: #FFFFFF;
 }
 
 .home-promo__desc {
   font-size: 15px;
-  color: #AAAAAA;
+  color: #CCCCCC;
 }
 
 .home-promo__accent {

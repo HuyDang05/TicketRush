@@ -3,10 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { useCart } from '../../context/CartContext';
+import { useLang } from '../../context/LangContext';
 import eventService from '../../services/event.service';
 import './Header.css';
 
 export default function Header() {
+  const { lang, changeLang, t } = useLang();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { cartCount } = useCart();
@@ -18,6 +20,9 @@ export default function Header() {
   const [showDropdown, setShowDropdown] = useState(false);
   const userMenuRef = useRef(null);
   const searchRef = useRef(null);
+  const [showLangDropdown, setShowLangDropdown] = useState(false);
+  const [currentLang, setCurrentLang] = useState('vi');
+  const langMenuRef = useRef(null);
 
   useEffect(() => {
     eventService.getEvents({}).then(r => setAllEvents(r.data.events || [])).catch(() => {});
@@ -32,6 +37,9 @@ export default function Header() {
       }
       if (searchRef.current && !searchRef.current.contains(e.target)) {
         setShowDropdown(false);
+      }
+      if (langMenuRef.current && !langMenuRef.current.contains(e.target)) {
+        setShowLangDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -64,6 +72,32 @@ export default function Header() {
     logout();
   };
 
+  const handleLangChange = (newLang) => {
+    changeLang(newLang);
+    setShowLangDropdown(false);
+  };
+
+  const langIconVi = (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="12" fill="#DA251D"/>
+      <path d="M12 5.5L13.7849 10.9934H19.5635L14.8893 14.3882L16.6742 19.8816L12 16.4868L7.32582 19.8816L9.1107 14.3882L4.43653 10.9934H10.2151L12 5.5Z" fill="#FFFF00"/>
+    </svg>
+  );
+
+  const langIconEn = (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="12" fill="#012169"/>
+      <path d="M22.39 6H1.61L12 12L22.39 6Z" fill="#C8102E"/>
+      <path d="M22.39 18H1.61L12 12L22.39 18Z" fill="#C8102E"/>
+      <path d="M6 1.61V22.39L12 12L6 1.61Z" fill="#C8102E"/>
+      <path d="M18 1.61V22.39L12 12L18 1.61Z" fill="#C8102E"/>
+      <path d="M10 0V24H14V0H10Z" fill="#FFF"/>
+      <path d="M0 10H24V14H0V10Z" fill="#FFF"/>
+      <path d="M11 0V24H13V0H11Z" fill="#C8102E"/>
+      <path d="M0 11H24V13H0V11Z" fill="#C8102E"/>
+    </svg>
+  );
+
 
 
   return (
@@ -77,7 +111,7 @@ export default function Header() {
         <div className="header__search" ref={searchRef}>
           <input
             type="text"
-            placeholder="Tìm kiếm sự kiện, nghệ sĩ..."
+            placeholder={t("Tìm kiếm sự kiện, nghệ sĩ...")}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setShowDropdown(true); }}
             onFocus={() => setShowDropdown(true)}
@@ -124,6 +158,36 @@ export default function Header() {
         </div>
 
         <div className="header__actions">
+          <div className="header__lang-menu" ref={langMenuRef}>
+            <button
+              type="button"
+              className="header__theme-toggle header__lang-btn"
+              onClick={() => setShowLangDropdown(!showLangDropdown)}
+              title={t("Ngôn ngữ")}
+            >
+              {lang === 'vi' ? langIconVi : langIconEn}
+              <span className="header__account-arrow" style={{ marginLeft: 4, marginRight: -4 }}>▾</span>
+            </button>
+            {showLangDropdown && (
+              <div className="header__dropdown">
+                <button
+                  className="header__dropdown-item"
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, fontWeight: lang === 'vi' ? 600 : 400 }}
+                  onClick={() => handleLangChange('vi')}
+                >
+                  {langIconVi} {t("Tiếng Việt")}
+                </button>
+                <button
+                  className="header__dropdown-item"
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, fontWeight: lang === 'en' ? 600 : 400 }}
+                  onClick={() => handleLangChange('en')}
+                >
+                  {langIconEn} {t("English")}
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             type="button"
             className="header__theme-toggle"
@@ -163,10 +227,10 @@ export default function Header() {
           {!user ? (
             <>
               <Link to="/login" className="header__btn header__btn--outline">
-                Đăng nhập
+                {t("Đăng nhập")}
               </Link>
               <Link to="/register" className="header__btn header__btn--accent">
-                Đăng ký
+                {t("Đăng ký")}
               </Link>
             </>
           ) : (
@@ -193,7 +257,7 @@ export default function Header() {
                 )}
 
                 <span className="header__account-name">
-                  Tài khoản
+                  {t("Tài khoản")}
                 </span>
 
                 <span className="header__account-arrow">▾</span>

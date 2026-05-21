@@ -295,6 +295,15 @@
   color: var(--muted);
 }
 
+.header__lang-menu {
+  position: relative;
+}
+
+.header__lang-btn {
+  width: auto;
+  padding: 0 10px;
+}
+
 .header__dropdown {
   position: absolute;
   top: calc(100% + 10px);

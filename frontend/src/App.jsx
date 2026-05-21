@@ -6,6 +6,7 @@ import Footer from './components/shared/Footer';
 import ProtectedRoute from './components/shared/ProtectedRoute';
 import useAuthStore from './store/authStore';
 import { CartProvider } from './context/CartContext';
+import { LangProvider } from './context/LangContext';
 
 // Pages
 import HomePage from './pages/customer/HomePage';
@@ -52,11 +53,12 @@ function CustomerLayout() {
 
 function App() {
   return (
-    <Router>
-      <Toaster position="top-right" richColors />
-      <GlobalModal />
-      <CartProvider>
-      <Routes>
+    <LangProvider>
+      <Router>
+        <Toaster position="top-right" richColors />
+        <GlobalModal />
+        <CartProvider>
+        <Routes>
         {/* Customer + Auth Routes — wrapped in Header/Footer */}
         <Route element={<CustomerLayout />}>
           <Route path="/" element={<HomePage />} />
@@ -223,7 +225,8 @@ function App() {
         />
       </Routes>
       </CartProvider>
-    </Router>
+      </Router>
+    </LangProvider>
   );
 }
 
