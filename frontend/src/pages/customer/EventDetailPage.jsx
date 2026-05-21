@@ -20,6 +20,10 @@ function fmt(n) {
   return Number(n || 0).toLocaleString('vi-VN') + 'đ';
 }
 
+function getQueueSessionId(eventId) {
+  return `tkr-q-${eventId}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
 export default function EventDetailPage() {
   const { id: eventId } = useParams();
   const navigate = useNavigate();
@@ -51,25 +55,34 @@ export default function EventDetailPage() {
   async function handleBook() {
     if (isJoining) return;
     setIsJoining(true);
+
+    const queueSessionId = getQueueSessionId(eventId);
+
     try {
-      const res = await queueService.join(eventId);
+      const res = await queueService.join(eventId, queueSessionId);
+
       if (res.admitted && res.token) {
-        // Slot available — go straight to seat selection
         navigate(`/events/${eventId}/seats`, {
-          state: { queueToken: res.token },
-        });
-      } else {
-        // Queue is full — send to waiting room
-        navigate(`/events/${eventId}/queue`, {
           state: {
             eventName: event?.title,
+            queueToken: res.token,
+            queueSessionId,
           },
         });
+        return;
       }
-    } catch {
-      // On any error fall back to direct navigation
-      navigate(`/events/${eventId}/seats`);
-    } finally {
+
+      navigate(`/events/${eventId}/queue`, {
+        state: {
+          eventName: event?.title,
+          queueSessionId,
+          initialPosition: res.position,
+          initialTotal: res.total,
+          alreadyJoined: true,
+        },
+      });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'KhÃ´ng thá»ƒ vÃ o hÃ ng chá» lÃºc nÃ y');
       setIsJoining(false);
     }
   }

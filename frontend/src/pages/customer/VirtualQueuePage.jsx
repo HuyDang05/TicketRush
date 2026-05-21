@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import queueService from '../../services/queue.service';
+import Header from '../../components/shared/Header';
+import { useSocket } from '../../hooks/useSocket';
 
 const POLL_INTERVAL = 3000; // ms
+
+function getQueueSessionId(eventId, preferredSessionId) {
+  return preferredSessionId || `tkr-q-${eventId}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
 
 // Floating particle component
 function Particle({ style }) {
@@ -20,12 +26,20 @@ export default function VirtualQueuePage() {
   const zoneName  = location.state?.zoneName;
   const qty       = location.state?.qty ?? 1;
 
+  const alreadyJoined = location.state?.alreadyJoined === true;
+  const initialPosition = location.state?.initialPosition;
+  const initialTotal = location.state?.initialTotal;
+
   const [position, setPosition]   = useState(null);
   const [total, setTotal]         = useState(null);
   const [movePerMin, setMovePerMin] = useState(28);
   const [particles, setParticles] = useState([]);
-  const sessionCode = useRef(`tkr-q-${Math.random().toString(36).slice(2, 8).toUpperCase()}`);
+  const sessionCode = useRef(getQueueSessionId(eventId, location.state?.queueSessionId));
+  const queueSessionId = useRef(sessionCode.current);
   const pollingRef  = useRef(null);
+  const admittedRef = useRef(false);
+  const releasedRef = useRef(false);
+  const { on } = useSocket(eventId);
 
   // Progress 0–100 relative to entry position
   const entryPosition = useRef(null);
@@ -52,11 +66,12 @@ export default function VirtualQueuePage() {
   // Polling
   const poll = useCallback(async () => {
     try {
-      const res = await queueService.status(eventId);
+      const res = await queueService.status(eventId, queueSessionId.current);
       if (res.admitted && res.token) {
+        admittedRef.current = true;
         clearInterval(pollingRef.current);
         navigate(`/events/${eventId}/seats`, {
-          state: { zoneId, zoneName, qty, queueToken: res.token },
+          state: { zoneId, zoneName, qty, queueToken: res.token, queueSessionId: queueSessionId.current },
           replace: true,
         });
         return;
@@ -73,14 +88,43 @@ export default function VirtualQueuePage() {
     }
   }, [eventId, navigate, zoneId, zoneName, qty, computeProgress]);
 
+  const releaseCurrentQueueSession = useCallback(async () => {
+    if (releasedRef.current) return;
+    releasedRef.current = true;
+    await queueService.release(eventId, queueSessionId.current).catch(() => {
+      releasedRef.current = false;
+    });
+  }, [eventId]);
+
+  useEffect(() => {
+    return on('queue_updated', () => {
+      poll();
+    });
+  }, [on, poll]);
+
   // Join queue on mount
   useEffect(() => {
+    let cancelled = false;
+
     async function init() {
+      if (alreadyJoined) {
+        if (initialPosition !== undefined && initialPosition !== null) {
+          entryPosition.current = initialPosition;
+          setPosition(initialPosition);
+          setTotal(initialTotal);
+          setProgress(92);
+        }
+        return;
+      }
+
       try {
-        const res = await queueService.join(eventId);
+        const res = await queueService.join(eventId, queueSessionId.current);
+        if (cancelled) return;
+
         if (res.admitted && res.token) {
+          admittedRef.current = true;
           navigate(`/events/${eventId}/seats`, {
-            state: { zoneId, zoneName, qty, queueToken: res.token },
+            state: { zoneId, zoneName, qty, queueToken: res.token, queueSessionId: queueSessionId.current },
             replace: true,
           });
           return;
@@ -92,16 +136,22 @@ export default function VirtualQueuePage() {
           setProgress(92);
         }
       } catch {
-        // Fallback — just show queue UI
-        setPosition(105);
-        setTotal(12847);
-        entryPosition.current = 105;
+        if (cancelled) return;
+        setPosition(1);
+        setTotal(1);
+        entryPosition.current = 1;
       }
     }
     init();
     pollingRef.current = setInterval(poll, POLL_INTERVAL);
-    return () => clearInterval(pollingRef.current);
-  }, [eventId, navigate, poll, zoneId, zoneName, qty]);
+    return () => {
+      cancelled = true;
+      clearInterval(pollingRef.current);
+      if (!admittedRef.current) {
+        releaseCurrentQueueSession();
+      }
+    };
+  }, [eventId, navigate, poll, zoneId, zoneName, qty, alreadyJoined, initialPosition, initialTotal, releaseCurrentQueueSession]);
 
   // Spawn particles
   useEffect(() => {
@@ -134,8 +184,8 @@ export default function VirtualQueuePage() {
     return () => window.removeEventListener('beforeunload', handler);
   }, []);
 
-  const displayPos   = position ?? 105;
-  const displayTotal = total   ?? 12847;
+  const displayPos   = position ?? 1;
+  const displayTotal = total   ?? 1;
 
   return (
     <>
@@ -159,8 +209,8 @@ export default function VirtualQueuePage() {
 
         /* Top bar */
         .vq-topbar {
+          display: none;
           padding: 18px 32px;
-          display: flex;
           align-items: center;
           justify-content: space-between;
           border-bottom: 1px solid #222;
@@ -209,6 +259,37 @@ export default function VirtualQueuePage() {
           align-items: center;
           justify-content: center;
           padding: 60px 24px;
+          position: relative;
+        }
+
+        .vq-back-btn {
+          position: fixed;
+          left: 32px;
+          top: 112px;
+          z-index: 20;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          height: 40px;
+          padding: 0 14px 0 12px;
+          border: 1px solid rgba(255,107,53,0.35);
+          border-radius: 8px;
+          background: rgba(18,18,18,0.82);
+          color: #F5F5F5;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 12px 32px rgba(0,0,0,0.32);
+          transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+        }
+        .vq-back-btn:hover {
+          background: rgba(255,107,53,0.12);
+          border-color: rgba(255,107,53,0.7);
+          transform: translateX(-2px);
+        }
+        .vq-back-btn svg {
+          flex-shrink: 0;
         }
 
         .vq-card {
@@ -402,6 +483,13 @@ export default function VirtualQueuePage() {
         }
 
         @media (max-width: 480px) {
+          .vq-back-btn {
+            left: 16px;
+            top: 88px;
+            height: 36px;
+            padding: 0 11px 0 9px;
+            font-size: 12px;
+          }
           .vq-card { padding: 28px 20px; }
           .vq-pos-num { font-size: 48px; }
           .vq-ring-wrap { width: 180px; height: 180px; }
@@ -411,6 +499,7 @@ export default function VirtualQueuePage() {
       `}</style>
 
       <div className="vq-root">
+        <Header />
         {/* Particles */}
         {particles.map((p) => (
           <Particle
@@ -437,6 +526,20 @@ export default function VirtualQueuePage() {
 
         {/* Main */}
         <main className="vq-main">
+          <button
+            type="button"
+            className="vq-back-btn"
+            onClick={async () => {
+              await releaseCurrentQueueSession();
+              navigate(`/events/${eventId}`);
+            }}
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5m7 7-7-7 7-7" />
+            </svg>
+            Back
+          </button>
+
           <div className="vq-card">
             <div className="vq-event-tag">
               🎤 {eventName}
