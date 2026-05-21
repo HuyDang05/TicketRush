@@ -2,11 +2,21 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import bookingService from '../../services/booking.service';
 import QRCode from 'qrcode';
+import { useLang } from '../../context/LangContext';
 
 import './my-tickets.css';
 
+function removeVietnameseTones(str = '') {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+}
+
 function QRCanvas({ value, size, style }) {
   const ref = useRef(null);
+  const { lang } = useLang();
 
   useEffect(() => {
     if (!ref.current) return;
@@ -25,6 +35,7 @@ function QRCanvas({ value, size, style }) {
 }
 
 function QRModal({ booking, onClose }) {
+  const { lang } = useLang();
   useEffect(() => {
     const handler = e => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handler);
@@ -32,18 +43,18 @@ function QRModal({ booking, onClose }) {
     return () => { document.removeEventListener('keydown', handler); document.body.style.overflow = ''; };
   }, [onClose]);
 
-  const eventName = booking.eventName || booking.eventTitle || booking.seat?.zone?.event?.name || 'Sự kiện';
+  const eventName = booking.eventName || booking.eventTitle || booking.seat?.zone?.event?.name || (lang === 'en' ? 'Event' : 'Sự kiện');
   const seatName = booking.seatName || booking.seat?.label || '—';
   const zoneName = booking.zoneName || booking.seat?.zone?.name || '—';
   const price = Number(booking.price ?? booking.totalPrice ?? 0);
 
   const ticketCode = `TICKET-${seatName}-${booking?.id?.slice(0, 8)?.toUpperCase() || ''}`;
 
-  const qrText = `Mã vé: ${ticketCode}
-  Sự kiện: ${eventName}
-  Khu: ${zoneName}
-  Ghế: ${seatName}
-  Giá vé: ${price.toLocaleString('vi-VN')}đ`;
+  const qrText = `${lang === 'en' ? 'Ticket code' : 'Mã vé'}: ${ticketCode}
+  ${lang === 'en' ? 'Event' : 'Sự kiện'}: ${eventName}
+  ${lang === 'en' ? 'Zone' : 'Khu'}: ${zoneName}
+  ${lang === 'en' ? 'Seat' : 'Ghế'}: ${seatName}
+  ${lang === 'en' ? 'Ticket price' : 'Giá vé'}: ${price.toLocaleString('vi-VN')}đ`;
 
   return (
     <div className="qr-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -85,13 +96,16 @@ const THUMB_GRADIENTS = [
 const THUMB_EMOJIS = ['🎤', '⚽', '🎹', '🎷', '🎭', '🎪'];
 
 function TicketCard({ booking, idx, onViewQR }) {
-  const eventName = booking.eventName || booking.eventTitle || 'Sự kiện';
+  const eventName = booking.eventName || booking.eventTitle || (lang === 'en' ? 'Event' : 'Sự kiện');
   const seatName = booking.seatName || booking.seat?.label || '—';
-  const zoneName = booking.zoneName || booking.seat?.zone?.name || '—';
+  const rawZoneName = booking.zoneName || booking.seat?.zone?.name || '—';
+  const zoneName = lang === 'en' ? rawZoneName.replace('Khu', 'Zone') : rawZoneName;
   const price = Number(booking.price ?? booking.totalPrice ?? 0);
   const startDate = booking.eventDate || booking.seat?.zone?.event?.date;
   const endDate = booking.eventEndDate || booking.seat?.zone?.event?.endDate;
   const location = booking.location || booking.seat?.zone?.event?.venue || '—';
+  const { lang } = useLang();
+
   const imageUrl =
     booking.imageUrl ||
     booking.cardImageUrl ||
@@ -142,7 +156,7 @@ function TicketCard({ booking, idx, onViewQR }) {
                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
                 <circle cx="12" cy="9" r="2.5"/>
               </svg>
-              {location}
+              {lang === 'en' ? removeVietnameseTones(location) : location}
             </div>
           </div>
         </div>
@@ -154,7 +168,9 @@ function TicketCard({ booking, idx, onViewQR }) {
               : { background: 'rgba(170,170,170,.08)', color: '#AAAAAA' }
             }
           >
-            {isUpcoming ? '● Sắp diễn ra' : 'Đã diễn ra'}
+            {isUpcoming
+              ? `● ${lang === 'en' ? 'Upcoming' : 'Sắp diễn ra'}`
+              : lang === 'en' ? 'Past' : 'Đã diễn ra'}
           </span>
         </div>
       </div>
@@ -167,7 +183,7 @@ function TicketCard({ booking, idx, onViewQR }) {
               style={{ background: isUpcoming ? '#FF6B35' : '#AAAAAA' }}
             />
             <span className="booking-card__seat-label">
-              {zoneName} · Ghế {seatName}
+              {zoneName} · {lang === 'en' ? 'Seat' : 'Ghế'} {seatName}
             </span>
           </div>
           <span className="booking-card__seat-price">{fmtVND(price)}</span>
@@ -180,11 +196,11 @@ function TicketCard({ booking, idx, onViewQR }) {
         </span>
         {isPast ? (
           <span style={{ fontSize: 11, fontWeight: 700, color: '#AAAAAA', border: '1px solid #333333', borderRadius: 5, padding: '4px 10px' }}>
-            Đã sử dụng
+            {lang === 'en' ? 'Used' : 'Đã sử dụng'}
           </span>
         ) : (
           <button className="booking-card__qr-btn" onClick={() => onViewQR(booking)}>
-            Xem QR
+            {lang === 'en' ? 'View QR' : 'Xem QR'}
           </button>
         )}
       </div>
@@ -194,6 +210,7 @@ function TicketCard({ booking, idx, onViewQR }) {
 
 export default function MyTicketsPage() {
   const navigate = useNavigate();
+  const { lang } = useLang();
 
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -242,15 +259,15 @@ export default function MyTicketsPage() {
 
       <div className="my-tickets__header">
         <div>
-          <h1 className="my-tickets__heading">Vé của tôi</h1>
-          <p className="my-tickets__subheading">Quản lý tất cả vé đã mua</p>
+          <h1 className="my-tickets__heading">{lang === 'en' ? 'My tickets' : 'Vé của tôi'}</h1>
+          <p className="my-tickets__subheading">{lang === 'en' ? 'Manage all your purchased tickets' : 'Quản lý tất cả vé đã mua'}</p>
         </div>
         <div className="my-tickets__search-wrap">
           <input
             className="my-tickets__search"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Tìm kiếm vé..."
+            placeholder={lang === 'en' ? 'Search tickets...' : 'Tìm kiếm vé...'}
           />
           <span className="my-tickets__search-icon">
             <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
@@ -259,23 +276,29 @@ export default function MyTicketsPage() {
       </div>
 
       <div className="my-tickets__filters">
-        <FilterTab id="all" label="Tất cả" count={bookings.length} />
-        <FilterTab id="upcoming" label="Sắp diễn ra" count={upcomingCount} />
-        <FilterTab id="past" label="Đã diễn ra" count={pastCount} />
+        <FilterTab id="all" label={lang === 'en' ? 'All' : 'Tất cả'} count={bookings.length} />
+        <FilterTab id="upcoming" label={lang === 'en' ? 'Upcoming' : 'Sắp diễn ra'} count={upcomingCount} />
+        <FilterTab id="past" label={lang === 'en' ? 'Past' : 'Đã diễn ra'} count={pastCount} />
       </div>
 
       <div className="my-tickets__content">
         {loading ? (
           <div className="my-tickets__empty">
-            <div className="my-tickets__empty-title">Đang tải vé...</div>
+            <div className="my-tickets__empty-title">
+              {lang === 'en' ? 'Loading tickets...' : 'Đang tải vé...'}
+            </div>
           </div>
         ) : filtered.length === 0 ? (
           <div className="my-tickets__empty">
             <div className="my-tickets__empty-icon">🎟️</div>
-            <div className="my-tickets__empty-title">Bạn chưa có vé nào</div>
-            <p className="my-tickets__empty-sub">Khám phá các sự kiện hấp dẫn và đặt vé ngay hôm nay!</p>
+            <div className="my-tickets__empty-title">
+              {lang === 'en' ? 'You do not have any tickets yet' : 'Bạn chưa có vé nào'}
+            </div>
+            <p className="my-tickets__empty-sub">
+              {lang === 'en' ? 'Discover exciting events and book your tickets today!' : 'Khám phá các sự kiện hấp dẫn và đặt vé ngay hôm nay!'}
+            </p>
             <button className="my-tickets__empty-btn" onClick={() => navigate('/')}>
-              Khám phá sự kiện →
+              {lang === 'en' ? 'Discover Events →' : 'Khám phá sự kiện →'}
             </button>
           </div>
         ) : (

@@ -100,7 +100,13 @@ export default function Header() {
     </svg>
   );
 
-
+  function removeVietnameseTones(str = '') {
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D');
+  }
 
   return (
     <>
@@ -214,7 +220,7 @@ export default function Header() {
               onClick={() => navigate('/cart')}
               className="header__cart-btn"
               style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40 }}
-              title="Giỏ hàng"
+              title={lang === 'en' ? 'Cart' : 'Giỏ hàng'}
             >
               <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -260,7 +266,7 @@ export default function Header() {
                 )}
 
                 <span className="header__account-name">
-                  {t("Tài khoản")}
+                  {lang === 'en' ? 'Account' : 'Tài khoản'}
                 </span>
 
                 <span className="header__account-arrow">▾</span>
@@ -277,7 +283,7 @@ export default function Header() {
                         navigate('/my-tickets');
                       }}
                     >
-                      Vé của tôi
+                      {lang === 'en' ? 'My tickets' : 'Vé của tôi'}
                     </button>
                   )}
 
@@ -289,7 +295,7 @@ export default function Header() {
                       navigate('/account');
                     }}
                   >
-                    Tài khoản cá nhân
+                    {lang === 'en' ? 'Personal account' : 'Tài khoản cá nhân'}
                   </button>
 
                   {user.role === 'ADMIN' && (
@@ -310,7 +316,7 @@ export default function Header() {
                     className="header__dropdown-item header__dropdown-item--danger"
                     onClick={handleLogout}
                   >
-                    Đăng xuất
+                    {lang === 'en' ? 'Log out' : 'Đăng xuất'}
                   </button>
                 </div>
               )}

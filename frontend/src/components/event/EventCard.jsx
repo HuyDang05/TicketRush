@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import './event.css';
+import { useLang } from '../../context/LangContext';
 
 const CARD_GRADIENTS = [
   'linear-gradient(135deg,#2d1200,#8b3a00)',
@@ -19,10 +20,19 @@ function hashCode(str) {
   return Math.abs(h);
 }
 
+function removeVietnameseTones(str = '') {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+}
+
 export default function EventCard({ event }) {
   const idx = hashCode(event.id || event.title) % CARD_GRADIENTS.length;
   const gradient = CARD_GRADIENTS[idx];
   const emoji = CARD_EMOJIS[idx];
+  const { lang } = useLang();
 
   const dateShort = event.date
     ? new Date(event.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
@@ -52,7 +62,9 @@ export default function EventCard({ event }) {
           </div>
         )}
         {dateShort && <div className="event-card__date-badge">{dateShort}</div>}
-        <div className="event-card__cat-badge">Âm nhạc</div>
+        <div className="event-card__cat-badge">
+          {lang === 'en' ? 'Music' : 'Âm nhạc'}
+        </div>
       </div>
 
       <div className="event-card__body">
@@ -63,7 +75,9 @@ export default function EventCard({ event }) {
             <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.5" />
             </svg>
-            <span>{event.venue}</span>
+            <span>
+              {lang === 'en' ? removeVietnameseTones(event.venue) : event.venue}
+            </span>
           </div>
         )}
 
@@ -78,10 +92,12 @@ export default function EventCard({ event }) {
 
         <div className="event-card__footer">
           <span className="event-card__price">
-            {minPrice != null ? `Từ ${minPrice.toLocaleString('vi-VN')}đ` : 'Liên hệ'}
+            {minPrice != null
+              ? `${lang === 'en' ? 'From' : 'Từ'} ${minPrice.toLocaleString('vi-VN')}đ`
+              : lang === 'en' ? 'Contact' : 'Liên hệ'}
           </span>
           <button onClick={e => e.preventDefault()} className="event-card__btn">
-            Đặt vé →
+            {lang === 'en' ? 'Book now' : 'Đặt vé'} →
           </button>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import { useState, useEffect } from 'react';
 import './CartPage.css';
+import { useLang } from '../../context/LangContext';
 
 function toNumberPrice(value) {
   if (value === null || value === undefined) return 0;
@@ -47,6 +48,7 @@ function CountdownText({ expiresAt, onExpire }) {
 }
 
 export default function CartPage() {
+  const { lang } = useLang();
   const { cartItems, refreshCart } = useCart();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -55,10 +57,10 @@ export default function CartPage() {
     setLoading(true);
     try {
       await bookingService.releaseSeat(bookingId);
-      toast.success('Đã xoá ghế khỏi giỏ hàng');
+      toast.success(lang === 'en' ? 'Seat removed from cart' : 'Đã xoá ghế khỏi giỏ hàng');
       refreshCart();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Không thể xóa ghế');
+      toast.error(err.response?.data?.message || (lang === 'en' ? 'Unable to remove seat' : 'Không thể xóa ghế'));
     } finally {
       setLoading(false);
     }
@@ -93,15 +95,15 @@ export default function CartPage() {
 
   return (
     <div className="cart-page">
-      <h1 className="cart-title">Giỏ hàng</h1>
+      <h1 className="cart-title">{lang === 'en' ? 'Cart' : 'Giỏ hàng'}</h1>
       
       {loading && <LoadingSpinner />}
       
       {cartItems.length === 0 ? (
         <div className="cart-empty">
-          <h3>Giỏ hàng của bạn đang trống</h3>
+          <h3>{lang === 'en' ? 'Your cart is empty' : 'Giỏ hàng của bạn đang trống'}</h3>
           <button onClick={() => navigate('/')} className="cart-empty-btn">
-            Tiếp tục xem sự kiện
+            {lang === 'en' ? 'Continue browsing events' : 'Tiếp tục xem sự kiện'}
           </button>
         </div>
       ) : (
@@ -110,11 +112,11 @@ export default function CartPage() {
             <table className="cart-table">
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'center' }}>Tên sự kiện</th>
-                  <th style={{ textAlign: 'center', width: '100px' }}>Số lượng ghế</th>
-                  <th style={{ textAlign: 'center' }}>Khu/Tên ghế</th>
-                  <th style={{ textAlign: 'center' }}>Thời gian còn lại để thanh toán</th>
-                  <th style={{ textAlign: 'center' }}>Giá</th>
+                  <th style={{ textAlign: 'center' }}>{lang === 'en' ? 'Event name' : 'Tên sự kiện'}</th>
+                  <th style={{ textAlign: 'center', width: '100px' }}>{lang === 'en' ? 'Quantity' : 'Số lượng ghế'}</th>
+                  <th style={{ textAlign: 'center' }}>{lang === 'en' ? 'Zone/Seat name' : 'Khu/Tên ghế'}</th>
+                  <th style={{ textAlign: 'center' }}>{lang === 'en' ? 'Time left to checkout' : 'Thời gian còn lại để thanh toán'}</th>
+                  <th style={{ textAlign: 'center' }}>{lang === 'en' ? 'Price' : 'Giá'}</th>
                   <th style={{ textAlign: 'center', width: '60px' }}></th>
                   <th className="col-actions" style={{ textAlign: 'center', width: '120px' }}></th>
                 </tr>
@@ -135,7 +137,7 @@ export default function CartPage() {
                       )}
                       <td>
                         <div className="cart-item-seat" style={{ color: 'var(--text)', fontWeight: '500' }}>
-                          {item.zoneName}/{item.seatLabel}
+                          {lang === 'en' ? item.zoneName.replace('Khu', 'Zone') : item.zoneName}/{item.seatLabel}
                         </div>
                       </td>
                       <td style={{ textAlign: 'center' }}>
@@ -143,14 +145,14 @@ export default function CartPage() {
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{fmt(item.totalPrice)}</td>
                       <td style={{ textAlign: 'center' }}>
-                        <button onClick={() => handleDelete(item.bookingId)} className="cart-action-btn cart-btn-delete" title="Xóa ghế" style={{ padding: '6px 8px', background: 'transparent', color: 'var(--danger)' }}>
+                        <button onClick={() => handleDelete(item.bookingId)} className="cart-action-btn cart-btn-delete" title={lang === 'en' ? 'Remove seat' : 'Xóa ghế'} style={{ padding: '6px 8px', background: 'transparent', color: 'var(--danger)' }}>
                           <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                         </button>
                       </td>
                       {index === 0 && (
                         <td className="col-actions" rowSpan={group.items.length} style={{ verticalAlign: 'middle', textAlign: 'center' }}>
                           <button onClick={() => handleEdit(group.eventId)} className="cart-action-btn cart-btn-edit" style={{ width: '100%' }}>
-                            Chỉnh sửa
+                            {lang === 'en' ? 'Edit' : 'Chỉnh sửa'}
                           </button>
                         </td>
                       )}
@@ -164,20 +166,20 @@ export default function CartPage() {
           <div className="cart-footer">
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', minWidth: '340px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '15px', color: 'var(--text-soft)' }}>
-                <span>Tổng đơn giá:</span>
+                <span>{lang === 'en' ? 'Subtotal:' : 'Tổng đơn giá:'}</span>
                 <span style={{ fontWeight: '500', color: 'var(--text)' }}>{fmt(subtotal)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '15px', color: 'var(--text-soft)' }}>
-                <span>Phí dịch vụ (5%):</span>
+                <span>{lang === 'en' ? 'Service fee (5%):' : 'Phí dịch vụ (5%):'}</span>
                 <span style={{ fontWeight: '500', color: 'var(--text)' }}>{fmt(serviceFee)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '18px', borderTop: '1px solid var(--border)', paddingTop: '12px', marginTop: '4px' }}>
-                <span style={{ fontWeight: 'bold' }}>Cần thanh toán:</span>
+                <span style={{ fontWeight: 'bold' }}>{lang === 'en' ? 'Total to pay:' : 'Cần thanh toán:'}</span>
                 <span className="cart-total-value" style={{ fontSize: '22px' }}>{fmt(grandTotal)}</span>
               </div>
             </div>
             <button onClick={handleCheckout} className="cart-checkout-btn" style={{ width: '100%', maxWidth: '340px', marginTop: '8px' }}>
-              Thanh toán
+              {lang === 'en' ? 'Checkout' : 'Thanh toán'}
             </button>
           </div>
         </>

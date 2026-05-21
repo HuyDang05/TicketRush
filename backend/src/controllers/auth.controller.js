@@ -160,10 +160,10 @@ const login = async (req, res) => {
 
     const token = await issueAuthTokens(res, user);
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
+  //  await prisma.user.update({
+  //    where: { id: user.id },
+  //    data: { lastLoginAt: new Date() },
+  //  });
 
     return res.status(200).json({
       token,
