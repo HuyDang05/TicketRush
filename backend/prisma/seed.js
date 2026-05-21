@@ -100,11 +100,16 @@ async function main() {
 
       let createdCount = 0;
       for (const event of eventsToCreate) {
+        const geoLat = event.geo?.latitude != null ? Number(event.geo.latitude) : null;
+        const geoLong = event.geo?.longitude != null ? Number(event.geo.longitude) : null;
+
         const createdEvent = await prisma.event.create({
           data: {
             title: event.title,
             description: event.description,
             venue: event.venue || 'TBD',
+            geoLat: Number.isFinite(geoLat) ? geoLat : null,
+            geoLong: Number.isFinite(geoLong) ? geoLong : null,
             date: new Date(event.date),
             endDate: event.endDate ? new Date(event.endDate) : null,
             imageUrl: event.imageUrl,
@@ -175,8 +180,8 @@ async function main() {
     */
     console.log('\n🔐 Tài Khoản Test:');
     console.log('  Admin: admin@ticketrush.com / admin123');
-    console.log('  Customer 1: cus1@gmail.com / 12345');
-    console.log('  Customer 2: cus2@gmail.com / 12345');
+    console.log('  Customer 1: cus1@gmail.com / 123456789');
+    console.log('  Customer 2: cus2@gmail.com / 123456789');
     /*
     console.log('\n🎯 Arc Layout Mỗi Zone:');
     console.log('  VIP (2,500,000đ): A(9) → B(11)');

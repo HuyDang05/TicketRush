@@ -19,6 +19,7 @@ model User {
   dob           DateTime?
   gender        Gender?
   createdAt     DateTime             @default(now())
+  lastLoginAt   DateTime?
   bookings      Booking[]
   events        Event[]              @relation("AdminEvents")
   resetTokens   PasswordResetToken[]
@@ -34,6 +35,8 @@ model Event {
   title          String
   description    String?
   venue          String
+  geoLat         Float?
+  geoLong        Float?
   date           DateTime
   imageUrl       String?
   cardImageUrl   String?
