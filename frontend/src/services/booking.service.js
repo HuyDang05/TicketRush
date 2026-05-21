@@ -8,8 +8,8 @@ const bookingService = {
     api.get('/bookings/pending', { params: { eventId } }),
 
   // Lock a single seat — returns { bookingId, seatId, seatLabel, zoneName, totalPrice, status, expiresAt }
-  lockSeat: (seatId, socketId) =>
-    api.post('/bookings/lock', { seatId, socketId }),
+  lockSeat: (seatId, socketId, queueToken, queueSessionId) =>
+    api.post('/bookings/lock', { seatId, socketId, queueToken, queueSessionId }),
 
   releaseSeat: (bookingId) =>
     api.delete(`/bookings/${bookingId}/release`),

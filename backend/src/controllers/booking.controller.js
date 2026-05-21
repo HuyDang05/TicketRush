@@ -1,7 +1,7 @@
 const bookingService = require('../services/booking.service');
 
 async function lockSeatHandler(req, res) {
-  const { seatId, socketId } = req.body;
+  const { seatId, socketId, queueToken, queueSessionId } = req.body;
   const userId = req.user.id;
 
   if (!seatId) {
@@ -9,7 +9,7 @@ async function lockSeatHandler(req, res) {
   }
 
   try {
-    const result = await bookingService.lockSeat(userId, seatId, socketId);
+    const result = await bookingService.lockSeat(userId, seatId, socketId, queueToken, queueSessionId);
     return res.status(201).json(result);
   } catch (err) {
     const status = err.statusCode || 500;

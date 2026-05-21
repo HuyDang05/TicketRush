@@ -1,17 +1,20 @@
 import api from './api';
 
 const queueService = {
-  join: (eventId) =>
-    api.post(`/queue/${eventId}/join`).then((r) => r.data),
+  join: (eventId, queueSessionId) =>
+    api.post(`/queue/${eventId}/join`, { queueSessionId }).then((r) => r.data),
 
-  status: (eventId) =>
-    api.get(`/queue/${eventId}/status`).then((r) => r.data),
+  status: (eventId, queueSessionId) =>
+    api.get(`/queue/${eventId}/status`, { params: { queueSessionId } }).then((r) => r.data),
 
-  release: (eventId) =>
-    api.post(`/queue/${eventId}/release`).then((r) => r.data),
+  release: (eventId, queueSessionId) =>
+    api.post(`/queue/${eventId}/release`, { queueSessionId }).then((r) => r.data),
 
-  validate: (eventId, token) =>
-    api.post(`/queue/${eventId}/validate`, { token }).then((r) => r.data),
+  validate: (eventId, token, queueSessionId) =>
+    api.post(`/queue/${eventId}/validate`, { token, queueSessionId }).then((r) => r.data),
+
+  heartbeat: (eventId, token, queueSessionId) =>
+    api.post(`/queue/${eventId}/validate`, { token, queueSessionId }).then((r) => r.data),
 };
 
 export default queueService;
