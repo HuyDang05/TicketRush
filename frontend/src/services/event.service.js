@@ -5,6 +5,12 @@ const eventService = {
   getEvents: (params) =>
     api.get('/events', { params }),
 
+  getFifthLatestEvent: () =>
+    api.get('/events', { params: { page: 32, limit: 1, sort: 'latest' } }),
+
+  getEventSuggestions: (params, config = {}) =>
+    api.get('/events/search-suggestions', { params, ...config }),
+
   getEventById: (id) =>
     api.get(`/events/${id}`),
 

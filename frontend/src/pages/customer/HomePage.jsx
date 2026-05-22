@@ -1,32 +1,123 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import EventList from '../../components/event/EventList';
 import LatestEventsSlider from '../../components/event/LatestEventsSlider';
 import eventService from '../../services/event.service';
 import { useLang } from '../../context/LangContext';
 import { CATEGORIES } from './eventCategories';
 import CategoryPill from './CategoryPill';
+import { MAX_SEARCH_LENGTH } from '../../utils/inputValidation';
 import './home.css';
-
-const REVIEWS = [
-  { name: 'Nguyễn Anh', initials: 'NA', color: 'linear-gradient(135deg,#FF6B35,#f59e0b)', verified: true, stars: 5, date: '12/04/2026', event: 'Đêm nhạc Sơn Tùng M-TP', body: 'Đêm nhạc tuyệt vời! Sân khấu hoành tráng, âm thanh ánh sáng đỉnh cao. Khu VIP nhìn rất rõ và thoải mái. Sẽ ủng hộ những sự kiện tiếp theo.' },
-  { name: 'Lê Khánh', initials: 'LK', color: 'linear-gradient(135deg,#3B82F6,#06B6D4)', verified: false, stars: 4, date: '15/04/2026', event: 'Live Concert 2026', body: 'Lần đầu xem live, không thất vọng tí nào. Khu A view khá ổn so với mức giá. Chỉ tiếc là âm thanh ở giữa đêm bị rè một chút.' },
-  { name: 'Trần Hoa', initials: 'TH', color: 'linear-gradient(135deg,#10B981,#84CC16)', verified: true, stars: 5, date: '10/04/2026', event: 'Festival Mùa hè', body: 'Sự kiện được tổ chức rất chuyên nghiệp. BTC tận tâm, chu đáo từng chi tiết. Cả nhà tôi đều có một đêm đáng nhớ.' },
-  { name: 'Phạm Minh', initials: 'PM', color: 'linear-gradient(135deg,#8B5CF6,#EC4899)', verified: true, stars: 5, date: '14/04/2026', event: 'Đêm nhạc Sơn Tùng M-TP', body: 'Phần trình diễn cực kỳ ấn tượng, set list được sắp xếp rất hợp lý. Đáng đồng tiền bát gạo!' },
-  { name: 'Võ Lan', initials: 'VL', color: 'linear-gradient(135deg,#EC4899,#F43F5E)', verified: false, stars: 4, date: '13/04/2026', event: 'Live Concert 2026', body: 'Khâu check-in nhanh hơn năm ngoái nhiều. Ghế ngồi thoải mái, view sân khấu rộng. BTC đã cải thiện rất nhiều.' },
-  { name: 'Đỗ Hương', initials: 'DH', color: 'linear-gradient(135deg,#FF6B35,#f43f5e)', verified: true, stars: 5, date: '16/04/2026', event: 'VIP Showcase', body: 'Một trong những đêm nhạc đáng nhớ nhất. Từ khâu đặt vé đến chỗ ngồi đều rất chuyên nghiệp. Highly recommend!' },
-  { name: 'Bùi Vy', initials: 'BV', color: 'linear-gradient(135deg,#4ADE80,#10B981)', verified: false, stars: 4, date: '11/04/2026', event: 'Festival Mùa hè', body: 'Trải nghiệm tổng thể rất tốt, nhân viên thân thiện. Chỉ tiếc là không có nhiều khu food court hơn để giao lưu trước giờ diễn.' },
-  { name: 'Hoàng Nam', initials: 'HN', color: 'linear-gradient(135deg,#06B6D4,#3B82F6)', verified: true, stars: 5, date: '09/04/2026', event: 'Đêm nhạc Sơn Tùng M-TP', body: 'Lần thứ 3 đi xem và vẫn không hết hấp dẫn. App đặt vé dễ dùng, sơ đồ ghế rõ ràng. Cảm ơn BTC đã tổ chức tuyệt vời!' },
-  { name: 'Mai Linh', initials: 'ML', color: 'linear-gradient(135deg,#F59E0B,#EF4444)', verified: true, stars: 5, date: '08/04/2026', event: 'Acoustic Night', body: 'Không gian ấm cúng, âm thanh chuẩn studio. Đây là đêm nhạc acoustic hay nhất tôi từng tham dự ở Sài Gòn.' },
-  { name: 'Trịnh Quang', initials: 'TQ', color: 'linear-gradient(135deg,#A855F7,#7C3AED)', verified: false, stars: 4, date: '07/04/2026', event: 'EDM Festival', body: 'Set list cực bốc, DJ chơi máu lửa. Chỉ mong BTC bổ sung thêm khu nghỉ ngơi cho khách trong khu VIP.' },
-];
-
-function ReviewCard({ name, initials, color, verified, stars, date, event, body }) {
-  const { t } = useLang();
-  return (
-    <div className="rv-card">
+import { css, cx } from "../../lib/runtimeCss";
+const REVIEWS = [{
+  name: 'Nguyễn Anh',
+  initials: 'NA',
+  color: 'linear-gradient(135deg,#FF6B35,#f59e0b)',
+  verified: true,
+  stars: 5,
+  date: '12/04/2026',
+  event: 'Đêm nhạc Sơn Tùng M-TP',
+  body: 'Đêm nhạc tuyệt vời! Sân khấu hoành tráng, âm thanh ánh sáng đỉnh cao. Khu VIP nhìn rất rõ và thoải mái. Sẽ ủng hộ những sự kiện tiếp theo.'
+}, {
+  name: 'Lê Khánh',
+  initials: 'LK',
+  color: 'linear-gradient(135deg,#3B82F6,#06B6D4)',
+  verified: false,
+  stars: 4,
+  date: '15/04/2026',
+  event: 'Live Concert 2026',
+  body: 'Lần đầu xem live, không thất vọng tí nào. Khu A view khá ổn so với mức giá. Chỉ tiếc là âm thanh ở giữa đêm bị rè một chút.'
+}, {
+  name: 'Trần Hoa',
+  initials: 'TH',
+  color: 'linear-gradient(135deg,#10B981,#84CC16)',
+  verified: true,
+  stars: 5,
+  date: '10/04/2026',
+  event: 'Festival Mùa hè',
+  body: 'Sự kiện được tổ chức rất chuyên nghiệp. BTC tận tâm, chu đáo từng chi tiết. Cả nhà tôi đều có một đêm đáng nhớ.'
+}, {
+  name: 'Phạm Minh',
+  initials: 'PM',
+  color: 'linear-gradient(135deg,#8B5CF6,#EC4899)',
+  verified: true,
+  stars: 5,
+  date: '14/04/2026',
+  event: 'Đêm nhạc Sơn Tùng M-TP',
+  body: 'Phần trình diễn cực kỳ ấn tượng, set list được sắp xếp rất hợp lý. Đáng đồng tiền bát gạo!'
+}, {
+  name: 'Võ Lan',
+  initials: 'VL',
+  color: 'linear-gradient(135deg,#EC4899,#F43F5E)',
+  verified: false,
+  stars: 4,
+  date: '13/04/2026',
+  event: 'Live Concert 2026',
+  body: 'Khâu check-in nhanh hơn năm ngoái nhiều. Ghế ngồi thoải mái, view sân khấu rộng. BTC đã cải thiện rất nhiều.'
+}, {
+  name: 'Đỗ Hương',
+  initials: 'DH',
+  color: 'linear-gradient(135deg,#FF6B35,#f43f5e)',
+  verified: true,
+  stars: 5,
+  date: '16/04/2026',
+  event: 'VIP Showcase',
+  body: 'Một trong những đêm nhạc đáng nhớ nhất. Từ khâu đặt vé đến chỗ ngồi đều rất chuyên nghiệp. Highly recommend!'
+}, {
+  name: 'Bùi Vy',
+  initials: 'BV',
+  color: 'linear-gradient(135deg,#4ADE80,#10B981)',
+  verified: false,
+  stars: 4,
+  date: '11/04/2026',
+  event: 'Festival Mùa hè',
+  body: 'Trải nghiệm tổng thể rất tốt, nhân viên thân thiện. Chỉ tiếc là không có nhiều khu food court hơn để giao lưu trước giờ diễn.'
+}, {
+  name: 'Hoàng Nam',
+  initials: 'HN',
+  color: 'linear-gradient(135deg,#06B6D4,#3B82F6)',
+  verified: true,
+  stars: 5,
+  date: '09/04/2026',
+  event: 'Đêm nhạc Sơn Tùng M-TP',
+  body: 'Lần thứ 3 đi xem và vẫn không hết hấp dẫn. App đặt vé dễ dùng, sơ đồ ghế rõ ràng. Cảm ơn BTC đã tổ chức tuyệt vời!'
+}, {
+  name: 'Mai Linh',
+  initials: 'ML',
+  color: 'linear-gradient(135deg,#F59E0B,#EF4444)',
+  verified: true,
+  stars: 5,
+  date: '08/04/2026',
+  event: 'Acoustic Night',
+  body: 'Không gian ấm cúng, âm thanh chuẩn studio. Đây là đêm nhạc acoustic hay nhất tôi từng tham dự ở Sài Gòn.'
+}, {
+  name: 'Trịnh Quang',
+  initials: 'TQ',
+  color: 'linear-gradient(135deg,#A855F7,#7C3AED)',
+  verified: false,
+  stars: 4,
+  date: '07/04/2026',
+  event: 'EDM Festival',
+  body: 'Set list cực bốc, DJ chơi máu lửa. Chỉ mong BTC bổ sung thêm khu nghỉ ngơi cho khách trong khu VIP.'
+}];
+function ReviewCard({
+  name,
+  initials,
+  color,
+  verified,
+  stars,
+  date,
+  event,
+  body
+}) {
+  const {
+    t
+  } = useLang();
+  return <div className="rv-card">
       <div className="rv-card__head">
-        <div className="rv-card__avatar" style={{ background: color }}>{initials}</div>
+        <div className={cx("rv-card__avatar", css({
+        background: color
+      }, "HomePage"))}>{initials}</div>
         <div className="rv-card__meta">
           <div className="rv-card__name">
             {name}
@@ -35,9 +126,9 @@ function ReviewCard({ name, initials, color, verified, stars, date, event, body 
           <div className="rv-card__date">{date}</div>
         </div>
         <div className="rv-card__stars">
-          {Array.from({ length: 5 }, (_, i) => (
-            <span key={i} className={`rv-card__star${i < stars ? '' : ' rv-card__star--empty'}`}>★</span>
-          ))}
+          {Array.from({
+          length: 5
+        }, (_, i) => <span key={i} className={`rv-card__star${i < stars ? '' : ' rv-card__star--empty'}`}>★</span>)}
         </div>
       </div>
       <div className="rv-card__body">{body}</div>
@@ -45,20 +136,18 @@ function ReviewCard({ name, initials, color, verified, stars, date, event, body 
         <span className="rv-card__tag">✓ {t("Đã tham dự")}</span>
         <span className="rv-card__event">{event}</span>
       </div>
-    </div>
-  );
+    </div>;
 }
-
 function ReviewCarousel() {
-  const { t } = useLang();
+  const {
+    t
+  } = useLang();
   const half = Math.ceil(REVIEWS.length / 2);
   const row1 = REVIEWS.slice(0, half);
   const row2 = REVIEWS.slice(half).concat(REVIEWS.slice(0, 2));
   const doubled1 = [...row1, ...row1];
   const doubled2 = [...row2, ...row2];
-
-  return (
-    <section className="rv-section">
+  return <section className="rv-section">
       <div className="rv-section__head">
         <div className="rv-eyebrow">{t("Khán giả nói gì")}</div>
         <h2 className="rv-title">{t("Hơn")} <span className="rv-title__accent">10.000+</span> {t("khán giả hài lòng")}</h2>
@@ -101,29 +190,21 @@ function ReviewCarousel() {
           </svg>
         </button>
       </div>
-    </section>
-  );
+    </section>;
 }
-
 const HOME_EVENTS_PAGE_SIZE = 12;
-
 function sortBySoldTickets(a, b) {
   const soldDiff = Number(b.soldTickets || 0) - Number(a.soldTickets || 0);
   if (soldDiff !== 0) return soldDiff;
-  return (a.title || '').localeCompare(b.title || '', 'vi', { sensitivity: 'base' });
+  return (a.title || '').localeCompare(b.title || '', 'vi', {
+    sensitivity: 'base'
+  });
 }
-
 function removeVietnameseTones(str = '') {
-  return str
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D');
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
 }
-
 function HomeHeroSkeleton() {
-  return (
-    <>
+  return <>
       <div className="home-hero__content" aria-hidden="true">
         <div className="home-hero-skeleton__badge" />
         <div className="home-hero-skeleton__title" />
@@ -143,62 +224,111 @@ function HomeHeroSkeleton() {
           <div className="home-hero-skeleton__card-btn" />
         </div>
       </div>
-    </>
-  );
+    </>;
 }
-
 export default function HomePage() {
   const navigate = useNavigate();
-  const { t, lang } = useLang();
+  const [searchParams] = useSearchParams();
+  const {
+    lang,
+    t
+  } = useLang();
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [categoryEvents, setCategoryEvents] = useState([]);
+  const [categoryPage, setCategoryPage] = useState(1);
+  const [categoryHasMore, setCategoryHasMore] = useState(false);
+  const [isCategoryLoading, setIsCategoryLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const categoryRequestRef = useRef(0);
+  const loadMoreInFlightRef = useRef(false);
+  const loadMoreRef = useRef(null);
+  const searchParam = searchParams.get('search') || '';
+  const searchTerm = useMemo(() => searchParam.trim().slice(0, MAX_SEARCH_LENGTH), [searchParam]);
   useEffect(() => {
-    eventService.getEvents({ page: 1, limit: HOME_EVENTS_PAGE_SIZE })
-      .then(r => setEvents(r.data.events || []))
-      .catch(() => setEvents([]))
-      .finally(() => setIsLoading(false));
-  }, []);
-
+    let cancelled = false;
+    setIsLoading(true);
+    if (searchTerm) {
+      categoryRequestRef.current += 1;
+      setSelectedCategory(null);
+      setCategoryEvents([]);
+      setCategoryPage(1);
+      setCategoryHasMore(false);
+      setIsCategoryLoading(false);
+      setIsLoadingMore(false);
+      loadMoreInFlightRef.current = false;
+    }
+    eventService.getEvents({
+      page: 1,
+      limit: HOME_EVENTS_PAGE_SIZE,
+      ...(searchTerm ? {
+        search: searchTerm
+      } : {})
+    }).then(r => {
+      if (!cancelled) setEvents(r.data.events || []);
+    }).catch(() => {
+      if (!cancelled) setEvents([]);
+    }).finally(() => {
+      if (!cancelled) setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [searchTerm]);
   const featuredEvent = useMemo(() => {
     if (!events.length) return null;
     return [...events].sort(sortBySoldTickets)[0];
   }, [events]);
-
   const featuredEvents = useMemo(() => {
     return [...events].sort(sortBySoldTickets).slice(0, 12);
   }, [events]);
-
   const heroImageUrl = featuredEvent?.imageUrl || featuredEvent?.cardImageUrl || null;
   const cardImageUrl = featuredEvent?.cardImageUrl || featuredEvent?.imageUrl || null;
-
-  return (
-    <div className="home-page">
+  return <div className="home-page">
 
       {/* ── HERO ── */}
       <section className="home-hero">
-        <div
-          className="home-hero__bg"
-          style={!isLoading && heroImageUrl ? {
-            backgroundImage: `url(${heroImageUrl})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          } : undefined}
-        />
+        <div className={cx("home-hero__bg", css(!isLoading && heroImageUrl ? {
+        backgroundImage: `url(${heroImageUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      } : undefined, "HomePage"))} />
 
-        {[
-          { left: '25%', rot: '-15deg', color: '#FF6B35' },
-          { left: '40%', rot: '0deg',   color: '#ffffff' },
-          { left: '55%', rot: '15deg',  color: '#FF6B35' },
-        ].map((l, i) => (
-          <div key={i} style={{
-            position: 'absolute', top: 0, left: l.left, width: 200, height: 300,
-            opacity: .18, transformOrigin: 'top center', transform: `rotate(${l.rot})`,
-            background: `linear-gradient(to bottom, ${l.color}, transparent)`, zIndex: 0,
-          }} />
-        ))}
+        {[{
+        left: '25%',
+        rot: '-15deg',
+        color: '#FF6B35'
+      }, {
+        left: '40%',
+        rot: '0deg',
+        color: '#ffffff'
+      }, {
+        left: '55%',
+        rot: '15deg',
+        color: '#FF6B35'
+      }].map((l, i) => <div key={i} className={css({
+        position: 'absolute',
+        top: 0,
+        left: l.left,
+        width: 200,
+        height: 300,
+        opacity: .18,
+        transformOrigin: 'top center',
+        transform: `rotate(${l.rot})`,
+        background: `linear-gradient(to bottom, ${l.color}, transparent)`,
+        zIndex: 0
+      }, "HomePage")} />)}
 
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 220, zIndex: 0, overflow: 'hidden' }}>
+        <div className={css({
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 220,
+        zIndex: 0,
+        overflow: 'hidden'
+      }, "HomePage")}>
           <svg viewBox="0 0 1440 220" preserveAspectRatio="none" width="100%" height="100%">
             <path d="M0,180 Q30,140 60,160 Q80,150 100,165 Q120,145 145,155 Q165,140 190,158 Q210,148 240,160 Q265,142 290,155 Q315,145 345,158 Q370,148 400,162 Q420,150 445,160 Q465,145 490,158 Q515,148 540,160 Q565,145 595,155 Q620,145 650,158 Q675,150 700,163 Q720,150 745,160 Q765,148 790,158 Q815,148 845,155 Q870,145 895,158 Q918,150 945,162 Q965,152 990,160 Q1015,148 1042,158 Q1065,148 1090,155 Q1115,145 1140,158 Q1162,148 1190,160 Q1215,150 1240,162 Q1262,152 1288,158 Q1312,148 1340,155 Q1365,145 1390,158 Q1415,148 1440,160 L1440,220 L0,220 Z" fill="rgba(20,8,2,0.9)" />
             <path d="M0,200 Q40,185 80,192 Q120,182 160,190 Q200,182 240,190 Q280,184 320,192 Q360,184 400,192 Q440,184 480,190 Q520,184 560,192 Q600,184 640,190 Q680,185 720,192 Q760,185 800,190 Q840,184 880,192 Q920,185 960,190 Q1000,184 1040,192 Q1080,185 1120,190 Q1160,184 1200,192 Q1240,185 1280,190 Q1320,184 1360,192 Q1400,185 1440,190 L1440,220 L0,220 Z" fill="rgba(10,4,0,0.95)" />
@@ -207,10 +337,7 @@ export default function HomePage() {
 
         <div className="home-hero__overlay" />
 
-        {isLoading ? (
-          <HomeHeroSkeleton />
-        ) : featuredEvent ? (
-          <>
+        {isLoading ? <HomeHeroSkeleton /> : featuredEvent ? <>
             <div className="home-hero__content">
               <div className="home-hero__badge">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" /></svg>
@@ -218,51 +345,37 @@ export default function HomePage() {
               </div>
               <h1 className="home-hero__title">{featuredEvent.title}</h1>
               <div className="home-hero__meta">
-                {featuredEvent.date && (
-                  <span className="home-hero__meta-item">
+                {featuredEvent.date && <span className="home-hero__meta-item">
                     <svg width="15" height="15" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
-                    {new Date(featuredEvent.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                  </span>
-                )}
-                {featuredEvent.venue && (
-                  <span className="home-hero__meta-item">
+                    {new Date(featuredEvent.date).toLocaleDateString('vi-VN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+              })}
+                  </span>}
+                {featuredEvent.venue && <span className="home-hero__meta-item">
                     <svg width="15" height="15" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.5" /></svg>
-                    {lang === 'en'
-                      ? removeVietnameseTones(featuredEvent.venue)
-                      : featuredEvent.venue}
-                  </span>
-                )}
+                    {lang === 'en' ? removeVietnameseTones(featuredEvent.venue) : featuredEvent.venue}
+                  </span>}
               </div>
             </div>
 
             <div className="home-hero__card">
               <div className="home-hero__card-thumb">
-                {cardImageUrl ? (
-                  <img src={cardImageUrl} alt={featuredEvent.title} className="home-hero__card-thumb-img" />
-                ) : (
-                  '🎤'
-                )}
+                {cardImageUrl ? <img src={cardImageUrl} alt={featuredEvent.title} className="home-hero__card-thumb-img" /> : '🎤'}
               </div>
               <div className="home-hero__card-body">
-                {featuredEvent.minPrice != null && (
-                  <div className="home-hero__card-price">
+                {featuredEvent.minPrice != null && <div className="home-hero__card-price">
                     {t("Từ")} {featuredEvent.minPrice.toLocaleString('vi-VN')}đ
-                  </div>
-                )}
-                <button
-                  className="home-hero__card-btn"
-                  onClick={() => navigate(`/events/${featuredEvent.id}`)}
-                >
+                  </div>}
+                <button className="home-hero__card-btn" onClick={() => navigate(`/events/${featuredEvent.id}`)}>
                   {lang === 'en' ? 'Choose ticket' : 'Chọn vé'} →
                 </button>
               </div>
             </div>
-          </>
-        ) : (
-          <div className="home-hero__content">
+          </> : <div className="home-hero__content">
             <p className="home-hero__empty">Chưa có sự kiện nào.</p>
-          </div>
-        )}
+          </div>}
       </section>
 
       {/* ── LATEST EVENTS SLIDER ── */}
@@ -274,16 +387,7 @@ export default function HomePage() {
           <h2 className="home-section-title">{t("Khám phá theo thể loại") || "Khám phá theo thể loại"}</h2>
         </div>
         <div className="home-categories__grid">
-          {CATEGORIES.map((cat) => (
-            <CategoryPill
-              key={cat.slug}
-              icon={cat.icon}
-              count={cat.count.replace('sự kiện', t('sự kiện'))}
-              label={t(cat.label)}
-              isActive={false}
-              onClick={() => navigate(`/events?categories=${cat.slug}&page=1`)}
-            />
-          ))}
+          {CATEGORIES.map(cat => <CategoryPill key={cat.slug} icon={cat.icon} count={cat.count.replace('sự kiện', t('sự kiện'))} label={t(cat.label)} isActive={false} onClick={() => navigate(`/events?categories=${cat.slug}&page=1`)} />)}
         </div>
       </section>
 
@@ -294,11 +398,7 @@ export default function HomePage() {
           <h2 className="home-section-title">
             {t("Sự kiện nổi bật") || "Sự kiện nổi bật"}
           </h2>
-          <button
-            type="button"
-            className="home-section-link home-section-link--button"
-            onClick={() => navigate('/events?page=1')}
-          >
+          <button type="button" className="home-section-link home-section-link--button" onClick={() => navigate('/events?page=1')}>
             {t("Xem tất cả")} →
           </button>
         </div>
@@ -319,6 +419,5 @@ export default function HomePage() {
         </div>
         <button className="home-promo__btn">{t("Liên hệ ngay")} →</button>
       </div>
-    </div>
-  );
+    </div>;
 }

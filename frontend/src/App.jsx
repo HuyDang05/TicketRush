@@ -4,6 +4,7 @@ import Header from './components/shared/Header';
 import GlobalModal from './components/shared/GlobalModal';
 import Footer from './components/shared/Footer';
 import ProtectedRoute from './components/shared/ProtectedRoute';
+import LatestEventLoginBanner from './components/event/LatestEventLoginBanner';
 import useAuthStore from './store/authStore';
 import { CartProvider } from './context/CartContext';
 import { LangProvider } from './context/LangContext';
@@ -33,28 +34,31 @@ import VirtualQueuePage from './pages/customer/VirtualQueuePage';
 import AdminAudiencePage from './pages/admin/AdminAudiencePage';
 import AdminAudienceDetailPage from './pages/admin/AdminAudienceDetailPage';
 import AdminAccountManagementPage from './pages/admin/AdminAccountManagementPage';
-
+import { css, cx } from "./lib/runtimeCss";
 function CustomerLayout() {
-  const { user } = useAuthStore();
-
+  const {
+    user
+  } = useAuthStore();
   if (user?.role === 'ADMIN') {
     return <Navigate to="/admin" replace />;
   }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+  return <div className={css({
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100vh'
+  }, "App")}>
       <Header />
-      <main style={{ flex: 1 }}>
+      <LatestEventLoginBanner />
+      <main className={css({
+      flex: 1
+    }, "App")}>
         <Outlet />
       </main>
       <Footer />
-    </div>
-  );
+    </div>;
 }
-
 function App() {
-  return (
-    <LangProvider>
+  return <LangProvider>
       <Router>
         <Toaster position="top-right" richColors />
         <GlobalModal />
@@ -65,67 +69,32 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/events" element={<EventExplorePage />} />
           <Route path="/events/:id" element={<EventDetailPage />} />
-          <Route
-            path="/cart"
-            element={
-              <ProtectedRoute requiredRole="CUSTOMER">
+          <Route path="/cart" element={<ProtectedRoute requiredRole="CUSTOMER">
                 <CartPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/cart/checkout"
-            element={
-              <ProtectedRoute requiredRole="CUSTOMER">
+              </ProtectedRoute>} />
+          <Route path="/cart/checkout" element={<ProtectedRoute requiredRole="CUSTOMER">
                 <CartCheckoutPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/checkout"
-            element={
-              <ProtectedRoute requiredRole="CUSTOMER">
+              </ProtectedRoute>} />
+          <Route path="/checkout" element={<ProtectedRoute requiredRole="CUSTOMER">
                 <CheckoutPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/my-tickets"
-            element={
-              <ProtectedRoute requiredRole="CUSTOMER">
+              </ProtectedRoute>} />
+          <Route path="/my-tickets" element={<ProtectedRoute requiredRole="CUSTOMER">
                 <MyTicketsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/account"
-            element={
-              <ProtectedRoute requiredRole="CUSTOMER">
+              </ProtectedRoute>} />
+          <Route path="/account" element={<ProtectedRoute requiredRole="CUSTOMER">
                 <PersonalAccountPage />
-              </ProtectedRoute>
-            }
-          />
+              </ProtectedRoute>} />
         </Route>
 
         {/* Seat Selection — has its own header, no CustomerLayout */}
-        <Route
-          path="/events/:id/seats"
-          element={
-            <ProtectedRoute requiredRole="CUSTOMER">
+        <Route path="/events/:id/seats" element={<ProtectedRoute requiredRole="CUSTOMER">
               <SeatSelectionPage />
-            </ProtectedRoute>
-          }
-        />
+            </ProtectedRoute>} />
 
         {/* Virtual Queue — no CustomerLayout */}
-        <Route
-          path="/events/:id/queue"
-          element={
-            <ProtectedRoute requiredRole="CUSTOMER">
+        <Route path="/events/:id/queue" element={<ProtectedRoute requiredRole="CUSTOMER">
               <VirtualQueuePage />
-            </ProtectedRoute>
-          }
-        />
+            </ProtectedRoute>} />
 
         
 
@@ -137,99 +106,42 @@ function App() {
         <Route path="/auth/callback" element={<OAuthCallbackPage />} />
 
         {/* Admin Routes — full-screen layout, no Header/Footer */}
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute requiredRole="ADMIN">
+        <Route path="/admin" element={<ProtectedRoute requiredRole="ADMIN">
               <AdminDashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/dashboard"
-          element={
-            <ProtectedRoute requiredRole="ADMIN">
+            </ProtectedRoute>} />
+        <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="ADMIN">
               <AdminDashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/events"
-          element={
-            <ProtectedRoute requiredRole="ADMIN">
+            </ProtectedRoute>} />
+        <Route path="/admin/events" element={<ProtectedRoute requiredRole="ADMIN">
               <EventManagerPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/events/create"
-          element={
-            <ProtectedRoute requiredRole="ADMIN">
+            </ProtectedRoute>} />
+        <Route path="/admin/events/create" element={<ProtectedRoute requiredRole="ADMIN">
               <EventCreateWizard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/events/new"
-          element={
-            <ProtectedRoute requiredRole="ADMIN">
+            </ProtectedRoute>} />
+        <Route path="/admin/events/new" element={<ProtectedRoute requiredRole="ADMIN">
               <EventFormPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/events/:id/edit"
-          element={
-            <ProtectedRoute requiredRole="ADMIN">
+            </ProtectedRoute>} />
+        <Route path="/admin/events/:id/edit" element={<ProtectedRoute requiredRole="ADMIN">
               <EventCreateWizard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/events/:id/seatmap"
-          element={
-            <ProtectedRoute requiredRole="ADMIN">
+            </ProtectedRoute>} />
+        <Route path="/admin/events/:id/seatmap" element={<ProtectedRoute requiredRole="ADMIN">
               <SeatmapEditorPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/revenue"
-          element={
-            <ProtectedRoute requiredRole="ADMIN">
+            </ProtectedRoute>} />
+        <Route path="/admin/revenue" element={<ProtectedRoute requiredRole="ADMIN">
               <AdminTicketManagerPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/users"
-          element={
-            <ProtectedRoute requiredRole="ADMIN">
+            </ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute requiredRole="ADMIN">
               <AdminAudiencePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/users/:eventId"
-          element={
-            <ProtectedRoute requiredRole="ADMIN">
+            </ProtectedRoute>} />
+        <Route path="/admin/users/:eventId" element={<ProtectedRoute requiredRole="ADMIN">
               <AdminAudienceDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/account-management"
-          element={
-            <ProtectedRoute requiredRole="ADMIN">
+            </ProtectedRoute>} />
+        <Route path="/admin/account-management" element={<ProtectedRoute requiredRole="ADMIN">
               <AdminAccountManagementPage />
-            </ProtectedRoute>
-          }
-        />
+            </ProtectedRoute>} />
       </Routes>
       </CartProvider>
       </Router>
-    </LangProvider>
-  );
+    </LangProvider>;
 }
-
 export default App;

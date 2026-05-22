@@ -1,39 +1,50 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
-
+import { markLatestEventBannerForLogin } from '../../components/event/LatestEventLoginBanner';
+import { css, cx } from "../../lib/runtimeCss";
 export default function OAuthCallbackPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const login = useAuthStore((s) => s.login);
-
+  const login = useAuthStore(s => s.login);
   useEffect(() => {
     const token = searchParams.get('token');
     const userRaw = searchParams.get('user');
     const error = searchParams.get('error');
-
     if (error || !token || !userRaw) {
-      navigate('/login?error=google_failed', { replace: true });
+      navigate('/login?error=google_failed', {
+        replace: true
+      });
       return;
     }
-
     try {
       const user = JSON.parse(userRaw);
       login(user, token);
-
       if (user.role === 'ADMIN') {
-        navigate('/admin/dashboard', { replace: true });
+        navigate('/admin/dashboard', {
+          replace: true
+        });
       } else {
-        navigate('/', { replace: true });
+        markLatestEventBannerForLogin();
+        navigate('/', {
+          replace: true
+        });
       }
     } catch {
-      navigate('/login?error=google_failed', { replace: true });
+      navigate('/login?error=google_failed', {
+        replace: true
+      });
     }
   }, []);
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#1a1a1a', color: '#fff', fontSize: 16 }}>
+  return <div className={css({
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    background: '#1a1a1a',
+    color: '#fff',
+    fontSize: 16
+  }, "OAuthCallbackPage")}>
       Đang đăng nhập...
-    </div>
-  );
+    </div>;
 }
