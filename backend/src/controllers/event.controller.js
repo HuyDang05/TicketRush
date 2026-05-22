@@ -1,5 +1,24 @@
 const prisma = require('../config/prisma');
 
+const EVENT_CATEGORIES = new Set([
+  'music',
+  'seminarsworkshops',
+  'sport',
+  'theatersandart',
+  'attractionsexperiences',
+  'others',
+]);
+
+function parseCategoryList(categories) {
+  if (!categories || typeof categories !== 'string') return [];
+  return [...new Set(
+    categories
+      .split(',')
+      .map((category) => category.trim())
+      .filter((category) => EVENT_CATEGORIES.has(category))
+  )];
+}
+
 // ── Seatmap validation ────────────────────────────────────────────────────────
 
 function validateSeatmapStructure(seatmap) {
@@ -35,52 +54,143 @@ function validateSeatmapStructure(seatmap) {
 
 const getEvents = async (req, res) => {
   try {
-    const { search } = req.query;
+    const { search, category, categories, sort, page = 1, limit = 10 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+    const skip = (pageNum - 1) * pageSize;
 
     const whereCondition = {
       status: 'PUBLISHED',
     };
 
-    if (search) {
-      whereCondition.title = {
-        contains: search,
-        mode: 'insensitive',
-      };
+    const selectedCategories = parseCategoryList(categories);
+    if (selectedCategories.length > 0) {
+      whereCondition.category = { in: selectedCategories };
+    } else if (category) {
+      whereCondition.category = category;
     }
 
-    const events = await prisma.event.findMany({
-      where: whereCondition,
-      include: {
-        zones: {
-          select: {
-            price: true,
+    if (search) {
+      whereCondition.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { venue: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [total, events] = await Promise.all([
+      prisma.event.count({ where: whereCondition }),
+      prisma.event.findMany({
+        where: whereCondition,
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          venue: true,
+          category: true,
+          geoLat: true,
+          geoLong: true,
+          date: true,
+          endDate: true,
+          imageUrl: true,
+          cardImageUrl: true,
+          status: true,
+          createdAt: true,
+          createdBy: true,
+          seatmapVersion: true,
+          zones: {
+            select: {
+              price: true,
+              _count: {
+                select: {
+                  seats: {
+                    where: { status: 'SOLD' },
+                  },
+                },
+              },
+            },
           },
         },
-      },
-      orderBy: {
-        date: 'asc',
-      },
-    });
+        orderBy: sort === 'latest'
+          ? [
+              { date: 'desc' },
+              { title: 'asc' },
+            ]
+          : [
+              { date: 'asc' },
+              { title: 'asc' },
+            ],
+        skip,
+        take: pageSize,
+      }),
+    ]);
 
     const formattedEvents = events.map(event => {
       let minPrice = null;
+      let soldTickets = 0;
       if (event.zones && event.zones.length > 0) {
         minPrice = Math.min(...event.zones.map(z => Number(z.price)));
+        soldTickets = event.zones.reduce(
+          (sum, zone) => sum + zone._count.seats,
+          0
+        );
       }
 
       const { zones, ...eventData } = event;
       return {
         ...eventData,
         minPrice,
+        soldTickets,
       };
     });
 
     return res.status(200).json({
       events: formattedEvents,
+      total,
+      page: pageNum,
+      limit: pageSize,
+      totalPages: Math.ceil(total / pageSize),
+      hasMore: skip + formattedEvents.length < total,
     });
   } catch (error) {
     console.error('[Event][getEvents] Error:', error);
     return res.status(500).json({ message: 'Đã có lỗi xảy ra' });
+  }
+};
+
+const getEventSearchSuggestions = async (req, res) => {
+  try {
+    const { search, limit = 8 } = req.query;
+    const keyword = search.trim();
+    const take = Math.min(10, Math.max(1, parseInt(limit, 10) || 8));
+
+    const events = await prisma.event.findMany({
+      where: {
+        status: 'PUBLISHED',
+        OR: [
+          { title: { contains: keyword, mode: 'insensitive' } },
+          { venue: { contains: keyword, mode: 'insensitive' } },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        venue: true,
+        imageUrl: true,
+        cardImageUrl: true,
+        date: true,
+      },
+      orderBy: [
+        { date: 'asc' },
+        { title: 'asc' },
+      ],
+      take,
+    });
+
+    return res.status(200).json({ events });
+  } catch (error) {
+    console.error('[Event][getEventSearchSuggestions] Error:', error);
+    return res.status(500).json({ message: 'ÄÃ£ cÃ³ lá»—i xáº£y ra' });
   }
 };
 
@@ -129,7 +239,7 @@ const getEventById = async (req, res) => {
 
 const createEvent = async (req, res) => {
   try {
-    const { title, description, venue, startDate, endDate, imageUrl, cardImageUrl, rows, cols, zones } = req.body;
+    const { title, description, venue, category, startDate, endDate, imageUrl, cardImageUrl } = req.body;
     const createdBy = req.user.id;
 
     if (!startDate) {
@@ -155,9 +265,11 @@ const createEvent = async (req, res) => {
         title,
         description,
         venue,
+        category,
         date: eventStartDate,
         endDate: eventEndDate,
         imageUrl,
+        cardImageUrl,
         status: 'DRAFT',
         createdBy,
       },
@@ -169,6 +281,11 @@ const createEvent = async (req, res) => {
     });
   } catch (error) {
     console.error('[Event][createEvent] Error:', error);
+    if (error?.code === 'P2003') {
+      return res.status(401).json({
+        message: 'Phiên đăng nhập không còn hợp lệ (tài khoản không tồn tại). Vui lòng đăng nhập lại.',
+      });
+    }
     return res.status(500).json({ message: 'Đã có lỗi xảy ra' });
   }
 };
@@ -176,7 +293,7 @@ const createEvent = async (req, res) => {
 const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, venue, startDate, endDate, imageUrl } = req.body;
+    const { title, description, venue, category, startDate, endDate, imageUrl, cardImageUrl } = req.body;
 
     // Check event exists and is DRAFT
     const event = await prisma.event.findUnique({
@@ -235,12 +352,11 @@ const updateEvent = async (req, res) => {
         title: title || event.title,
         description: description !== undefined ? description : event.description,
         venue: venue || event.venue,
+        category: category !== undefined ? category : event.category,
         date: eventStartDate,
         endDate: eventEndDate,
         imageUrl: imageUrl !== undefined ? imageUrl : event.imageUrl,
         cardImageUrl: cardImageUrl !== undefined ? cardImageUrl : event.cardImageUrl,
-        date: startDate ? new Date(startDate) : (date ? new Date(date) : event.date),
-        endDate: endDate !== undefined ? (endDate ? new Date(endDate) : null) : event.endDate,
       },
     });
 
@@ -343,12 +459,18 @@ const deleteEvent = async (req, res) => {
 
 const getAdminEvents = async (req, res) => {
   try {
-    const { search, status } = req.query;
+    const { search, status, page = 1, limit = 10 } = req.query;
+
+    const pageNum  = Math.max(1, parseInt(page,  10) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+    const skip     = (pageNum - 1) * pageSize;
 
     const whereCondition = {};
 
     if (status) {
-      whereCondition.status = status;
+      // frontend gửi 'pub'/'draft'/'ended' → map sang enum
+      const statusMap = { pub: 'PUBLISHED', draft: 'DRAFT', ended: 'ENDED' };
+      whereCondition.status = statusMap[status] || status;
     }
 
     if (search) {
@@ -358,34 +480,75 @@ const getAdminEvents = async (req, res) => {
       };
     }
 
-    const events = await prisma.event.findMany({
-      where: whereCondition,
-      include: {
-        zones: {
-          select: {
-            price: true,
-            rows: true,
-            cols: true,
-            _count: { select: { seats: true } },
+    // Chạy song song: đếm tổng + lấy trang hiện tại
+    const [total, events] = await Promise.all([
+      prisma.event.count({ where: whereCondition }),
+      prisma.event.findMany({
+        where: whereCondition,
+        select: {
+          id: true,
+          title: true,
+          venue: true,
+          category: true,
+          geoLat: true,
+          geoLong: true,
+          date: true,
+          endDate: true,
+          status: true,
+          imageUrl: true,
+          cardImageUrl: true,
+          createdAt: true,
+          createdBy: true,
+          zones: {
+            select: {
+              price: true,
+              rows: true,
+              cols: true,
+              _count: {
+                select: {
+                  seats: true,                          // tổng ghế
+                },
+              },
+            },
           },
+          // đếm sold seats qua booking
+          _count: { select: { zones: true } },
         },
-        _count: {
-          select: { zones: true },
-        },
-      },
-      orderBy: { date: 'asc' },
-    });
+        orderBy: { date: 'asc' },
+        skip,
+        take: pageSize,
+      }),
+    ]);
+
+    // Tính soldSeats: ~10 queries song song (1 per event in page) — OK với pagination
+    const eventIds = events.map(e => e.id);
+    let soldMap = {};
+    if (eventIds.length > 0) {
+      await Promise.all(
+        eventIds.map(async (eventId) => {
+          soldMap[eventId] = await prisma.seat.count({
+            where: { zone: { eventId }, status: 'SOLD' },
+          });
+        })
+      );
+    }
 
     const formatted = events.map(event => {
       const totalSeats = event.zones.reduce((s, z) => s + (z.rows * z.cols), 0);
-      const minPrice = event.zones.length > 0
+      const minPrice   = event.zones.length > 0
         ? Math.min(...event.zones.map(z => Number(z.price)))
         : null;
       const { zones, ...rest } = event;
-      return { ...rest, totalSeats, minPrice };
+      return { ...rest, totalSeats, minPrice, soldSeats: soldMap[event.id] ?? 0 };
     });
 
-    return res.status(200).json({ events: formatted });
+    return res.status(200).json({
+      events: formatted,
+      total,
+      page:  pageNum,
+      limit: pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    });
   } catch (error) {
     console.error('[Event][getAdminEvents] Error:', error);
     return res.status(500).json({ message: 'Đã có lỗi xảy ra' });
@@ -434,6 +597,23 @@ const getSeatmap = async (req, res) => {
         status: true,
         seatmapJson: true,
         seatmapVersion: true,
+        zones: {
+          include: {
+            seats: {
+              select: {
+                id: true,
+                label: true,
+                row: true,
+                col: true,
+                status: true,
+              },
+              orderBy: [
+                { row: 'asc' },
+                { col: 'asc' },
+              ],
+            },
+          },
+        },
       },
     });
 
@@ -445,6 +625,7 @@ const getSeatmap = async (req, res) => {
       seatmapJson: event.seatmapJson,
       seatmapVersion: event.seatmapVersion,
       status: event.status,
+      zones: event.zones,
     });
   } catch (error) {
     console.error('[Event][getSeatmap] Error:', error);
@@ -570,6 +751,7 @@ const saveSeatmap = async (req, res) => {
 };
 
 module.exports = {
+  getEventSearchSuggestions,
   getEvents,
   getEventById,
   getAdminEvents,

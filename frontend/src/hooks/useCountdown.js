@@ -3,13 +3,15 @@ import { useState, useEffect } from 'react';
 export function useCountdown(expiresAt) {
   const [seconds, setSeconds] = useState(() => {
     if (!expiresAt) return 0;
-    return Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+    const expiresTime = new Date(expiresAt).getTime();
+    return Math.max(0, Math.floor((expiresTime - Date.now()) / 1000));
   });
 
   useEffect(() => {
     if (!expiresAt) { setSeconds(0); return; }
 
-    const tick = () => Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+    const expiresTime = new Date(expiresAt).getTime();
+    const tick = () => Math.max(0, Math.floor((expiresTime - Date.now()) / 1000));
 
     setSeconds(tick());
 

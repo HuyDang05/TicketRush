@@ -5,6 +5,12 @@ const eventService = {
   getEvents: (params) =>
     api.get('/events', { params }),
 
+  getFifthLatestEvent: () =>
+    api.get('/events', { params: { page: 32, limit: 1, sort: 'latest' } }),
+
+  getEventSuggestions: (params, config = {}) =>
+    api.get('/events/search-suggestions', { params, ...config }),
+
   getEventById: (id) =>
     api.get(`/events/${id}`),
 
@@ -33,7 +39,7 @@ const eventService = {
   uploadEventImage: (file) => {
     const form = new FormData();
     form.append('image', file);
-    return api.post('/admin/upload', form, {
+    return api.post('/admin/upload?type=banner', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },

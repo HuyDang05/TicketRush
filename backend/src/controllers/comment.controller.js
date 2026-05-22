@@ -1,10 +1,18 @@
 const prisma = require('../config/prisma');
 const cloudinary = require('../config/cloudinary');
+const { validateImageFile } = require('../utils/imageValidation.util');
 
 const ALLOWED_EVENT_STATUSES = ['PUBLISHED', 'ENDED'];
 
 const uploadReviewImage = async (file) => {
   if (!file) return null;
+
+  const validation = validateImageFile(file);
+  if (!validation.valid) {
+    const error = new Error(validation.message);
+    error.statusCode = 400;
+    throw error;
+  }
 
   const result = await new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -141,6 +149,9 @@ const createEventComment = async (req, res) => {
     });
   } catch (error) {
     console.error('[Comment][createEventComment] Error:', error);
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
     return res.status(500).json({ message: 'Đã có lỗi xảy ra' });
   }
 };

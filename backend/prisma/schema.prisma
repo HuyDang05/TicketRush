@@ -15,14 +15,16 @@ model User {
   fullName  String
   avatarUrl String?
 
-  role        Role                 @default(CUSTOMER)
-  dob         DateTime?
-  gender      Gender?
-  createdAt   DateTime             @default(now())
-  bookings    Booking[]
-  events      Event[]              @relation("AdminEvents")
-  resetTokens PasswordResetToken[]
-  comments    Comment[]
+  role          Role                 @default(CUSTOMER)
+  dob           DateTime?
+  gender        Gender?
+  createdAt     DateTime             @default(now())
+  lastLoginAt   DateTime?
+  bookings      Booking[]
+  events        Event[]              @relation("AdminEvents")
+  resetTokens   PasswordResetToken[]
+  refreshTokens RefreshToken[]
+  comments      Comment[]
 
   @@map("users")
 }
@@ -33,6 +35,9 @@ model Event {
   title          String
   description    String?
   venue          String
+  category       String?
+  geoLat         Float?
+  geoLong        Float?
   date           DateTime
   imageUrl       String?
   cardImageUrl   String?
@@ -43,7 +48,6 @@ model Event {
   endDate        DateTime?   @map("end_date") @db.Timestamp(6)
   admin          User        @relation("AdminEvents", fields: [createdBy], references: [id])
   zones          Zone[]
-  cardImageUrl   String?
   comments       Comment[]
 
   @@map("events")
@@ -102,6 +106,18 @@ model PasswordResetToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_reset_tokens")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
 }
 
 model Comment {

@@ -21,4 +21,6 @@ seatReleaseQueue.on('error', (err) => {
 
 console.log('[Queue] seat-release initialized');
 
-module.exports = { seatReleaseQueue };
+const closeSeatReleaseQueue = () => seatReleaseQueue.close();
+
+module.exports = { seatReleaseQueue, closeSeatReleaseQueue };

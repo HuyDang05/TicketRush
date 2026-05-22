@@ -7,13 +7,101 @@
 @layer base {
   :root {
     --bg: #1A1A1A;
+    --bg-strong: #0D0D0D;
     --nav: #111111;
     --card: #242424;
+    --card-hover: #2A2A2A;
+    --input-bg: #1A1A1A;
+    --input-border: #333333;
     --accent: #FF6B35;
     --accent-h: #e85a24;
+    --accent-panel: #2D1F0A;
     --text: #FFFFFF;
+    --text-soft: rgba(255, 255, 255, 0.85);
     --muted: #AAAAAA;
+    --muted-2: #888888;
     --border: #333333;
+    --border-strong: #444444;
+    --overlay: rgba(0, 0, 0, 0.75);
+    --overlay-strong: rgba(0, 0, 0, 0.85);
+    --overlay-light: rgba(0, 0, 0, 0.5);
+    --chip-bg: rgba(0, 0, 0, 0.65);
+    --chip-text: #FFFFFF;
+    --badge-bg: rgba(255, 107, 53, 0.15);
+    --badge-border: rgba(255, 107, 53, 0.4);
+    --hero-bg: radial-gradient(ellipse at 60% 40%, #3a1a0a 0%, #1a0a00 40%, #0a0a0a 100%);
+    --hero-overlay: linear-gradient(to right, rgba(0, 0, 0, 0.85) 50%, rgba(0, 0, 0, 0.3) 100%);
+    --hero-card-thumb: linear-gradient(135deg, #2a1200, #FF6B35 120%);
+    --hero-card-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+    --review-bg: radial-gradient(ellipse at top, rgba(255, 107, 53, 0.08) 0%, transparent 60%), #1A1A1A;
+    --success: #4ADE80;
+    --success-bg: rgba(74, 222, 128, 0.1);
+    --success-border: rgba(74, 222, 128, 0.25);
+    --info: #38bdf8;
+    --info-bg: rgba(56, 189, 248, 0.15);
+    --info-border: rgba(56, 189, 248, 0.35);
+    --warning: #f59e0b;
+    --warning-bg: rgba(245, 158, 11, 0.15);
+    --warning-border: rgba(245, 158, 11, 0.35);
+    --danger: #ef4444;
+    --danger-bg: rgba(239, 68, 68, 0.12);
+    --danger-border: rgba(239, 68, 68, 0.35);
+  }
+
+  :root[data-theme='light'] {
+    --bg: #f5f7fb;
+    --bg-strong: #eef2f7;
+    --nav: #ffffff;
+    --card: #ffffff;
+    --card-hover: #f8fafc;
+
+    --input-bg: #ffffff;
+    --input-border: #d5dbe5;
+
+    --accent: #e4572e;
+    --accent-h: #c94825;
+    --accent-panel: #fff3e8;
+
+    --text: #111827;
+    --text-soft: #374151;
+    --muted: #6b7280;
+    --muted-2: #9ca3af;
+
+    --border: #e5e7eb;
+    --border-strong: #cbd5e1;
+
+    --overlay: rgba(15, 23, 42, 0.35);
+    --overlay-strong: rgba(255, 255, 255, 0.92);
+    --overlay-light: rgba(15, 23, 42, 0.12);
+
+    --chip-bg: #ffffff;
+    --chip-text: #111827;
+
+    --badge-bg: rgba(228, 87, 46, 0.12);
+    --badge-border: rgba(228, 87, 46, 0.35);
+
+    --hero-bg: radial-gradient(ellipse at 60% 40%, #fff3e6 0%, #f8fafc 45%, #eef2f7 100%);
+    --hero-overlay: linear-gradient(to right, rgba(255, 255, 255, 0.9) 45%, rgba(255, 255, 255, 0.25) 100%);
+    --hero-card-thumb: linear-gradient(135deg, #f2d7c4, #e4572e 120%);
+    --hero-card-shadow: 0 16px 48px rgba(15, 23, 42, 0.12);
+
+    --review-bg: radial-gradient(ellipse at top, rgba(228, 87, 46, 0.08) 0%, transparent 60%), #f5f7fb;
+
+    --success: #16a34a;
+    --success-bg: rgba(22, 163, 74, 0.1);
+    --success-border: rgba(22, 163, 74, 0.25);
+
+    --info: #0284c7;
+    --info-bg: rgba(2, 132, 199, 0.1);
+    --info-border: rgba(2, 132, 199, 0.3);
+
+    --warning: #d97706;
+    --warning-bg: rgba(217, 119, 6, 0.12);
+    --warning-border: rgba(217, 119, 6, 0.3);
+
+    --danger: #dc2626;
+    --danger-bg: rgba(220, 38, 38, 0.1);
+    --danger-border: rgba(220, 38, 38, 0.3);
   }
 
   html {
@@ -37,5 +125,42 @@
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
+}
+
+.app-toast-container {
+  position: fixed;
+  right: 16px;
+  top: 16px;
+  z-index: 9999;
+}
+
+.app-toast {
+  margin-top: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transition: opacity 0.3s ease;
+}
+
+.app-toast--success {
+  background: #16a34a;
+}
+
+.app-toast--warning {
+  background: #f59e0b;
+}
+
+.app-toast--error {
+  background: #ef4444;
+}
+
+.app-toast--info {
+  background: #374151;
+}
+
+.app-toast--closing {
+  opacity: 0;
 }
 

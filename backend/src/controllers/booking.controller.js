@@ -1,7 +1,7 @@
-const { lockSeat, getMyTickets } = require('../services/booking.service');
+const bookingService = require('../services/booking.service');
 
 async function lockSeatHandler(req, res) {
-  const { seatId } = req.body;
+  const { seatId, socketId, queueToken, queueSessionId } = req.body;
   const userId = req.user.id;
 
   if (!seatId) {
@@ -9,7 +9,7 @@ async function lockSeatHandler(req, res) {
   }
 
   try {
-    const result = await lockSeat(userId, seatId);
+    const result = await bookingService.lockSeat(userId, seatId, socketId, queueToken, queueSessionId);
     return res.status(201).json(result);
   } catch (err) {
     const status = err.statusCode || 500;
@@ -20,7 +20,7 @@ async function lockSeatHandler(req, res) {
 async function getMyTicketsHandler(req, res) {
   try {
     const userId = req.user.id;
-    const tickets = await getMyTickets(userId);
+    const tickets = await bookingService.getMyTickets(userId);
 
     return res.status(200).json({
       success: true,
@@ -35,7 +35,42 @@ async function getMyTicketsHandler(req, res) {
   }
 }
 
+async function releaseSeatHandler(req, res) {
+  const { bookingId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const result = await bookingService.releaseSeatUser(userId, bookingId);
+    return res.status(200).json(result);
+  } catch (err) {
+    const status = err.statusCode || 500;
+    return res.status(status).json({ message: err.message });
+  }
+}
+
+async function getMyPendingLocksHandler(req, res) {
+  try {
+    const userId = req.user.id;
+    const { eventId } = req.query; // optional
+
+    const locks = await bookingService.getMyPendingLocks(userId, eventId);
+
+    return res.status(200).json({
+      success: true,
+      data: locks,
+    });
+  } catch (err) {
+    const status = err.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      message: err.message,
+    });
+  }
+}
+
 module.exports = {
   lockSeatHandler,
   getMyTicketsHandler,
+  releaseSeatHandler,
+  getMyPendingLocksHandler,
 };

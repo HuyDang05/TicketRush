@@ -14,11 +14,23 @@ const signAccessToken = (payload) => {
   });
 };
 
+const signRefreshToken = (payload) => {
+  return jwt.sign(payload, getJwtSecret(), {
+    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+  });
+};
+
 const verifyAccessToken = (token) => {
+  return jwt.verify(token, getJwtSecret());
+};
+
+const verifyRefreshToken = (token) => {
   return jwt.verify(token, getJwtSecret());
 };
 
 module.exports = {
   signAccessToken,
+  signRefreshToken,
   verifyAccessToken,
+  verifyRefreshToken,
 };

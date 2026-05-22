@@ -1,4 +1,5 @@
 const cloudinary = require('../config/cloudinary');
+const { validateImageFile } = require('../utils/imageValidation.util');
 
 /**
  * POST /api/admin/upload
@@ -11,7 +12,11 @@ const uploadImage = async (req, res) => {
       return res.status(400).json({ message: 'Không có file ảnh được gửi lên' });
     }
 
-    // Upload buffer lên Cloudinary — lưu ảnh gốc (frontend đã validate kích thước)
+    const validation = validateImageFile(req.file, req.query.type);
+    if (!validation.valid) {
+      return res.status(400).json({ message: validation.message });
+    }
+
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
