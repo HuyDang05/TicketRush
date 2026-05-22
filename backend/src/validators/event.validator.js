@@ -36,14 +36,25 @@ const validateEventDateOrder = (value) => {
   return new Date(value.endDate) > new Date(value.startDate);
 };
 
-const categorySlug = z.enum([
+const CATEGORY_SLUGS = [
   'music',
   'seminarsworkshops',
   'sport',
   'theatersandart',
   'attractionsexperiences',
   'others',
-]);
+];
+
+const categorySlug = z.enum(CATEGORY_SLUGS);
+
+const categoryListQuery = z
+  .string({ message: 'Danh sách thể loại phải là chuỗi' })
+  .trim()
+  .max(200, 'Danh sách thể loại tối đa 200 ký tự')
+  .refine((value) => {
+    const categories = value.split(',').map((item) => item.trim()).filter(Boolean);
+    return categories.length > 0 && categories.every((item) => CATEGORY_SLUGS.includes(item));
+  }, 'Danh sách thể loại không hợp lệ');
 
 const createEventBody = eventBase
   .merge(eventDateFields)
@@ -80,6 +91,7 @@ const adminEventsQuery = paginationQuery.extend({
 
 const publicEventsQuery = paginationQuery.extend({
   category: categorySlug.optional(),
+  categories: categoryListQuery.optional(),
 }).strict();
 
 module.exports = {

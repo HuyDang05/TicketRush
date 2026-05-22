@@ -10,6 +10,7 @@ import { LangProvider } from './context/LangContext';
 
 // Pages
 import HomePage from './pages/customer/HomePage';
+import EventExplorePage from './pages/customer/EventExplorePage';
 import EventDetailPage from './pages/customer/EventDetailPage';
 import CheckoutPage from './pages/customer/CheckoutPage';
 import CartPage from './pages/customer/CartPage';
@@ -62,6 +63,7 @@ function App() {
         {/* Customer + Auth Routes — wrapped in Header/Footer */}
         <Route element={<CustomerLayout />}>
           <Route path="/" element={<HomePage />} />
+          <Route path="/events" element={<EventExplorePage />} />
           <Route path="/events/:id" element={<EventDetailPage />} />
           <Route
             path="/cart"

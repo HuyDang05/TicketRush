@@ -1,5 +1,24 @@
 const prisma = require('../config/prisma');
 
+const EVENT_CATEGORIES = new Set([
+  'music',
+  'seminarsworkshops',
+  'sport',
+  'theatersandart',
+  'attractionsexperiences',
+  'others',
+]);
+
+function parseCategoryList(categories) {
+  if (!categories || typeof categories !== 'string') return [];
+  return [...new Set(
+    categories
+      .split(',')
+      .map((category) => category.trim())
+      .filter((category) => EVENT_CATEGORIES.has(category))
+  )];
+}
+
 // ── Seatmap validation ────────────────────────────────────────────────────────
 
 function validateSeatmapStructure(seatmap) {
@@ -35,7 +54,7 @@ function validateSeatmapStructure(seatmap) {
 
 const getEvents = async (req, res) => {
   try {
-    const { search, category, page = 1, limit = 10 } = req.query;
+    const { search, category, categories, page = 1, limit = 10 } = req.query;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
     const skip = (pageNum - 1) * pageSize;
@@ -44,7 +63,10 @@ const getEvents = async (req, res) => {
       status: 'PUBLISHED',
     };
 
-    if (category) {
+    const selectedCategories = parseCategoryList(categories);
+    if (selectedCategories.length > 0) {
+      whereCondition.category = { in: selectedCategories };
+    } else if (category) {
       whereCondition.category = category;
     }
 

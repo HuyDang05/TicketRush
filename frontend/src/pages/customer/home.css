@@ -660,6 +660,237 @@
   font-size: 13px;
 }
 
+/* Event explore page */
+.events-page__hero {
+  padding: 56px 40px 0;
+}
+
+.events-page__title {
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 8px 0 0;
+}
+
+.events-page__list {
+  padding-top: 36px;
+}
+
+.events-page__summary {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 6px 0 0;
+}
+
+.events-filter-bar {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 36px 40px 0;
+}
+
+.events-filter-bar__label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.events-filter-bar__value {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.events-filter {
+  position: relative;
+}
+
+.events-filter__trigger {
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 14px;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.events-filter__trigger:hover,
+.events-filter__trigger[aria-expanded='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.events-filter__count {
+  align-items: center;
+  background: var(--accent);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 11px;
+  height: 20px;
+  justify-content: center;
+  min-width: 20px;
+  padding: 0 6px;
+}
+
+.events-filter__dropdown {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 18px 50px rgba(0,0,0,.18);
+  min-width: 280px;
+  padding: 12px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 20;
+}
+
+.events-filter__dropdown-head {
+  align-items: center;
+  display: flex;
+  font-size: 13px;
+  font-weight: 700;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.events-filter__clear {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 4px;
+  padding: 0;
+}
+
+.events-filter__options {
+  display: grid;
+  gap: 4px;
+}
+
+.events-filter__option {
+  align-items: center;
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font-size: 14px;
+  gap: 10px;
+  padding: 9px 8px;
+  transition: background 0.2s;
+}
+
+.events-filter__option:hover {
+  background: rgba(255,107,53,.08);
+}
+
+.events-filter__option input {
+  accent-color: var(--accent);
+}
+
+.events-filter__option-icon {
+  width: 22px;
+}
+
+.events-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding-top: 32px;
+}
+
+.events-pagination__btn {
+  min-width: 96px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 16px;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.events-pagination__btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: rgba(255,107,53,.08);
+  color: var(--accent);
+}
+
+.events-pagination__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.events-pagination__status {
+  color: var(--muted);
+  font-size: 14px;
+  min-width: 96px;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .events-page__hero {
+    padding: 40px 20px 0;
+  }
+
+  .events-page__title {
+    font-size: 28px;
+  }
+
+  .events-filter-bar {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 28px 20px 0;
+  }
+
+  .events-filter__trigger {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .events-filter__dropdown {
+    left: 0;
+    min-width: 0;
+    right: 0;
+    width: 100%;
+  }
+
+  .events-pagination {
+    gap: 10px;
+  }
+
+  .events-pagination__btn {
+    min-width: 82px;
+    padding: 9px 12px;
+  }
+
+  .events-pagination__status {
+    min-width: 80px;
+    font-size: 13px;
+  }
+}
+
 /* ── Review Carousel ── */
 .rv-section {
   padding: 80px 0;

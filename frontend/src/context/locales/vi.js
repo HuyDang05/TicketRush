@@ -30,6 +30,16 @@ export const vi = {
   "Sắp diễn ra": "Sắp diễn ra",
   "Tất cả": "Tất cả",
   "Xem tất cả": "Xem tất cả",
+  "Tất cả sự kiện": "Tất cả sự kiện",
+  "Trang": "Trang",
+  "Trước": "Trước",
+  "Tiếp": "Tiếp",
+  "Bộ lọc": "Bộ lọc",
+  "Tất cả thể loại": "Tất cả thể loại",
+  "Thể loại": "Thể loại",
+  "Xóa lọc": "Xóa lọc",
+  "Khám phá sự kiện": "Khám phá sự kiện",
+  "Kết quả tìm kiếm": "Kết quả tìm kiếm",
 
   // General Categories
   "Âm nhạc": "Âm nhạc",
