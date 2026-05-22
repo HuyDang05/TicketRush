@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
+import L from 'leaflet';
 import { toast } from 'sonner';
 import eventService from '../../services/event.service';
 import queueService from '../../services/queue.service';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import EventReviews from './EventReviews';
+import 'leaflet/dist/leaflet.css';
 import './event-detail.css';
 import { useLang } from '../../context/LangContext';
 
@@ -31,8 +34,27 @@ function fmt(n) {
   return Number(n || 0).toLocaleString('vi-VN') + 'đ';
 }
 
-function getQueueSessionId(eventId) {
-  return `tkr-q-${eventId}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+function getEventCoordinates(event) {
+  try {
+    if (event?.geoLat == null || event?.geoLong == null) {
+      throw new Error('Missing event coordinates');
+    }
+
+    const lat = Number(event.geoLat);
+    const lng = Number(event.geoLong);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      throw new Error('Invalid event coordinates');
+    }
+
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      throw new Error('Event coordinates out of range');
+    }
+
+    return [lat, lng];
+  } catch {
+    return null;
+  }
 }
 
 function removeVietnameseTones(str = '') {
@@ -137,6 +159,7 @@ export default function EventDetailPage() {
   const timeStr = event?.date
     ? new Date(event.date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
     : '';
+  const eventCoordinates = getEventCoordinates(event);
 
   if (isLoading) return <LoadingSpinner />;
   if (!event) return (

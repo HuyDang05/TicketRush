@@ -36,6 +36,8 @@ export const vi = {
   "Sân khấu": "Sân khấu",
   "Thể thao": "Thể thao",
   "Hội thảo": "Hội thảo",
+  "Trải nghiệm": "Trải nghiệm",
+  "Khác": "Khác",
   "Lễ hội": "Lễ hội",
   "sự kiện": "sự kiện",
   

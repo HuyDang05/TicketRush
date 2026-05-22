@@ -528,9 +528,17 @@
   gap: 8px;
 }
 
+.home-section-link--button {
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
 .home-categories__grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 16px;
 }
 
@@ -548,11 +556,17 @@
   align-items: center;
   gap: 10px;
   transition: border-color 0.2s, background 0.2s;
+  font-family: inherit;
 }
 
-.category-pill:hover {
+.category-pill:hover,
+.category-pill--active {
   border-color: var(--accent);
   background: rgba(255,107,53,.06);
+}
+
+.category-pill--active {
+  box-shadow: 0 0 0 1px rgba(255,107,53,.16) inset;
 }
 
 .category-pill__icon {
@@ -567,6 +581,22 @@
 .category-pill__count {
   font-size: 11px;
   color: var(--muted);
+}
+
+@media (max-width: 1024px) {
+  .home-categories__grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .home-categories {
+    padding: 44px 20px 0;
+  }
+
+  .home-categories__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* Events section */
@@ -616,6 +646,18 @@
 
 .home-search__btn:hover {
   background: var(--accent-h);
+}
+
+.home-events__sentinel {
+  height: 1px;
+}
+
+.home-events__load-more {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 /* ── Review Carousel ── */

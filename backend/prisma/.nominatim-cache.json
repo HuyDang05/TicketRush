@@ -1,0 +1,1397 @@
+{
+  "Số 8 Nguyễn Công Hoan, Phường Giảng Võ, Thành phố Hà Nội": {
+    "geoLat": 21.0272991,
+    "geoLong": 105.8150091
+  },
+  "Số 1 Võ Thị Sáu, Phường Hai Bà Trưng, Thành phố Hà Nội": {
+    "geoLat": 21.0089438,
+    "geoLong": 105.854694
+  },
+  "Số 6 Mạc Đĩnh Chi, Phường Sài Gòn, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7838886,
+    "geoLong": 106.7004128
+  },
+  "Quảng trường Bình Minh, Phường Tây Hoa Lư, Tỉnh Ninh Bình": {
+    "geoLat": 20.2767121,
+    "geoLong": 105.8660233,
+    "matchedQuery": "Phường Tây Hoa Lư, Tỉnh Ninh Bình",
+    "attemptedQueries": [
+      "Quảng trường Bình Minh, Phường Tây Hoa Lư, Tỉnh Ninh Bình",
+      "Phường Tây Hoa Lư, Tỉnh Ninh Bình"
+    ]
+  },
+  "Đường bao biển Bãi Cháy mới, Phường Bãi Cháy, Tỉnh Quảng Ninh": {
+    "geoLat": 20.9552964,
+    "geoLong": 107.0236075,
+    "matchedQuery": "Phường Bãi Cháy, Tỉnh Quảng Ninh",
+    "attemptedQueries": [
+      "Đường bao biển Bãi Cháy mới, Phường Bãi Cháy, Tỉnh Quảng Ninh",
+      "Phường Bãi Cháy, Tỉnh Quảng Ninh"
+    ]
+  },
+  "81 Trần Quốc Thảo, Phường Xuân Hòa, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7786625,
+    "geoLong": 106.6912468
+  },
+  "Ấp Hồ Tràm, Xã Hồ Tràm, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.4975244,
+    "geoLong": 107.4098373
+  },
+  "Quảng trường Diamond, đường Đinh Thị Thi, Phường Hiệp Bình, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.8451031,
+    "geoLong": 106.7046317,
+    "matchedQuery": "đường Đinh Thị Thi, Phường Hiệp Bình, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Quảng trường Diamond, đường Đinh Thị Thi, Phường Hiệp Bình, Thành phố Hồ Chí Minh",
+      "đường Đinh Thị Thi, Phường Hiệp Bình, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Online Event": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Online Event"
+    ]
+  },
+  "375 Quốc Lộ 13 , Phường Hiệp Bình, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.8432057,
+    "geoLong": 106.71824
+  },
+  "Phường Nam Từ Liêm, Thành phố Hà Nội": {
+    "geoLat": 21.0312098,
+    "geoLong": 105.7555266
+  },
+  "8 Huỳnh Thúc Kháng, Phường Giảng Võ, Thành phố Hà Nội": {
+    "geoLat": 21.0184569,
+    "geoLong": 105.8122882
+  },
+  "116 Nguyễn Du, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7846832,
+    "geoLong": 106.7036423
+  },
+  "Đường Phạm Hùng, Phường Từ Liêm, Thành phố Hà Nội": {
+    "geoLat": 21.0341595,
+    "geoLong": 105.7799626
+  },
+  "Lầu 1, Nhà hát Bến Thành Số 6 Mạc Đĩnh Chi, Phường Sài Gòn, Thành phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Lầu 1, Nhà hát Bến Thành Số 6 Mạc Đĩnh Chi, Phường Sài Gòn, Thành phố Hồ Chí Minh",
+      "Nhà hát Bến Thành Số 6 Mạc Đĩnh Chi, Phường Sài Gòn, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Số 141 Bắc Hải, Phường Diên Hồng, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.766125,
+    "geoLong": 106.6640402,
+    "matchedQuery": "Phường Diên Hồng, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Số 141 Bắc Hải, Phường Diên Hồng, Thành phố Hồ Chí Minh",
+      "Phường Diên Hồng, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Vlasta - Sầm Sơn, Đường 4D, Phường Nam Sầm Sơn, Tỉnh Thanh Hóa": {
+    "geoLat": 19.7248489,
+    "geoLong": 105.8616295,
+    "matchedQuery": "Đường 4D, Phường Nam Sầm Sơn, Tỉnh Thanh Hóa",
+    "attemptedQueries": [
+      "Vlasta - Sầm Sơn, Đường 4D, Phường Nam Sầm Sơn, Tỉnh Thanh Hóa",
+      "Đường 4D, Phường Nam Sầm Sơn, Tỉnh Thanh Hóa"
+    ]
+  },
+  "240 Đường 3 Tháng 2, Phường Hòa Hưng, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7755341,
+    "geoLong": 106.6799688
+  },
+  "Beachfront, Hoiana Resort & Golf, Xã Duy Nghĩa, Thành phố Đà Nẵng": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Beachfront, Hoiana Resort & Golf, Xã Duy Nghĩa, Thành phố Đà Nẵng",
+      "Hoiana Resort & Golf, Xã Duy Nghĩa, Thành phố Đà Nẵng"
+    ]
+  },
+  "Số 1 Võ Thị Sáu, Bạch Mai, Phường Hai Bà Trưng, Thành phố Hà Nội": {
+    "geoLat": 21.0089438,
+    "geoLong": 105.854694
+  },
+  "91 Trần Hưng Đạo, Phường Cửa Nam, Thành phố Hà Nội": {
+    "geoLat": 21.022374,
+    "geoLong": 105.8442903
+  },
+  "Sự kiện ngoài trời, Thành phố Hà Nội": {
+    "geoLat": 21.0283334,
+    "geoLong": 105.854041,
+    "matchedQuery": "Thành phố Hà Nội",
+    "attemptedQueries": [
+      "Sự kiện ngoài trời, Thành phố Hà Nội",
+      "Thành phố Hà Nội"
+    ]
+  },
+  "Số 40 Hàng Bài, Phường Cửa Nam, Thành phố Hà Nội": {
+    "geoLat": 21.023483,
+    "geoLong": 105.8527625
+  },
+  "06 Mạc Đĩnh Chi, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7829106,
+    "geoLong": 106.701476
+  },
+  "Số 8 Huỳnh Thúc Kháng, Phường Giảng Võ, Thành phố Hà Nội": {
+    "geoLat": 21.0197787,
+    "geoLong": 105.8084822
+  },
+  "37B Phạm Ngọc Thạch, Phường Xuân Hòa, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7862959,
+    "geoLong": 106.6919601
+  },
+  "180/1 đường Nguyễn Tất Thành, Phường Xóm Chiếu, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7601129,
+    "geoLong": 106.7123787
+  },
+  "148 Cống Quỳnh, Phường Bến Thành, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7658049,
+    "geoLong": 106.6898471
+  },
+  "Số 7 Công Trường Lam Sơn, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7768063,
+    "geoLong": 106.703213
+  },
+  "Số 6 đường Lê Mao, Phường Thành Vinh, Thành phố Vinh, Tỉnh Nghệ An": {
+    "geoLat": 18.6689739,
+    "geoLong": 105.6920053,
+    "matchedQuery": "Phường Thành Vinh, Thành phố Vinh, Tỉnh Nghệ An",
+    "attemptedQueries": [
+      "Số 6 đường Lê Mao, Phường Thành Vinh, Thành phố Vinh, Tỉnh Nghệ An",
+      "Phường Thành Vinh, Thành phố Vinh, Tỉnh Nghệ An"
+    ]
+  },
+  "992 Võ Thị Sáu, Xã Long Hải, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.3916403,
+    "geoLong": 107.2346241
+  },
+  "Vinhomes Ocean Park 3, Xã Nghĩa Trụ, Tỉnh Hưng Yên": {
+    "geoLat": 20.9594705,
+    "geoLong": 105.9759357
+  },
+  "Đường Trần Hữu Dực, Phường Từ Liêm, Thành phố Hà Nội": {
+    "geoLat": 21.0216051,
+    "geoLong": 105.766512,
+    "matchedQuery": "Phường Từ Liêm, Thành phố Hà Nội",
+    "attemptedQueries": [
+      "Đường Trần Hữu Dực, Phường Từ Liêm, Thành phố Hà Nội",
+      "Phường Từ Liêm, Thành phố Hà Nội"
+    ]
+  },
+  "25 Lê Đại Hành, Hai Bà Trưng, Hà Nội, Phường Hai Bà Trưng, Thành phố Hà Nội": {
+    "geoLat": 21.0101139,
+    "geoLong": 105.8493565
+  },
+  "83F Trần Kế Xương, Phường 07, Quận Phú Nhuận, Thành Phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "83F Trần Kế Xương, Phường 07, Quận Phú Nhuận, Thành Phố Hồ Chí Minh",
+      "Phường 07, Quận Phú Nhuận, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "53/104 Trần Khánh Dư, phường Tân Định, Quận 1, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7944976,
+    "geoLong": 106.691846
+  },
+  "200 Pasteur, Phường Xuân Hòa, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7837384,
+    "geoLong": 106.6923352
+  },
+  "Lầu 1, 386/17C Lê Văn Sỹ, Phường 14, Quận 3, Thành Phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Lầu 1, 386/17C Lê Văn Sỹ, Phường 14, Quận 3, Thành Phố Hồ Chí Minh",
+      "386/17C Lê Văn Sỹ, Phường 14, Quận 3, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "The Seat Cafe 1355/7 Hoàng Sa, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7737261,
+    "geoLong": 106.7166008,
+    "matchedQuery": "Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "The Seat Cafe 1355/7 Hoàng Sa, Thành phố Hồ Chí Minh",
+      "Thành phố Hồ Chí Minh"
+    ]
+  },
+  "The Seat Cafe - 1355/7 Hoàng Sa, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7737261,
+    "geoLong": 106.7166008,
+    "matchedQuery": "Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "The Seat Cafe - 1355/7 Hoàng Sa, Thành phố Hồ Chí Minh",
+      "Thành phố Hồ Chí Minh"
+    ]
+  },
+  "The Seat Cafe - 1355/7 Hoàng Sa, Phường 5, Tân Bình, TP.HCM, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.8140953,
+    "geoLong": 106.633169,
+    "matchedQuery": "Phường 5, Tân Bình, TP.HCM, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "The Seat Cafe - 1355/7 Hoàng Sa, Phường 5, Tân Bình, TP.HCM, Thành phố Hồ Chí Minh",
+      "Phường 5, Tân Bình, TP.HCM, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "The Seat Cafe - 1355/7 Hoàng Sa, Phường Tân Sơn Nhất, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7979113,
+    "geoLong": 106.658574,
+    "matchedQuery": "Phường Tân Sơn Nhất, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "The Seat Cafe - 1355/7 Hoàng Sa, Phường Tân Sơn Nhất, Thành phố Hồ Chí Minh",
+      "Phường Tân Sơn Nhất, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "88 Dong Khoi, Sai Gon Ward, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7805609,
+    "geoLong": 106.6992795,
+    "matchedQuery": "Sai Gon Ward, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "88 Dong Khoi, Sai Gon Ward, Thành phố Hồ Chí Minh",
+      "Sai Gon Ward, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "99 Nguyễn Cửu Vân, Phường Gia Định, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7958664,
+    "geoLong": 106.7067714
+  },
+  "10 Mai Chí Thọ, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7728534,
+    "geoLong": 106.7237594
+  },
+  "16-18 Vo Thi Sau, Phường Sài Gòn, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7900275,
+    "geoLong": 106.6940633
+  },
+  "99 Nguyễn Cửu Vân, Phường Bình Thạnh, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7971509,
+    "geoLong": 106.7064553
+  },
+  "253 Trần Nhân Tôn, Phường Vườn Lài, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7628665,
+    "geoLong": 106.6747232
+  },
+  "Hanoi Lounge": {
+    "geoLat": 21.0302993,
+    "geoLong": 105.8563024
+  },
+  "St &, Corner, Lê Duẩn/Hai Bà Trưng Ward, Hai Bà Trưng Gate, Phường Sài Gòn, Thành phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "St &, Corner, Lê Duẩn/Hai Bà Trưng Ward, Hai Bà Trưng Gate, Phường Sài Gòn, Thành phố Hồ Chí Minh",
+      "Corner, Lê Duẩn/Hai Bà Trưng Ward, Hai Bà Trưng Gate, Phường Sài Gòn, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Mỹ tho": {
+    "geoLat": 10.3627685,
+    "geoLong": 106.3590864
+  },
+  "250 Điện Biên Phủ, phường Xuân Hoà, Quận 3, Phường Xuân Hòa, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7758292,
+    "geoLong": 106.6908575,
+    "matchedQuery": "phường Xuân Hoà, Quận 3, Phường Xuân Hòa, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "250 Điện Biên Phủ, phường Xuân Hoà, Quận 3, Phường Xuân Hòa, Thành phố Hồ Chí Minh",
+      "phường Xuân Hoà, Quận 3, Phường Xuân Hòa, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "107, N3C, khu Global City, Phường An Phú, Thành phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "107, N3C, khu Global City, Phường An Phú, Thành phố Hồ Chí Minh",
+      "N3C, khu Global City, Phường An Phú, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "253 Trần Nhân Tôn , Phường 02, Quận 10, Thành Phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "253 Trần Nhân Tôn , Phường 02, Quận 10, Thành Phố Hồ Chí Minh",
+      "Phường 02, Quận 10, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "98M Hoàng Quốc Việt, Phường Phú Mỹ, Quận 7, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7141195,
+    "geoLong": 106.7348612,
+    "matchedQuery": "Phường Phú Mỹ, Quận 7, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "98M Hoàng Quốc Việt, Phường Phú Mỹ, Quận 7, Thành Phố Hồ Chí Minh",
+      "Phường Phú Mỹ, Quận 7, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "29 Nguyễn Bá Lân, Phường Thảo Điền, Quận 2, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.8011432,
+    "geoLong": 106.7351252,
+    "matchedQuery": "Phường Thảo Điền, Quận 2, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "29 Nguyễn Bá Lân, Phường Thảo Điền, Quận 2, Thành Phố Hồ Chí Minh",
+      "Phường Thảo Điền, Quận 2, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "11A Tôn Đức Thắng, Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7818088,
+    "geoLong": 106.7006195,
+    "matchedQuery": "Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "11A Tôn Đức Thắng, Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh",
+      "Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "66 Phó Đức Chính, Phường Bến Thành, Quận 1, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7741635,
+    "geoLong": 106.6903807,
+    "matchedQuery": "Phường Bến Thành, Quận 1, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "66 Phó Đức Chính, Phường Bến Thành, Quận 1, Thành Phố Hồ Chí Minh",
+      "Phường Bến Thành, Quận 1, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "200 Pasteur, Phường Võ Thị Sáu, Quận 3, Thành Phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "200 Pasteur, Phường Võ Thị Sáu, Quận 3, Thành Phố Hồ Chí Minh",
+      "Phường Võ Thị Sáu, Quận 3, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "66 Phó Đức Chính, Phường Nguyễn Thái Bình, Quận 1, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7672117,
+    "geoLong": 106.7010736,
+    "matchedQuery": "Phường Nguyễn Thái Bình, Quận 1, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "66 Phó Đức Chính, Phường Nguyễn Thái Bình, Quận 1, Thành Phố Hồ Chí Minh",
+      "Phường Nguyễn Thái Bình, Quận 1, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "Sapa, Lào Cai, Việt Nam, Phường Sa Pa, Tỉnh Lào Cai": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Sapa, Lào Cai, Việt Nam, Phường Sa Pa, Tỉnh Lào Cai",
+      "Lào Cai, Việt Nam, Phường Sa Pa, Tỉnh Lào Cai"
+    ]
+  },
+  "Đường Đỗ Xuân Hợp, P.An Phú, TP. Thủ Đức, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.9578225,
+    "geoLong": 106.7374547,
+    "matchedQuery": "P.An Phú, TP. Thủ Đức, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Đường Đỗ Xuân Hợp, P.An Phú, TP. Thủ Đức, Thành phố Hồ Chí Minh",
+      "P.An Phú, TP. Thủ Đức, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Số 01 đường An Trung 2, Phường An Hải, Thành phố Đà Nẵng": {
+    "geoLat": 16.0700623,
+    "geoLong": 108.2364217,
+    "matchedQuery": "Phường An Hải, Thành phố Đà Nẵng",
+    "attemptedQueries": [
+      "Số 01 đường An Trung 2, Phường An Hải, Thành phố Đà Nẵng",
+      "Phường An Hải, Thành phố Đà Nẵng"
+    ]
+  },
+  "Số 7, Đường 23, Phường Tân Mỹ, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7179375,
+    "geoLong": 106.7332874
+  },
+  "Lầu 5, Vincom Megamall Thảo Điền, 161 Võ Nguyên Giáp, Thảo Điền, Phường An Khánh, Thành phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Lầu 5, Vincom Megamall Thảo Điền, 161 Võ Nguyên Giáp, Thảo Điền, Phường An Khánh, Thành phố Hồ Chí Minh",
+      "Vincom Megamall Thảo Điền, 161 Võ Nguyên Giáp, Thảo Điền, Phường An Khánh, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "202 Hoàng Văn Thụ, Phường Đức Nhuận, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.8009081,
+    "geoLong": 106.6688469
+  },
+  "101 Xuân La, Phường Xuân Đỉnh, Thành phố Hà Nội": {
+    "geoLat": 21.064356,
+    "geoLong": 105.8043512
+  },
+  "Lầu 5, Số 10 Đường Mai Chí Thọ, Khu đô thị Sala, Phường An Khánh, Thành phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Lầu 5, Số 10 Đường Mai Chí Thọ, Khu đô thị Sala, Phường An Khánh, Thành phố Hồ Chí Minh",
+      "Số 10 Đường Mai Chí Thọ, Khu đô thị Sala, Phường An Khánh, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Đại Yên, Phường Tuần Châu, Tỉnh Quảng Ninh": {
+    "geoLat": 20.9728206,
+    "geoLong": 106.9282043
+  },
+  "125 Đồng Văn Cống, Phường Cát Lái, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7735346,
+    "geoLong": 106.7616651
+  },
+  "101 Xuân La, Phường Tây Hồ, Thành phố Hà Nội": {
+    "geoLat": 21.0648447,
+    "geoLong": 105.8073261
+  },
+  "17 Phạm Hùng, Phường Cầu Giấy, Thành phố Hà Nội": {
+    "geoLat": 21.0186869,
+    "geoLong": 105.781589
+  },
+  "70 An Dương, Hồng Hà, Hà Nội, Phường Hồng Hà, Thành phố Hà Nội": {
+    "geoLat": 21.0533146,
+    "geoLong": 105.8403017
+  },
+  "Phố Trần Hữu Dực, Nam Từ Liêm, Hà Nội, Phường Từ Liêm, Thành phố Hà Nội": {
+    "geoLat": 21.0367697,
+    "geoLong": 105.7673841,
+    "matchedQuery": "Nam Từ Liêm, Hà Nội, Phường Từ Liêm, Thành phố Hà Nội",
+    "attemptedQueries": [
+      "Phố Trần Hữu Dực, Nam Từ Liêm, Hà Nội, Phường Từ Liêm, Thành phố Hà Nội",
+      "Nam Từ Liêm, Hà Nội, Phường Từ Liêm, Thành phố Hà Nội"
+    ]
+  },
+  "Nhà Thi Đấu Phường Cầu Giấy - 35 Trần Quý Kiên, Phường Cầu Giấy, Thành phố Hà Nội": {
+    "geoLat": 21.0369903,
+    "geoLong": 105.7913824
+  },
+  "Đường Cao Lỗ, Xã Uy Nỗ, Huyện Đông Anh, Thành Phố Hà Nội": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Đường Cao Lỗ, Xã Uy Nỗ, Huyện Đông Anh, Thành Phố Hà Nội",
+      "Xã Uy Nỗ, Huyện Đông Anh, Thành Phố Hà Nội"
+    ]
+  },
+  "Phố Trần Hữu Dực, Phường Cầu Diễn, Quận Nam Từ Liêm, Thành Phố Hà Nội": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Phố Trần Hữu Dực, Phường Cầu Diễn, Quận Nam Từ Liêm, Thành Phố Hà Nội",
+      "Phường Cầu Diễn, Quận Nam Từ Liêm, Thành Phố Hà Nội"
+    ]
+  },
+  "35 TRẦN QUÝ KIÊN, Quận Cầu Giấy, Thành Phố Hà Nội": {
+    "geoLat": 21.0298464,
+    "geoLong": 105.7913272,
+    "matchedQuery": "Quận Cầu Giấy, Thành Phố Hà Nội",
+    "attemptedQueries": [
+      "35 TRẦN QUÝ KIÊN, Quận Cầu Giấy, Thành Phố Hà Nội",
+      "Quận Cầu Giấy, Thành Phố Hà Nội"
+    ]
+  },
+  "Số 2 Hồ Xuân Hương, Phường 06, Quận 3, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7148752,
+    "geoLong": 106.7291235,
+    "matchedQuery": "Phường 06, Quận 3, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Số 2 Hồ Xuân Hương, Phường 06, Quận 3, Thành Phố Hồ Chí Minh",
+      "Phường 06, Quận 3, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "101 Xuân La, Phường Xuân La, Quận Tây Hồ, Thành Phố Hà Nội": {
+    "geoLat": 21.0633822,
+    "geoLong": 105.8056907
+  },
+  "Đường Phan Đăng Lưu, Phường Hòa Cường Bắc, Quận Hải Châu, Thành Phố Đà Nẵng": {
+    "geoLat": 16.0425896,
+    "geoLong": 108.2119262,
+    "matchedQuery": "Phường Hòa Cường Bắc, Quận Hải Châu, Thành Phố Đà Nẵng",
+    "attemptedQueries": [
+      "Đường Phan Đăng Lưu, Phường Hòa Cường Bắc, Quận Hải Châu, Thành Phố Đà Nẵng",
+      "Phường Hòa Cường Bắc, Quận Hải Châu, Thành Phố Đà Nẵng"
+    ]
+  },
+  "202 Hoàng Văn Thụ, Phường 09, Quận Phú Nhuận, Thành Phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "202 Hoàng Văn Thụ, Phường 09, Quận Phú Nhuận, Thành Phố Hồ Chí Minh",
+      "Phường 09, Quận Phú Nhuận, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "33 Phan Chu Trinh, Phường Vạn Thạnh, Thành Phố Nha Trang, Tỉnh Khánh Hòa": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "33 Phan Chu Trinh, Phường Vạn Thạnh, Thành Phố Nha Trang, Tỉnh Khánh Hòa",
+      "Phường Vạn Thạnh, Thành Phố Nha Trang, Tỉnh Khánh Hòa"
+    ]
+  },
+  "Khu đô thị Star Lake Tây Hồ Tây, Phường Xuân La, Quận Tây Hồ, Thành Phố Hà Nội": {
+    "geoLat": 21.064129,
+    "geoLong": 105.8068399,
+    "matchedQuery": "Phường Xuân La, Quận Tây Hồ, Thành Phố Hà Nội",
+    "attemptedQueries": [
+      "Khu đô thị Star Lake Tây Hồ Tây, Phường Xuân La, Quận Tây Hồ, Thành Phố Hà Nội",
+      "Phường Xuân La, Quận Tây Hồ, Thành Phố Hà Nội"
+    ]
+  },
+  "101 Võ Chí Công, Phường Xuân La, Quận Tây Hồ, Thành Phố Hà Nội": {
+    "geoLat": 21.0643773,
+    "geoLong": 105.8056869
+  },
+  "Số 86 Đường số 23, Phường Tân Phú, Quận 7, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7141195,
+    "geoLong": 106.7348612,
+    "matchedQuery": "Phường Tân Phú, Quận 7, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Số 86 Đường số 23, Phường Tân Phú, Quận 7, Thành Phố Hồ Chí Minh",
+      "Phường Tân Phú, Quận 7, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "Đường Đỗ Xuân Hợp, Quận Thủ Đức, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7797456,
+    "geoLong": 106.7574133,
+    "matchedQuery": "Quận Thủ Đức, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Đường Đỗ Xuân Hợp, Quận Thủ Đức, Thành Phố Hồ Chí Minh",
+      "Quận Thủ Đức, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "SVD Sát bờ đê": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "SVD Sát bờ đê"
+    ]
+  },
+  "448 Hoàng Văn Thụ, Phường 04, Quận Tân Bình, Thành Phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "448 Hoàng Văn Thụ, Phường 04, Quận Tân Bình, Thành Phố Hồ Chí Minh",
+      "Phường 04, Quận Tân Bình, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "Số 7 Duy Tân, Phường Hòa Cường Bắc, Quận Hải Châu, Thành Phố Đà Nẵng": {
+    "geoLat": 16.0425896,
+    "geoLong": 108.2119262,
+    "matchedQuery": "Phường Hòa Cường Bắc, Quận Hải Châu, Thành Phố Đà Nẵng",
+    "attemptedQueries": [
+      "Số 7 Duy Tân, Phường Hòa Cường Bắc, Quận Hải Châu, Thành Phố Đà Nẵng",
+      "Phường Hòa Cường Bắc, Quận Hải Châu, Thành Phố Đà Nẵng"
+    ]
+  },
+  "Quảng trường Cam Ranh, Thị Xã Cam Ranh, Tỉnh Khánh Hòa": {
+    "geoLat": 12.0544352,
+    "geoLong": 109.1590801,
+    "matchedQuery": "Thị Xã Cam Ranh, Tỉnh Khánh Hòa",
+    "attemptedQueries": [
+      "Quảng trường Cam Ranh, Thị Xã Cam Ranh, Tỉnh Khánh Hòa",
+      "Thị Xã Cam Ranh, Tỉnh Khánh Hòa"
+    ]
+  },
+  "108 Nguyễn Du, Phường Sài Gòn, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7790744,
+    "geoLong": 106.7000493,
+    "matchedQuery": "108 Nguyễn Du, Phường Sài Gòn, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "108 Nguyễn Du, Phường Sài Gòn, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Lầu 1, 386/17C Lê Văn Sỹ, Phường Nhiêu Lộc, Thành phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Lầu 1, 386/17C Lê Văn Sỹ, Phường Nhiêu Lộc, Thành phố Hồ Chí Minh",
+      "386/17C Lê Văn Sỹ, Phường Nhiêu Lộc, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "55B Nguyễn Thị Minh Khai, Phường Bến Thành, Quận 1, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7741635,
+    "geoLong": 106.6903807,
+    "matchedQuery": "Phường Bến Thành, Quận 1, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "55B Nguyễn Thị Minh Khai, Phường Bến Thành, Quận 1, Thành Phố Hồ Chí Minh",
+      "Phường Bến Thành, Quận 1, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "75 Hàng Bồ, Phường Hoàn Kiếm, Thành phố Hà Nội": {
+    "geoLat": 21.0334939,
+    "geoLong": 105.8485639,
+    "matchedQuery": "75 Hàng Bồ, Phường Hoàn Kiếm, Thành phố Hà Nội",
+    "attemptedQueries": [
+      "75 Hàng Bồ, Phường Hoàn Kiếm, Thành phố Hà Nội"
+    ]
+  },
+  "số 6 Nguyễn Siêu, Phường Sài Gòn, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7792798,
+    "geoLong": 106.7059004,
+    "matchedQuery": "số 6 Nguyễn Siêu, Phường Sài Gòn, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "số 6 Nguyễn Siêu, Phường Sài Gòn, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "62 Trần Quang Khải, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7917955,
+    "geoLong": 106.6906718,
+    "matchedQuery": "62 Trần Quang Khải, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "62 Trần Quang Khải, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Số 28 Lê Thánh Tôn, Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7818088,
+    "geoLong": 106.7006195,
+    "matchedQuery": "Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Số 28 Lê Thánh Tôn, Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh",
+      "Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "125 Cống Quỳnh, Phường Cầu Ông Lãnh, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7656221,
+    "geoLong": 106.6893096,
+    "matchedQuery": "125 Cống Quỳnh, Phường Cầu Ông Lãnh, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "125 Cống Quỳnh, Phường Cầu Ông Lãnh, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "36 Lý Thái Tổ, Phường Hoàn Kiếm, Thành phố Hà Nội": {
+    "geoLat": 21.0283253,
+    "geoLong": 105.8551865,
+    "matchedQuery": "36 Lý Thái Tổ, Phường Hoàn Kiếm, Thành phố Hà Nội",
+    "attemptedQueries": [
+      "36 Lý Thái Tổ, Phường Hoàn Kiếm, Thành phố Hà Nội"
+    ]
+  },
+  "08 Huỳnh Thúc Kháng, Phường Ba Đình, Thành phố Hà Nội": {
+    "geoLat": 21.0395325,
+    "geoLong": 105.836423,
+    "matchedQuery": "Phường Ba Đình, Thành phố Hà Nội",
+    "attemptedQueries": [
+      "08 Huỳnh Thúc Kháng, Phường Ba Đình, Thành phố Hà Nội",
+      "Phường Ba Đình, Thành phố Hà Nội"
+    ]
+  },
+  "Số 04 Tú Xương, Phường Xuân Hòa, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7824046,
+    "geoLong": 106.6895335,
+    "matchedQuery": "Phường Xuân Hòa, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Số 04 Tú Xương, Phường Xuân Hòa, Thành phố Hồ Chí Minh",
+      "Phường Xuân Hòa, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "62 Trần Quang Khải, Phường Tân Định, Quận 1, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7404252,
+    "geoLong": 106.6998107,
+    "matchedQuery": "Phường Tân Định, Quận 1, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "62 Trần Quang Khải, Phường Tân Định, Quận 1, Thành Phố Hồ Chí Minh",
+      "Phường Tân Định, Quận 1, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "5B PHẠM NGŨ LÃO, Phường Hạnh Thông, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.8230158,
+    "geoLong": 106.6820269,
+    "matchedQuery": "5B PHẠM NGŨ LÃO, Phường Hạnh Thông, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "5B PHẠM NGŨ LÃO, Phường Hạnh Thông, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "22 VĨNH VIỄN, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7637836,
+    "geoLong": 106.6679934,
+    "matchedQuery": "22 VĨNH VIỄN, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "22 VĨNH VIỄN, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "643 Điện Biên Phủ, (Nhà văn hoá Sinh Viên), Phường Bàn Cờ, Thành phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "643 Điện Biên Phủ, (Nhà văn hoá Sinh Viên), Phường Bàn Cờ, Thành phố Hồ Chí Minh",
+      "(Nhà văn hoá Sinh Viên), Phường Bàn Cờ, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Số 28 Lê Thánh Tôn, Phường Bến Thành, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7730038,
+    "geoLong": 106.6974082,
+    "matchedQuery": "Số 28 Lê Thánh Tôn, Phường Bến Thành, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Số 28 Lê Thánh Tôn, Phường Bến Thành, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "125 Cống Quỳnh, Phường Nguyễn Cư Trinh, Quận 1, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7656221,
+    "geoLong": 106.6893096,
+    "matchedQuery": "125 Cống Quỳnh, Phường Nguyễn Cư Trinh, Quận 1, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "125 Cống Quỳnh, Phường Nguyễn Cư Trinh, Quận 1, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "01 Trần Hừng Đạo, Phường Hoa Lư, Tỉnh Ninh Bình": {
+    "geoLat": 20.2597195,
+    "geoLong": 105.9679934,
+    "matchedQuery": "01 Trần Hừng Đạo, Phường Hoa Lư, Tỉnh Ninh Bình",
+    "attemptedQueries": [
+      "01 Trần Hừng Đạo, Phường Hoa Lư, Tỉnh Ninh Bình"
+    ]
+  },
+  "Số 28 Lê Thánh Tôn., Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7818088,
+    "geoLong": 106.7006195,
+    "matchedQuery": "Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Số 28 Lê Thánh Tôn., Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh",
+      "Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "62 TRẦN QUANG KHẢI PHƯỜNG TÂN ĐỊNH, Phường Tân Định, Quận 1, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7404252,
+    "geoLong": 106.6998107,
+    "matchedQuery": "Phường Tân Định, Quận 1, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "62 TRẦN QUANG KHẢI PHƯỜNG TÂN ĐỊNH, Phường Tân Định, Quận 1, Thành Phố Hồ Chí Minh",
+      "Phường Tân Định, Quận 1, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "5B, Võ Văn Tần, Phường 06, Quận 3, Thành Phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "5B, Võ Văn Tần, Phường 06, Quận 3, Thành Phố Hồ Chí Minh",
+      "Võ Văn Tần, Phường 06, Quận 3, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "Sân Khấu Nhà Thiếu Nhi TP.HCM, Phường Xuân Hòa, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7824046,
+    "geoLong": 106.6895335,
+    "matchedQuery": "Phường Xuân Hòa, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Sân Khấu Nhà Thiếu Nhi TP.HCM, Phường Xuân Hòa, Thành phố Hồ Chí Minh",
+      "Phường Xuân Hòa, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "5B PHẠM NGŨ LÃO, Phường 03, Quận Gò Vấp, Thành Phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "5B PHẠM NGŨ LÃO, Phường 03, Quận Gò Vấp, Thành Phố Hồ Chí Minh",
+      "Phường 03, Quận Gò Vấp, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "643 Điện Biên Phủ, (Nhà văn hóa Sinh Viên), Phường Bàn Cờ, Thành phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "643 Điện Biên Phủ, (Nhà văn hóa Sinh Viên), Phường Bàn Cờ, Thành phố Hồ Chí Minh",
+      "(Nhà văn hóa Sinh Viên), Phường Bàn Cờ, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "70-72 Nguyễn Văn Trỗi, Phường Phú Nhuận, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7955241,
+    "geoLong": 106.6762439,
+    "matchedQuery": "70-72 Nguyễn Văn Trỗi, Phường Phú Nhuận, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "70-72 Nguyễn Văn Trỗi, Phường Phú Nhuận, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Lầu 1, 386/17C Lê Văn Sỹ, phường 14, Phường Nhiêu Lộc, Thành phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Lầu 1, 386/17C Lê Văn Sỹ, phường 14, Phường Nhiêu Lộc, Thành phố Hồ Chí Minh",
+      "386/17C Lê Văn Sỹ, phường 14, Phường Nhiêu Lộc, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "G9 Ciputra , Phường Phú Thượng, Thành phố Hà Nội": {
+    "geoLat": 21.0752511,
+    "geoLong": 105.807369,
+    "matchedQuery": "G9 Ciputra , Phường Phú Thượng, Thành phố Hà Nội",
+    "attemptedQueries": [
+      "G9 Ciputra , Phường Phú Thượng, Thành phố Hà Nội"
+    ]
+  },
+  "62 Trần Quang Khải, Phường Tân Định, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7913145,
+    "geoLong": 106.6881382,
+    "matchedQuery": "62 Trần Quang Khải, Phường Tân Định, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "62 Trần Quang Khải, Phường Tân Định, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Số 28 Lê Thánh Tôn., Phường Sài Gòn, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7751709,
+    "geoLong": 106.6999907,
+    "matchedQuery": "Số 28 Lê Thánh Tôn., Phường Sài Gòn, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Số 28 Lê Thánh Tôn., Phường Sài Gòn, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "125 Cống Quỳnh, Phường Cô Giang, Quận 1, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7618339,
+    "geoLong": 106.6950654,
+    "matchedQuery": "Phường Cô Giang, Quận 1, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "125 Cống Quỳnh, Phường Cô Giang, Quận 1, Thành Phố Hồ Chí Minh",
+      "Phường Cô Giang, Quận 1, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "643 Điện Biên Phủ, (Nhà văn hóa Sinh Viên), Phường 01, Quận 3, Thành Phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "643 Điện Biên Phủ, (Nhà văn hóa Sinh Viên), Phường 01, Quận 3, Thành Phố Hồ Chí Minh",
+      "(Nhà văn hóa Sinh Viên), Phường 01, Quận 3, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "136 Trần Hưng Đạo, Phường Bến Thành, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7650423,
+    "geoLong": 106.6926199,
+    "matchedQuery": "136 Trần Hưng Đạo, Phường Bến Thành, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "136 Trần Hưng Đạo, Phường Bến Thành, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Số 06 Mạc  Đĩnh Chi, Phường Sài Gòn, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7791966,
+    "geoLong": 106.6999282,
+    "matchedQuery": "Phường Sài Gòn, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Số 06 Mạc  Đĩnh Chi, Phường Sài Gòn, Thành phố Hồ Chí Minh",
+      "Phường Sài Gòn, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "386/17C Lê Văn Sỹ, Phường Nhiêu Lộc, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7857564,
+    "geoLong": 106.6751204,
+    "matchedQuery": "Phường Nhiêu Lộc, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "386/17C Lê Văn Sỹ, Phường Nhiêu Lộc, Thành phố Hồ Chí Minh",
+      "Phường Nhiêu Lộc, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Nhà Văn Hóa Sinh Viên (Làng Đại học), Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7737261,
+    "geoLong": 106.7166008,
+    "matchedQuery": "Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Nhà Văn Hóa Sinh Viên (Làng Đại học), Thành phố Hồ Chí Minh",
+      "Thành phố Hồ Chí Minh"
+    ]
+  },
+  "125 Cống Quỳnh, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7656221,
+    "geoLong": 106.6893096,
+    "matchedQuery": "125 Cống Quỳnh, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "125 Cống Quỳnh, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "492 Võ Văn Kiệt, Phường Cầu Ông Lãnh, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7568376,
+    "geoLong": 106.6901201,
+    "matchedQuery": "492 Võ Văn Kiệt, Phường Cầu Ông Lãnh, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "492 Võ Văn Kiệt, Phường Cầu Ông Lãnh, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "11A Tôn Đức Thắng, Phường Sài Gòn, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7846167,
+    "geoLong": 106.7038105,
+    "matchedQuery": "11A Tôn Đức Thắng, Phường Sài Gòn, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "11A Tôn Đức Thắng, Phường Sài Gòn, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Số 7 Công Trường Lam Sơn, Phường Sài Gòn, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7768063,
+    "geoLong": 106.703213,
+    "matchedQuery": "Số 7 Công Trường Lam Sơn, Phường Sài Gòn, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Số 7 Công Trường Lam Sơn, Phường Sài Gòn, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "720A Nguyễn Hữu Cảnh, Phường Thạnh Mỹ Tây (Mới), Phường 22, Quận Bình Thạnh, Thành Phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "720A Nguyễn Hữu Cảnh, Phường Thạnh Mỹ Tây (Mới), Phường 22, Quận Bình Thạnh, Thành Phố Hồ Chí Minh",
+      "Phường Thạnh Mỹ Tây (Mới), Phường 22, Quận Bình Thạnh, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "TTTM Lotte Mall Tây Hồ, 272 đường Võ Chí Công, Thành phố Hà Nội": {
+    "geoLat": 21.0760187,
+    "geoLong": 105.8125496,
+    "matchedQuery": "272 đường Võ Chí Công, Thành phố Hà Nội",
+    "attemptedQueries": [
+      "TTTM Lotte Mall Tây Hồ, 272 đường Võ Chí Công, Thành phố Hà Nội",
+      "272 đường Võ Chí Công, Thành phố Hà Nội"
+    ]
+  },
+  "194 Hoàng Văn Thụ, Phường Đức Nhuận, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.8004356,
+    "geoLong": 106.6743446,
+    "matchedQuery": "194 Hoàng Văn Thụ, Phường Đức Nhuận, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "194 Hoàng Văn Thụ, Phường Đức Nhuận, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Cầu Vượt Phạm Văn Đồng, đồi Hòn Chồng, phường Bắc Nha Trang, Phường Bắc Nha Trang, Tỉnh Khánh Hòa": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Cầu Vượt Phạm Văn Đồng, đồi Hòn Chồng, phường Bắc Nha Trang, Phường Bắc Nha Trang, Tỉnh Khánh Hòa",
+      "đồi Hòn Chồng, phường Bắc Nha Trang, Phường Bắc Nha Trang, Tỉnh Khánh Hòa"
+    ]
+  },
+  "58 Quốc Tử Giám, Phường Văn Miếu - Quốc Tử Giám, Thành phố Hà Nội": {
+    "geoLat": 21.0267212,
+    "geoLong": 105.8366818,
+    "matchedQuery": "58 Quốc Tử Giám, Phường Văn Miếu - Quốc Tử Giám, Thành phố Hà Nội",
+    "attemptedQueries": [
+      "58 Quốc Tử Giám, Phường Văn Miếu - Quốc Tử Giám, Thành phố Hà Nội"
+    ]
+  },
+  "59 Võ Văn Kiệt, Phường An Lạc, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7229195,
+    "geoLong": 106.6134401,
+    "matchedQuery": "59 Võ Văn Kiệt, Phường An Lạc, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "59 Võ Văn Kiệt, Phường An Lạc, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "120 Xa lộ Hà Nội, Phường Tăng Nhơn Phú, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.8618947,
+    "geoLong": 106.8025939,
+    "matchedQuery": "120 Xa lộ Hà Nội, Phường Tăng Nhơn Phú, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "120 Xa lộ Hà Nội, Phường Tăng Nhơn Phú, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "588 Phạm Văn Đồng, Phường Hiệp Bình, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.8280588,
+    "geoLong": 106.72136,
+    "matchedQuery": "588 Phạm Văn Đồng, Phường Hiệp Bình, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "588 Phạm Văn Đồng, Phường Hiệp Bình, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "TTTM Lotte Mall Tây Hồ, 272 đường Võ Chí Công, Phường Tây Hồ, Thành phố Hà Nội": {
+    "geoLat": 21.0789703,
+    "geoLong": 105.8133337,
+    "matchedQuery": "272 đường Võ Chí Công, Phường Tây Hồ, Thành phố Hà Nội",
+    "attemptedQueries": [
+      "TTTM Lotte Mall Tây Hồ, 272 đường Võ Chí Công, Phường Tây Hồ, Thành phố Hà Nội",
+      "272 đường Võ Chí Công, Phường Tây Hồ, Thành phố Hà Nội"
+    ]
+  },
+  "Địa chỉ: Ấp Phú Hiệp, xã An Nhơn Tây, Thành Phố Hồ Chí Minh, Xã An Nhơn Tây, Huyện Củ Chi, Thành Phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Địa chỉ: Ấp Phú Hiệp, xã An Nhơn Tây, Thành Phố Hồ Chí Minh, Xã An Nhơn Tây, Huyện Củ Chi, Thành Phố Hồ Chí Minh",
+      "xã An Nhơn Tây, Thành Phố Hồ Chí Minh, Xã An Nhơn Tây, Huyện Củ Chi, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "Tầng 2, Vincom Mega Mall, đường Tôn Quyền, Xã Nghĩa Trụ, Huyện Văn Giang, Tỉnh Hưng Yên": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Tầng 2, Vincom Mega Mall, đường Tôn Quyền, Xã Nghĩa Trụ, Huyện Văn Giang, Tỉnh Hưng Yên",
+      "Vincom Mega Mall, đường Tôn Quyền, Xã Nghĩa Trụ, Huyện Văn Giang, Tỉnh Hưng Yên"
+    ]
+  },
+  "53 Hoàng Hữu Nam, Phường Tăng Nhơn Phú, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.8670172,
+    "geoLong": 106.8137029,
+    "matchedQuery": "53 Hoàng Hữu Nam, Phường Tăng Nhơn Phú, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "53 Hoàng Hữu Nam, Phường Tăng Nhơn Phú, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Thôn Núi Bé, Xã Nam Phương Tiến, Huyện Chương Mỹ, Thành Phố Hà Nội": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Thôn Núi Bé, Xã Nam Phương Tiến, Huyện Chương Mỹ, Thành Phố Hà Nội",
+      "Xã Nam Phương Tiến, Huyện Chương Mỹ, Thành Phố Hà Nội"
+    ]
+  },
+  "5/270 Đ. Đỗ Xuân Hợp, Phước Long A, TP. Thủ Đức, TP.HCM, Phường Phước Long, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.8228998,
+    "geoLong": 106.7644661,
+    "matchedQuery": "Phước Long A, TP. Thủ Đức, TP.HCM, Phường Phước Long, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "5/270 Đ. Đỗ Xuân Hợp, Phước Long A, TP. Thủ Đức, TP.HCM, Phường Phước Long, Thành phố Hồ Chí Minh",
+      "Phước Long A, TP. Thủ Đức, TP.HCM, Phường Phước Long, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "799 Nguyễn Văn Linh, Phường Tân Phú, Quận 7, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7141195,
+    "geoLong": 106.7348612,
+    "matchedQuery": "Phường Tân Phú, Quận 7, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "799 Nguyễn Văn Linh, Phường Tân Phú, Quận 7, Thành Phố Hồ Chí Minh",
+      "Phường Tân Phú, Quận 7, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "Vịnh Nha Trang, Tỉnh Khánh Hòa": {
+    "geoLat": 12.2566743,
+    "geoLong": 109.2091671,
+    "matchedQuery": "Vịnh Nha Trang, Tỉnh Khánh Hòa",
+    "attemptedQueries": [
+      "Vịnh Nha Trang, Tỉnh Khánh Hòa"
+    ]
+  },
+  "Đảo Hòn Tre, Phường Nha Trang, Tỉnh Khánh Hòa": {
+    "geoLat": 12.2084991,
+    "geoLong": 109.2871204,
+    "matchedQuery": "Đảo Hòn Tre, Phường Nha Trang, Tỉnh Khánh Hòa",
+    "attemptedQueries": [
+      "Đảo Hòn Tre, Phường Nha Trang, Tỉnh Khánh Hòa"
+    ]
+  },
+  "Đa Tốn, Gia Lâm, Thành phố Hà Nội": {
+    "geoLat": 20.9864544,
+    "geoLong": 105.9342173,
+    "matchedQuery": "Đa Tốn, Gia Lâm, Thành phố Hà Nội",
+    "attemptedQueries": [
+      "Đa Tốn, Gia Lâm, Thành phố Hà Nội"
+    ]
+  },
+  "Bãi Dài, Đặc khu Phú Quốc, Tỉnh An Giang": {
+    "geoLat": 10.3359331,
+    "geoLong": 103.8490737,
+    "matchedQuery": "Bãi Dài, Đặc khu Phú Quốc, Tỉnh An Giang",
+    "attemptedQueries": [
+      "Bãi Dài, Đặc khu Phú Quốc, Tỉnh An Giang"
+    ]
+  },
+  "Đường ven biển 129, Xã Thăng An, Thành phố Đà Nẵng": {
+    "geoLat": 15.7721507,
+    "geoLong": 108.4033532,
+    "matchedQuery": "Xã Thăng An, Thành phố Đà Nẵng",
+    "attemptedQueries": [
+      "Đường ven biển 129, Xã Thăng An, Thành phố Đà Nẵng",
+      "Xã Thăng An, Thành phố Đà Nẵng"
+    ]
+  },
+  "Bãi Dài, Gành Dầu, Đặc khu Phú Quốc, Tỉnh An Giang": {
+    "geoLat": 10.3707684,
+    "geoLong": 103.8447154,
+    "matchedQuery": "Gành Dầu, Đặc khu Phú Quốc, Tỉnh An Giang",
+    "attemptedQueries": [
+      "Bãi Dài, Gành Dầu, Đặc khu Phú Quốc, Tỉnh An Giang",
+      "Gành Dầu, Đặc khu Phú Quốc, Tỉnh An Giang"
+    ]
+  },
+  "Bãi biển Cửa Lò, Đ. Bình Min, Tỉnh Nghệ An": {
+    "geoLat": 10.8111851,
+    "geoLong": 106.7137568,
+    "matchedQuery": "Đ. Bình Min, Tỉnh Nghệ An",
+    "attemptedQueries": [
+      "Bãi biển Cửa Lò, Đ. Bình Min, Tỉnh Nghệ An",
+      "Đ. Bình Min, Tỉnh Nghệ An"
+    ]
+  },
+  "Đèo Khau Phạ, Xã Cao Phạ, Huyện Mù Căng Chải, Tỉnh Yên Bái": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Đèo Khau Phạ, Xã Cao Phạ, Huyện Mù Căng Chải, Tỉnh Yên Bái",
+      "Xã Cao Phạ, Huyện Mù Căng Chải, Tỉnh Yên Bái"
+    ]
+  },
+  "01 Tràng Tiền, Phường Phan Chu Trinh, Quận Hoàn Kiếm, Thành Phố Hà Nội": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "01 Tràng Tiền, Phường Phan Chu Trinh, Quận Hoàn Kiếm, Thành Phố Hà Nội",
+      "Phường Phan Chu Trinh, Quận Hoàn Kiếm, Thành Phố Hà Nội"
+    ]
+  },
+  "Ấp Bến Đình, Xã Đại Phước, Huyện Nhơn Trạch, Tỉnh Đồng Nai": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Ấp Bến Đình, Xã Đại Phước, Huyện Nhơn Trạch, Tỉnh Đồng Nai",
+      "Xã Đại Phước, Huyện Nhơn Trạch, Tỉnh Đồng Nai"
+    ]
+  },
+  "83F Trần Kế Xương, Phường Cầu Kiệu, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.8032326,
+    "geoLong": 106.6876041,
+    "matchedQuery": "83F Trần Kế Xương, Phường Cầu Kiệu, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "83F Trần Kế Xương, Phường Cầu Kiệu, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Số 10, đường Mai Chí Thọ, Phường An Khánh, Thành phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Số 10, đường Mai Chí Thọ, Phường An Khánh, Thành phố Hồ Chí Minh",
+      "đường Mai Chí Thọ, Phường An Khánh, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "8B Tạ Hiện, Phường Hoàn Kiếm, Thành phố Hà Nội": {
+    "geoLat": 21.0350514,
+    "geoLong": 105.8518825,
+    "matchedQuery": "8B Tạ Hiện, Phường Hoàn Kiếm, Thành phố Hà Nội",
+    "attemptedQueries": [
+      "8B Tạ Hiện, Phường Hoàn Kiếm, Thành phố Hà Nội"
+    ]
+  },
+  "6 Mạc Đĩnh Chi, Phường Sài Gòn, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7838886,
+    "geoLong": 106.7004128,
+    "matchedQuery": "6 Mạc Đĩnh Chi, Phường Sài Gòn, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "6 Mạc Đĩnh Chi, Phường Sài Gòn, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Time City": {
+    "geoLat": 21.0288536,
+    "geoLong": 105.7881221,
+    "matchedQuery": "Time City",
+    "attemptedQueries": [
+      "Time City"
+    ]
+  },
+  "Melisa Center 85 Thoại Ngọc Hầu, Phường, Tân Phú, HCM., Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7838094,
+    "geoLong": 106.6369877,
+    "matchedQuery": "Phường, Tân Phú, HCM., Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Melisa Center 85 Thoại Ngọc Hầu, Phường, Tân Phú, HCM., Thành phố Hồ Chí Minh",
+      "Phường, Tân Phú, HCM., Thành phố Hồ Chí Minh"
+    ]
+  },
+  "TP. HÀ NỘI, Thành phố Hà Nội": {
+    "geoLat": 21.0221932,
+    "geoLong": 105.8532951,
+    "matchedQuery": "TP. HÀ NỘI, Thành phố Hà Nội",
+    "attemptedQueries": [
+      "TP. HÀ NỘI, Thành phố Hà Nội"
+    ]
+  },
+  "Saigon Exhibition and Convention Center (SECC), Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7737261,
+    "geoLong": 106.7166008,
+    "matchedQuery": "Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Saigon Exhibition and Convention Center (SECC), Thành phố Hồ Chí Minh",
+      "Thành phố Hồ Chí Minh"
+    ]
+  },
+  "16-18 Vo Thi Sau, Phường Tân Định, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7888427,
+    "geoLong": 106.6928929,
+    "matchedQuery": "16-18 Vo Thi Sau, Phường Tân Định, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "16-18 Vo Thi Sau, Phường Tân Định, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "799 Nguyễn Văn Linh, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7132062,
+    "geoLong": 106.6471977,
+    "matchedQuery": "799 Nguyễn Văn Linh, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "799 Nguyễn Văn Linh, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "09 Khổng Tử, Phường Thủ Đức, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.8445005,
+    "geoLong": 106.7675224,
+    "matchedQuery": "09 Khổng Tử, Phường Thủ Đức, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "09 Khổng Tử, Phường Thủ Đức, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "799 đường Nguyễn Văn Linh, Phường Tân Phú, Quận 7, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7141195,
+    "geoLong": 106.7348612,
+    "matchedQuery": "Phường Tân Phú, Quận 7, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "799 đường Nguyễn Văn Linh, Phường Tân Phú, Quận 7, Thành Phố Hồ Chí Minh",
+      "Phường Tân Phú, Quận 7, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "91 Trần Hưng Đạo, Quận Hoàn Kiếm, Thành Phố Hà Nội": {
+    "geoLat": 21.0307816,
+    "geoLong": 105.8540626,
+    "matchedQuery": "Quận Hoàn Kiếm, Thành Phố Hà Nội",
+    "attemptedQueries": [
+      "91 Trần Hưng Đạo, Quận Hoàn Kiếm, Thành Phố Hà Nội",
+      "Quận Hoàn Kiếm, Thành Phố Hà Nội"
+    ]
+  },
+  "01 Đỗ Đức Dục, Thành Phố Hà Nội": {
+    "geoLat": 21.0096502,
+    "geoLong": 105.7839315,
+    "matchedQuery": "01 Đỗ Đức Dục, Thành Phố Hà Nội",
+    "attemptedQueries": [
+      "01 Đỗ Đức Dục, Thành Phố Hà Nội"
+    ]
+  },
+  "116 Nguyễn Du, Phường Bến Thành, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7750538,
+    "geoLong": 106.6963665,
+    "matchedQuery": "116 Nguyễn Du, Phường Bến Thành, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "116 Nguyễn Du, Phường Bến Thành, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "72 Lê Thánh Tôn , Phường Sài Gòn, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.7781566,
+    "geoLong": 106.7018931,
+    "matchedQuery": "72 Lê Thánh Tôn , Phường Sài Gòn, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "72 Lê Thánh Tôn , Phường Sài Gòn, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Học viện NetPro, Số 30, Trung Liệt, Đống Đa, Hà Nội, Phường Trung Liệt, Quận Đống Đa, Thành Phố Hà Nội": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Học viện NetPro, Số 30, Trung Liệt, Đống Đa, Hà Nội, Phường Trung Liệt, Quận Đống Đa, Thành Phố Hà Nội",
+      "Số 30, Trung Liệt, Đống Đa, Hà Nội, Phường Trung Liệt, Quận Đống Đa, Thành Phố Hà Nội"
+    ]
+  },
+  "ZOOM": {
+    "geoLat": 10.7669277,
+    "geoLong": 106.6941435,
+    "matchedQuery": "ZOOM",
+    "attemptedQueries": [
+      "ZOOM"
+    ]
+  },
+  "2 Hồ Xuân Hương, Phường Xuân Hòa, Thành phố Hồ Chí Minh": {
+    "geoLat": 10.777685,
+    "geoLong": 106.6886351,
+    "matchedQuery": "2 Hồ Xuân Hương, Phường Xuân Hòa, Thành phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "2 Hồ Xuân Hương, Phường Xuân Hòa, Thành phố Hồ Chí Minh"
+    ]
+  },
+  "Tịnh Viện Pháp Thường, Tỉnh Đồng Nai": {
+    "geoLat": 11.0806241,
+    "geoLong": 107.1873919,
+    "matchedQuery": "Tỉnh Đồng Nai",
+    "attemptedQueries": [
+      "Tịnh Viện Pháp Thường, Tỉnh Đồng Nai",
+      "Tỉnh Đồng Nai"
+    ]
+  },
+  "207 Nguyen Van Thoai, Phường An Hải Đông, Quận Sơn Trà, Thành Phố Đà Nẵng": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "207 Nguyen Van Thoai, Phường An Hải Đông, Quận Sơn Trà, Thành Phố Đà Nẵng",
+      "Phường An Hải Đông, Quận Sơn Trà, Thành Phố Đà Nẵng"
+    ]
+  },
+  "46 Chương Dương Độ, Phường Chương Dương Độ, Quận Hoàn Kiếm, Thành Phố Hà Nội": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "46 Chương Dương Độ, Phường Chương Dương Độ, Quận Hoàn Kiếm, Thành Phố Hà Nội",
+      "Phường Chương Dương Độ, Quận Hoàn Kiếm, Thành Phố Hà Nội"
+    ]
+  },
+  "16-18 Vo Thi Sau, Phường Tân Định, Quận 1, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7404252,
+    "geoLong": 106.6998107,
+    "matchedQuery": "Phường Tân Định, Quận 1, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "16-18 Vo Thi Sau, Phường Tân Định, Quận 1, Thành Phố Hồ Chí Minh",
+      "Phường Tân Định, Quận 1, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "1, Phường 1, Thành Phố Đà Lạt, Tỉnh Lâm Đồng": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "1, Phường 1, Thành Phố Đà Lạt, Tỉnh Lâm Đồng",
+      "Phường 1, Thành Phố Đà Lạt, Tỉnh Lâm Đồng"
+    ]
+  },
+  "105 Trần Hưng Đạo, Phường 05, Quận 5, Thành Phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "105 Trần Hưng Đạo, Phường 05, Quận 5, Thành Phố Hồ Chí Minh",
+      "Phường 05, Quận 5, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "Online only, Phường 13, Quận 10, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7664812,
+    "geoLong": 106.6756704,
+    "matchedQuery": "Phường 13, Quận 10, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Online only, Phường 13, Quận 10, Thành Phố Hồ Chí Minh",
+      "Phường 13, Quận 10, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "Công Viên Ocean World, Khu Đô Thị Vạn Phúc, Phường Hiệp Bình Phước, Quận Thủ Đức, Thành Phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Công Viên Ocean World, Khu Đô Thị Vạn Phúc, Phường Hiệp Bình Phước, Quận Thủ Đức, Thành Phố Hồ Chí Minh",
+      "Khu Đô Thị Vạn Phúc, Phường Hiệp Bình Phước, Quận Thủ Đức, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "6 Mạc Đĩnh Chi, Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.7818088,
+    "geoLong": 106.7006195,
+    "matchedQuery": "Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "6 Mạc Đĩnh Chi, Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh",
+      "Phường Bến Nghé, Quận 1, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "Pham Ngoc Thach 700000, Thành Phố Hồ Chí Minh": {
+    "geoLat": 10.9990863,
+    "geoLong": 106.6584586,
+    "matchedQuery": "Pham Ngoc Thach 700000, Thành Phố Hồ Chí Minh",
+    "attemptedQueries": [
+      "Pham Ngoc Thach 700000, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "03 Nguyễn Du, Phường 9, Thành Phố Đà Lạt, Tỉnh Lâm Đồng": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "03 Nguyễn Du, Phường 9, Thành Phố Đà Lạt, Tỉnh Lâm Đồng",
+      "Phường 9, Thành Phố Đà Lạt, Tỉnh Lâm Đồng"
+    ]
+  },
+  "179. đường 30/4, Thị trấn Dương Đông, Huyện Phú Quốc, Tỉnh Kiên Giang": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "179. đường 30/4, Thị trấn Dương Đông, Huyện Phú Quốc, Tỉnh Kiên Giang",
+      "Thị trấn Dương Đông, Huyện Phú Quốc, Tỉnh Kiên Giang"
+    ]
+  },
+  "Ấp Bến Đình, Xã Phú Đông, Huyện Nhơn Trạch, Tỉnh Đồng Nai": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "Ấp Bến Đình, Xã Phú Đông, Huyện Nhơn Trạch, Tỉnh Đồng Nai",
+      "Xã Phú Đông, Huyện Nhơn Trạch, Tỉnh Đồng Nai"
+    ]
+  },
+  "The Seat Cafe - 1355/7 Hoàng Sa, Phường 05, Quận Tân Bình, Thành Phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "The Seat Cafe - 1355/7 Hoàng Sa, Phường 05, Quận Tân Bình, Thành Phố Hồ Chí Minh",
+      "Phường 05, Quận Tân Bình, Thành Phố Hồ Chí Minh"
+    ]
+  },
+  "1355/7 Hoàng Sa, Phường 05, Quận Tân Bình, Thành Phố Hồ Chí Minh": {
+    "geoLat": null,
+    "geoLong": null,
+    "attemptedQueries": [
+      "1355/7 Hoàng Sa, Phường 05, Quận Tân Bình, Thành Phố Hồ Chí Minh",
+      "Phường 05, Quận Tân Bình, Thành Phố Hồ Chí Minh"
+    ]
+  }
+}

@@ -191,32 +191,64 @@
 
 .ed-map {
   width: 100%;
-  height: 180px;
+  height: 260px;
   background: var(--bg);
   border-radius: 8px;
   border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 8px;
   color: var(--muted);
   font-size: 13px;
   position: relative;
   overflow: hidden;
 }
 
-.ed-map__grid {
-  position: absolute;
-  inset: 0;
-  opacity: .15;
-  background-image: linear-gradient(var(--border) 1px, transparent 1px),
-                    linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: 30px 30px;
+.ed-map--empty {
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  text-align: center;
 }
 
-.ed-map__pin { font-size: 28px; position: relative; z-index: 1; }
-.ed-map__label { position: relative; z-index: 1; font-size: 12px; color: var(--muted); }
+.ed-map .leaflet-control-attribution {
+  background: rgba(255,255,255,.86);
+  color: #333;
+  font-size: 10px;
+}
+
+.ed-map-marker {
+  background: transparent;
+  border: 0;
+}
+
+.ed-map-marker span {
+  position: relative;
+  display: block;
+  width: 22px;
+  height: 22px;
+  background: var(--accent);
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  box-shadow: 0 4px 14px rgba(0,0,0,.35);
+  transform: rotate(-45deg);
+}
+
+.ed-map-marker span::after {
+  content: '';
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  top: 50%;
+  left: 50%;
+  background: #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.ed-map__label {
+  font-size: 13px;
+  color: var(--muted);
+}
 
 /* ── TERMS ── */
 .ed-terms {
