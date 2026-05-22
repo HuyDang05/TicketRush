@@ -35,7 +35,7 @@ export default function AdminLayout({
         opacity: active ? 1 : 0.85
       }, "AdminLayout")}>{icon}</span>
         {label}
-        {badge != null && <span className={`admin-nav-badge${active ? ' admin-nav-badge--active' : ''}`}>{badge}</span>}
+       
       </Link>;
   };
   const SectionLabel = ({
