@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { useCart } from '../../context/CartContext';
@@ -15,6 +15,7 @@ export default function Header() {
   const { cartCount } = useCart();
   const avatarUrl = user?.avatarUrl;
   const navigate = useNavigate();
+  const location = useLocation();
   const [search, setSearch] = useState('');
   const [openUserMenu, setOpenUserMenu] = useState(false);
   const [allEvents, setAllEvents] = useState([]);
@@ -28,6 +29,12 @@ export default function Header() {
   useEffect(() => {
     eventService.getEvents({}).then(r => setAllEvents(r.data.events || [])).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (location.pathname !== '/events') return;
+    const params = new URLSearchParams(location.search);
+    setSearch((params.get('search') || '').slice(0, MAX_SEARCH_LENGTH));
+  }, [location.pathname, location.search]);
 
 
 
@@ -55,10 +62,37 @@ export default function Header() {
       ).slice(0, 8)
     : [];
 
+  const navigateToEventsSearch = (query) => {
+    const params = new URLSearchParams(location.pathname === '/events' ? location.search : '');
+    params.set('page', '1');
+
+    if (query) {
+      params.set('search', query);
+    } else {
+      params.delete('search');
+    }
+
+    const queryString = params.toString();
+    navigate(`/events${queryString ? `?${queryString}` : ''}`);
+  };
+
+  const handleSearchChange = (e) => {
+    const nextSearch = e.target.value.slice(0, MAX_SEARCH_LENGTH);
+    setSearch(nextSearch);
+    setShowDropdown(true);
+
+    if (location.pathname === '/events' && !nextSearch.trim()) {
+      const params = new URLSearchParams(location.search);
+      if (params.has('search')) {
+        navigateToEventsSearch('');
+      }
+    }
+  };
+
   const handleSearch = (e) => {
     if (e.key === 'Enter' && normalizedSearch) {
       setShowDropdown(false);
-      navigate(`/?search=${encodeURIComponent(normalizedSearch)}`);
+      navigateToEventsSearch(normalizedSearch);
     }
     if (e.key === 'Escape') setShowDropdown(false);
   };
@@ -122,7 +156,7 @@ export default function Header() {
             placeholder={t("Tìm kiếm sự kiện, nghệ sĩ...")}
             value={search}
             maxLength={MAX_SEARCH_LENGTH}
-            onChange={(e) => { setSearch(e.target.value.slice(0, MAX_SEARCH_LENGTH)); setShowDropdown(true); }}
+            onChange={handleSearchChange}
             onFocus={() => setShowDropdown(true)}
             onKeyDown={handleSearch}
             className="header__search-input"
@@ -131,7 +165,9 @@ export default function Header() {
             onClick={() => {
               if (normalizedSearch) {
                 setShowDropdown(false);
-                navigate(`/?search=${encodeURIComponent(normalizedSearch)}`);
+                navigateToEventsSearch(normalizedSearch);
+              } else if (location.pathname === '/events') {
+                navigateToEventsSearch('');
               }
             }}
             className="header__search-btn"

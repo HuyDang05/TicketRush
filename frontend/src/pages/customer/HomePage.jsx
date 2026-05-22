@@ -1,9 +1,11 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EventList from '../../components/event/EventList';
 import LatestEventsSlider from '../../components/event/LatestEventsSlider';
 import eventService from '../../services/event.service';
 import { useLang } from '../../context/LangContext';
+import { CATEGORIES } from './eventCategories';
+import CategoryPill from './CategoryPill';
 import './home.css';
 
 const REVIEWS = [
@@ -103,24 +105,6 @@ function ReviewCarousel() {
   );
 }
 
-export const CATEGORY_LABELS = {
-  music: 'Âm nhạc',
-  seminarsworkshops: 'Hội thảo',
-  sport: 'Thể thao',
-  theatersandart: 'Sân khấu',
-  attractionsexperiences: 'Trải nghiệm',
-  others: 'Khác',
-};
-
-const CATEGORIES = [
-  { slug: 'music', icon: '🎵', label: CATEGORY_LABELS.music, count: '124 sự kiện' },
-  { slug: 'seminarsworkshops', icon: '🎤', label: CATEGORY_LABELS.seminarsworkshops, count: '47 sự kiện' },
-  { slug: 'sport', icon: '⚽', label: CATEGORY_LABELS.sport, count: '36 sự kiện' },
-  { slug: 'theatersandart', icon: '🎭', label: CATEGORY_LABELS.theatersandart, count: '58 sự kiện' },
-  { slug: 'attractionsexperiences', icon: '🎪', label: CATEGORY_LABELS.attractionsexperiences, count: '21 sự kiện' },
-  { slug: 'others', icon: '✨', label: CATEGORY_LABELS.others, count: '12 sự kiện' },
-];
-
 const HOME_EVENTS_PAGE_SIZE = 12;
 
 function sortBySoldTickets(a, b) {
@@ -163,35 +147,11 @@ function HomeHeroSkeleton() {
   );
 }
 
-function CategoryPill({ icon, label, count, isActive, onClick }) {
-  return (
-    <button
-      type="button"
-      className={`category-pill${isActive ? ' category-pill--active' : ''}`}
-      onClick={onClick}
-      aria-pressed={isActive}
-    >
-      <span className="category-pill__icon">{icon}</span>
-      <span className="category-pill__label">{label}</span>
-      <span className="category-pill__count">{count}</span>
-    </button>
-  );
-}
-
 export default function HomePage() {
   const navigate = useNavigate();
   const { t, lang } = useLang();
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [categoryEvents, setCategoryEvents] = useState([]);
-  const [categoryPage, setCategoryPage] = useState(1);
-  const [categoryHasMore, setCategoryHasMore] = useState(false);
-  const [isCategoryLoading, setIsCategoryLoading] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const categoryRequestRef = useRef(0);
-  const loadMoreInFlightRef = useRef(false);
-  const loadMoreRef = useRef(null);
 
   useEffect(() => {
     eventService.getEvents({ page: 1, limit: HOME_EVENTS_PAGE_SIZE })
@@ -199,104 +159,6 @@ export default function HomePage() {
       .catch(() => setEvents([]))
       .finally(() => setIsLoading(false));
   }, []);
-
-  const fetchCategoryEvents = useCallback((categorySlug) => {
-    const requestId = categoryRequestRef.current + 1;
-    categoryRequestRef.current = requestId;
-    setSelectedCategory(categorySlug);
-    setCategoryEvents([]);
-    setCategoryPage(1);
-    setCategoryHasMore(false);
-    setIsCategoryLoading(true);
-    loadMoreInFlightRef.current = false;
-
-    eventService.getEvents({
-      category: categorySlug,
-      page: 1,
-      limit: HOME_EVENTS_PAGE_SIZE,
-    })
-      .then((res) => {
-        if (categoryRequestRef.current !== requestId) return;
-        const data = res.data || {};
-        setCategoryEvents(data.events || []);
-        setCategoryPage(data.page || 1);
-        setCategoryHasMore(Boolean(data.hasMore));
-      })
-      .catch(() => {
-        if (categoryRequestRef.current !== requestId) return;
-        setCategoryEvents([]);
-        setCategoryHasMore(false);
-      })
-      .finally(() => {
-        if (categoryRequestRef.current === requestId) {
-          setIsCategoryLoading(false);
-        }
-      });
-  }, []);
-
-  const clearCategoryFilter = useCallback(() => {
-    categoryRequestRef.current += 1;
-    setSelectedCategory(null);
-    setCategoryEvents([]);
-    setCategoryPage(1);
-    setCategoryHasMore(false);
-    setIsCategoryLoading(false);
-    setIsLoadingMore(false);
-    loadMoreInFlightRef.current = false;
-  }, []);
-
-  const loadMoreCategoryEvents = useCallback(() => {
-    if (!selectedCategory || !categoryHasMore || isCategoryLoading || isLoadingMore || loadMoreInFlightRef.current) return;
-    const categorySlug = selectedCategory;
-    const requestId = categoryRequestRef.current;
-    const nextPage = categoryPage + 1;
-
-    loadMoreInFlightRef.current = true;
-    setIsLoadingMore(true);
-    eventService.getEvents({
-      category: categorySlug,
-      page: nextPage,
-      limit: HOME_EVENTS_PAGE_SIZE,
-    })
-      .then((res) => {
-        if (categoryRequestRef.current !== requestId) return;
-        const data = res.data || {};
-        const nextEvents = data.events || [];
-        setCategoryEvents((prev) => {
-          const seen = new Set(prev.map((event) => event.id));
-          const uniqueEvents = nextEvents.filter((event) => !seen.has(event.id));
-          return [...prev, ...uniqueEvents];
-        });
-        setCategoryPage(data.page || nextPage);
-        setCategoryHasMore(Boolean(data.hasMore));
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (categoryRequestRef.current === requestId) {
-          setIsLoadingMore(false);
-          loadMoreInFlightRef.current = false;
-        }
-      });
-  }, [categoryHasMore, categoryPage, isCategoryLoading, isLoadingMore, selectedCategory]);
-
-  useEffect(() => {
-    const target = loadMoreRef.current;
-    if (!target || !selectedCategory || !categoryHasMore || isCategoryLoading || isLoadingMore) {
-      return undefined;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          loadMoreCategoryEvents();
-        }
-      },
-      { rootMargin: '240px 0px' }
-    );
-
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [categoryHasMore, isCategoryLoading, isLoadingMore, loadMoreCategoryEvents, selectedCategory]);
 
   const featuredEvent = useMemo(() => {
     if (!events.length) return null;
@@ -306,10 +168,6 @@ export default function HomePage() {
   const featuredEvents = useMemo(() => {
     return [...events].sort(sortBySoldTickets).slice(0, 12);
   }, [events]);
-
-  const selectedCategoryLabel = selectedCategory ? CATEGORY_LABELS[selectedCategory] : null;
-  const visibleEvents = selectedCategory ? categoryEvents : featuredEvents;
-  const eventsLoading = selectedCategory ? isCategoryLoading : isLoading;
 
   const heroImageUrl = featuredEvent?.imageUrl || featuredEvent?.cardImageUrl || null;
   const cardImageUrl = featuredEvent?.cardImageUrl || featuredEvent?.imageUrl || null;
@@ -422,8 +280,8 @@ export default function HomePage() {
               icon={cat.icon}
               count={cat.count.replace('sự kiện', t('sự kiện'))}
               label={t(cat.label)}
-              isActive={selectedCategory === cat.slug}
-              onClick={() => fetchCategoryEvents(cat.slug)}
+              isActive={false}
+              onClick={() => navigate(`/events?categories=${cat.slug}&page=1`)}
             />
           ))}
         </div>
@@ -434,30 +292,18 @@ export default function HomePage() {
 
         <div className="home-section-header">
           <h2 className="home-section-title">
-            {selectedCategoryLabel ? t(selectedCategoryLabel) : (t("Sự kiện nổi bật") || "Sự kiện nổi bật")}
+            {t("Sự kiện nổi bật") || "Sự kiện nổi bật"}
           </h2>
-          {selectedCategory ? (
-            <button type="button" className="home-section-link home-section-link--button" onClick={clearCategoryFilter}>
-              {t("Tất cả")} →
-            </button>
-          ) : (
-            <a href="#" className="home-section-link" onClick={e => e.preventDefault()}>
-              {t("Xem tất cả")} →
-            </a>
-          )}
+          <button
+            type="button"
+            className="home-section-link home-section-link--button"
+            onClick={() => navigate('/events?page=1')}
+          >
+            {t("Xem tất cả")} →
+          </button>
         </div>
 
-        <EventList events={visibleEvents} isLoading={eventsLoading} searchQuery={selectedCategoryLabel ? t(selectedCategoryLabel) : ''} />
-        {selectedCategory && (
-          <>
-            <div ref={loadMoreRef} className="home-events__sentinel" aria-hidden="true" />
-            {isLoadingMore && (
-              <div className="home-events__load-more">
-                Đang tải thêm sự kiện...
-              </div>
-            )}
-          </>
-        )}
+        <EventList events={featuredEvents} isLoading={isLoading} />
       </section>
 
       {/* ── REVIEW CAROUSEL ── */}

@@ -30,6 +30,16 @@ export const en = {
   "Sắp diễn ra": "Upcoming events",
   "Tất cả": "All",
   "Xem tất cả": "See all",
+  "Tất cả sự kiện": "All events",
+  "Trang": "Page",
+  "Trước": "Previous",
+  "Tiếp": "Next",
+  "Bộ lọc": "Filters",
+  "Tất cả thể loại": "All categories",
+  "Thể loại": "Categories",
+  "Xóa lọc": "Clear filters",
+  "Khám phá sự kiện": "Explore events",
+  "Kết quả tìm kiếm": "Search results",
 
   // General Categories
   "Âm nhạc": "Music",
