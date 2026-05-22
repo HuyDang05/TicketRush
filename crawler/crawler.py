@@ -13,26 +13,30 @@ Event model fields:
   - date          : DateTime ← day
   - imageUrl      : String? ← imageUrl
   - cardImageUrl  : String? ← imageUrl (dùng chung)
-  - status        : EventStatus (PUBLISHED)
+  - status        : EventStatus (DRAFT/PUBLISHED/ENDED theo phân bổ mỗi category)
   - createdAt     : DateTime (now)
-  - seatmapJson   : Json?  ← sinh ngẫu nhiên theo arc-layout (giống seed.js)
+  - seatmapJson   : Json?  ← chọn ngẫu nhiên từ file seatmap template
   - seatmapVersion: Int    ← sinh ngẫu nhiên 1–3
-  - endDate       : DateTime? (null)
+  - endDate       : DateTime? (sau date)
 
 Zone model (nhúng vào output, dùng khi seed vào DB):
-  - name, rows, cols, price, arcSeatsPerRow
-  - seats (label, row, col)
+  - name, rows, cols, price, totalSeats
+  - seats nằm trong seatmapJson.zones
 """
 
 import json
-import math
+import copy
 import random
 import time
 import uuid
 import logging
 import argparse
-from datetime import datetime, timezone
-from typing import Optional
+import html
+from datetime import datetime, timedelta, timezone
+from html.parser import HTMLParser
+from pathlib import Path
+from typing import Any, Optional
+from urllib.parse import urljoin
 
 import requests
 
@@ -42,10 +46,23 @@ import requests
 SEARCH_API = "https://api-v2.ticketbox.vn/search/v2/events"
 DETAIL_API  = "https://api-v2.ticketbox.vn/events/{event_id}"
 
-CATEGORIES = ["music", "festival", "sport", "theatre", "cinema", "other"]
+# Ticketbox category slugs. The older slugs festival/theatre/cinema/other
+# currently return empty results, so use the active API slugs below instead.
+CATEGORIES = [
+    "music",
+    "seminarsworkshops",
+    "sport",
+    "theatersandart",
+    "attractionsexperiences",
+    "others",
+]
 
 DEFAULT_ADMIN_ID = "00000000-0000-0000-0000-000000000000"  # placeholder — thay bằng UUID admin thật khi seed
 DEFAULT_LIMIT    = 50
+DEFAULT_TARGET_PER_CATEGORY = 50
+DEFAULT_DRAFT_PER_CATEGORY  = 2
+DEFAULT_ENDED_PER_CATEGORY  = 10
+SEATMAP_TEMPLATE_FILE = Path(__file__).with_name("venue KDT Vin zones x.txt")
 DELAY_PAGES      = 0.5   # giây giữa các trang
 DELAY_DETAIL     = 0.3   # giây giữa mỗi detail request
 
@@ -57,6 +74,11 @@ HEADERS = {
     ),
     "Accept": "application/json",
     "Referer": "https://ticketbox.vn/",
+}
+
+HTML_HEADERS = {
+    **HEADERS,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 }
 
 # ─────────────────────────────────────────
@@ -92,6 +114,7 @@ ZONE_PRESETS = [
 ]
 
 ARC_LABELS = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+_SEATMAP_TEMPLATES: Optional[list[dict]] = None
 
 
 # ─────────────────────────────────────────
@@ -193,6 +216,141 @@ def random_zones_and_seatmap(base_price: Optional[float] = None):
     return zones_config, seatmap, version
 
 
+def load_seatmap_templates() -> list[dict]:
+    """
+    Đọc các seatmap JSON hợp lệ từ file template.
+    Mỗi dòng bắt đầu bằng "{" được xem là một seatmap độc lập; dòng hỏng sẽ bị bỏ qua.
+    """
+    global _SEATMAP_TEMPLATES
+    if _SEATMAP_TEMPLATES is not None:
+        return _SEATMAP_TEMPLATES
+
+    templates: list[dict] = []
+    try:
+        lines = SEATMAP_TEMPLATE_FILE.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        log.warning(f"Không tìm thấy file seatmap template: {SEATMAP_TEMPLATE_FILE}")
+        _SEATMAP_TEMPLATES = []
+        return _SEATMAP_TEMPLATES
+
+    for line_no, line in enumerate(lines, 1):
+        raw = line.strip()
+        if not raw.startswith("{"):
+            continue
+        try:
+            template = json.loads(raw)
+        except json.JSONDecodeError as e:
+            log.warning(f"Bỏ qua seatmap template không hợp lệ ở dòng {line_no}: {e}")
+            continue
+
+        error = validate_seatmap_template(template)
+        if error:
+            log.warning(f"Bỏ qua seatmap template dòng {line_no}: {error}")
+            continue
+
+        templates.append(template)
+
+    _SEATMAP_TEMPLATES = templates
+    log.info(
+        f"Đã load {len(templates)} seatmap template hợp lệ từ {SEATMAP_TEMPLATE_FILE.name}"
+    )
+    return _SEATMAP_TEMPLATES
+
+
+def validate_seatmap_template(template: dict) -> Optional[str]:
+    if not isinstance(template, dict):
+        return "template không phải object"
+    if not template.get("venue"):
+        return "thiếu venue"
+    zones = template.get("zones")
+    if not isinstance(zones, list) or not zones:
+        return "thiếu zones"
+
+    for zone_index, zone in enumerate(zones):
+        if not isinstance(zone, dict):
+            return f"zones[{zone_index}] không phải object"
+        if not zone.get("name"):
+            return f"zones[{zone_index}] thiếu name"
+        if zone.get("price") is None:
+            return f"zones[{zone_index}] thiếu price"
+        seats = zone.get("seats")
+        if not isinstance(seats, list) or not seats:
+            return f"zones[{zone_index}] thiếu seats"
+
+        for seat_index, seat in enumerate(seats):
+            if not isinstance(seat, dict):
+                return f"zones[{zone_index}].seats[{seat_index}] không phải object"
+            if not isinstance(seat.get("row"), int):
+                return f"zones[{zone_index}].seats[{seat_index}] thiếu row"
+            if not isinstance(seat.get("col"), int):
+                return f"zones[{zone_index}].seats[{seat_index}] thiếu col"
+            if not seat.get("label"):
+                return f"zones[{zone_index}].seats[{seat_index}] thiếu label"
+
+    return None
+
+
+def zone_dimensions(zone: dict) -> tuple[int, int]:
+    config = zone.get("config") if isinstance(zone.get("config"), dict) else {}
+    rows = config.get("rows") or zone.get("rows")
+    cols = config.get("cols") or zone.get("cols")
+    seats = zone.get("seats") if isinstance(zone.get("seats"), list) else []
+
+    if not rows:
+        rows = max((seat.get("row", 0) for seat in seats), default=-1) + 1
+    if not cols:
+        cols = max((seat.get("col", 0) for seat in seats), default=-1) + 1
+
+    return max(int(rows or 1), 1), max(int(cols or 1), 1)
+
+
+def seatmap_from_template(base_price: Optional[float] = None):
+    """
+    Chọn ngẫu nhiên 1 seatmap mẫu và chuẩn hóa sang cấu trúc seed/frontend dùng.
+    Trả về (zones_config, seatmap_json, seatmap_version, venue).
+    """
+    templates = load_seatmap_templates()
+    if not templates:
+        log.warning("Không có seatmap template hợp lệ, dùng fallback arc layout cũ")
+        zones_config, seatmap_json, seatmap_version = random_zones_and_seatmap(base_price)
+        return zones_config, seatmap_json, seatmap_version, None
+
+    template = copy.deepcopy(random.choice(templates))
+    zones_config = []
+
+    for zone in template.get("zones", []):
+        rows, cols = zone_dimensions(zone)
+        seats = zone.get("seats") if isinstance(zone.get("seats"), list) else []
+        for seat in seats:
+            seat["status"] = seat.get("status") or "AVAILABLE"
+
+        price = zone.get("price")
+        if price is None:
+            price = base_price or 500_000
+
+        zone["rows"] = rows
+        zone["cols"] = cols
+        zone["price"] = price
+
+        zones_config.append({
+            "name":       zone.get("name", "Khu"),
+            "price":      price,
+            "rows":       rows,
+            "cols":       cols,
+            "totalSeats": len(seats),
+        })
+
+    layout_zones = template.get("layout", []) if isinstance(template.get("layout"), list) else []
+    for layout_zone in layout_zones:
+        rows, cols = zone_dimensions(layout_zone)
+        layout_zone["rows"] = rows
+        layout_zone["cols"] = cols
+        if layout_zone.get("price") is None:
+            layout_zone["price"] = base_price or 500_000
+
+    return zones_config, template, random.randint(1, 3), template.get("venue")
+
+
 # ─────────────────────────────────────────
 # Fetch helpers
 # ─────────────────────────────────────────
@@ -217,26 +375,143 @@ def fetch_event_detail(event_id: int) -> Optional[dict]:
         return None
 
 
+class JsonLdParser(HTMLParser):
+    """Extract JSON-LD script blocks from a Ticketbox event HTML page."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self._in_json_ld = False
+        self._buffer: list[str] = []
+        self.scripts: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, Optional[str]]]) -> None:
+        if tag.lower() != "script":
+            return
+
+        attr_map = {name.lower(): value for name, value in attrs if name}
+        script_type = (attr_map.get("type") or "").lower()
+        if script_type == "application/ld+json":
+            self._in_json_ld = True
+            self._buffer = []
+
+    def handle_data(self, data: str) -> None:
+        if self._in_json_ld:
+            self._buffer.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.lower() == "script" and self._in_json_ld:
+            self.scripts.append("".join(self._buffer).strip())
+            self._in_json_ld = False
+            self._buffer = []
+
+
+def iter_jsonld_objects(value: Any):
+    if isinstance(value, dict):
+        graph = value.get("@graph")
+        if isinstance(graph, list):
+            for item in graph:
+                yield from iter_jsonld_objects(item)
+        yield value
+    elif isinstance(value, list):
+        for item in value:
+            yield from iter_jsonld_objects(item)
+
+
+def find_event_jsonld(html_text: str) -> Optional[dict]:
+    parser = JsonLdParser()
+    parser.feed(html_text)
+
+    for script in parser.scripts:
+        if not script:
+            continue
+        try:
+            payload = json.loads(html.unescape(script))
+        except json.JSONDecodeError as e:
+            log.debug(f"Bỏ qua JSON-LD không hợp lệ: {e}")
+            continue
+
+        for item in iter_jsonld_objects(payload):
+            item_type = item.get("@type")
+            if item_type == "Event" or (
+                isinstance(item_type, list) and "Event" in item_type
+            ):
+                return item
+
+    return None
+
+
+def fetch_event_schema(deeplink: Optional[str]) -> Optional[dict]:
+    if not deeplink:
+        return None
+
+    url = urljoin("https://ticketbox.vn/", deeplink)
+    try:
+        resp = requests.get(url, headers=HTML_HEADERS, timeout=15)
+        if resp.status_code != 200:
+            log.debug(f"Không lấy được HTML event {url}: HTTP {resp.status_code}")
+            return None
+        return find_event_jsonld(resp.text)
+    except Exception as e:
+        log.debug(f"Không lấy được schema.org event {url}: {e}")
+        return None
+
+
+def compact_schema_venue(schema_event: Optional[dict]) -> tuple[Optional[str], Optional[dict]]:
+    if not schema_event:
+        return None, None
+
+    location = schema_event.get("location")
+    if not isinstance(location, dict):
+        location = None
+
+    venue = None
+    if location:
+        address = location.get("address")
+        if isinstance(address, dict):
+            venue = address.get("streetAddress")
+        venue = venue or location.get("name")
+
+    geo = schema_event.get("geo")
+    compact_geo = None
+    if isinstance(geo, dict):
+        latitude = geo.get("latitude")
+        longitude = geo.get("longitude")
+        if latitude is not None and longitude is not None:
+            compact_geo = {
+                "latitude": latitude,
+                "longitude": longitude,
+            }
+
+    return venue, compact_geo
+
+
 # ─────────────────────────────────────────
 # Mapping
 # ─────────────────────────────────────────
-def map_event(raw: dict, detail: Optional[dict] = None) -> dict:
+def map_event(
+    raw: dict,
+    detail: Optional[dict] = None,
+    category: str = "",
+    schema_event: Optional[dict] = None,
+) -> dict:
     """
     Map dữ liệu từ API + sinh ngẫu nhiên seatmapJson, seatmapVersion, zones.
     """
     now_iso = datetime.now(timezone.utc).isoformat()
+    schema_venue, geo = compact_schema_venue(schema_event)
 
     # Venue & description từ detail
-    venue       = "TBD"
+    venue       = schema_venue or "TBD"
     description = None
     if detail:
-        venue = (
-            detail.get("location")
-            or detail.get("venue")
-            or detail.get("venueName")
-            or detail.get("address")
-            or "TBD"
-        )
+        if venue == "TBD":
+            venue = (
+                detail.get("location")
+                or detail.get("venue")
+                or detail.get("venueName")
+                or detail.get("address")
+                or "TBD"
+            )
         description = (
             detail.get("description")
             or detail.get("content")
@@ -246,8 +521,10 @@ def map_event(raw: dict, detail: Optional[dict] = None) -> dict:
     # Lấy giá từ API để làm anchor cho preset
     base_price = raw.get("price")
 
-    # Sinh zones + seatmap ngẫu nhiên
-    zones_config, seatmap_json, seatmap_version = random_zones_and_seatmap(base_price)
+    # Chọn 1 seatmap mẫu từ file template
+    zones_config, seatmap_json, seatmap_version, template_venue = seatmap_from_template(base_price)
+    if venue == "TBD" and template_venue:
+        venue = template_venue
 
     return {
         # ── Event fields (khớp Prisma schema) ──
@@ -260,10 +537,11 @@ def map_event(raw: dict, detail: Optional[dict] = None) -> dict:
         "endDate":        None,
         "imageUrl":       raw.get("imageUrl"),
         "cardImageUrl":   raw.get("imageUrl"),
-        "status":         "PUBLISHED",
+        "status":         None,
         "createdAt":      now_iso,
         "seatmapJson":    seatmap_json,
         "seatmapVersion": seatmap_version,
+        "geo":            geo,
 
         # ── Zones (dùng khi seed DB) ──
         "zones": [
@@ -272,9 +550,7 @@ def map_event(raw: dict, detail: Optional[dict] = None) -> dict:
                 "price":          z["price"],
                 "rows":           z["rows"],
                 "cols":           z["cols"],
-                "arcSeatsPerRow": z["arcSeatsPerRow"],
-                # Tổng ghế = sum(arcSeatsPerRow)
-                "totalSeats":     sum(z["arcSeatsPerRow"]),
+                "totalSeats":     z["totalSeats"],
             }
             for z in zones_config
         ],
@@ -286,6 +562,7 @@ def map_event(raw: dict, detail: Optional[dict] = None) -> dict:
             "deeplink":    raw.get("deeplink"),
             "price":       raw.get("price"),
             "orgLogoUrl":  raw.get("orgLogoUrl"),
+            "category":    category,
         },
     }
 
@@ -298,16 +575,21 @@ log = logging.getLogger(__name__)
 def crawl_category(
     category: str,
     max_pages: int = 10,
+    limit: int = DEFAULT_LIMIT,
+    target_per_category: int = DEFAULT_TARGET_PER_CATEGORY,
     fetch_detail: bool = True,
 ) -> list[dict]:
     events: list[dict] = []
     page = 1
-    log.info(f"▶ Bắt đầu crawl category: {category}")
+    log.info(
+        f"▶ Bắt đầu crawl category: {category} "
+        f"(limit={limit}, target={target_per_category})"
+    )
 
-    while page <= max_pages:
-        log.info(f"  Trang {page}/{max_pages}...")
+    while page <= max_pages and len(events) < target_per_category:
+        log.info(f"  Trang {page}/{max_pages}: limit={limit}, page={page}, categories={category}")
         try:
-            resp = fetch_events_page(category, page)
+            resp = fetch_events_page(category, page, limit)
         except requests.HTTPError as e:
             log.error(f"  HTTP Error trang {page}: {e}")
             break
@@ -330,11 +612,17 @@ def crawl_category(
 
         for raw in results:
             detail = None
-            if fetch_detail and raw.get("id"):
-                detail = fetch_event_detail(raw["id"])
+            schema_event = None
+            if fetch_detail:
+                if raw.get("id"):
+                    detail = fetch_event_detail(raw["id"])
+                schema_event = fetch_event_schema(raw.get("deeplink"))
                 time.sleep(DELAY_DETAIL)
 
-            events.append(map_event(raw, detail))
+            events.append(map_event(raw, detail, category, schema_event))
+            if len(events) >= target_per_category:
+                log.info(f"  Đã đủ target {target_per_category} events cho category '{category}'.")
+                break
 
         if not pagination.get("hasMore", False):
             log.info("  Đã hết trang.")
@@ -343,25 +631,88 @@ def crawl_category(
         page += 1
         time.sleep(DELAY_PAGES)
 
+    if len(events) < target_per_category:
+        log.warning(
+            f"Category '{category}' chỉ lấy được {len(events)}/{target_per_category} events"
+        )
+    else:
+        events = events[:target_per_category]
+
     log.info(f"✓ Category '{category}': {len(events)} events")
     return events
+
+
+def apply_event_mix(
+    events_by_category: dict[str, list[dict]],
+    draft_per_category: int = DEFAULT_DRAFT_PER_CATEGORY,
+    ended_per_category: int = DEFAULT_ENDED_PER_CATEGORY,
+) -> None:
+    """
+    Gán status và thời gian theo từng category:
+    - DRAFT và PUBLISHED nằm trong tương lai.
+    - ENDED nằm trong quá khứ, endDate sau date nhưng trước hiện tại.
+    """
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+
+    for category_index, (category, events) in enumerate(events_by_category.items()):
+        future_base_days = 14 + category_index * 70
+        past_base_days = 60 + category_index * 20
+
+        draft_count = min(draft_per_category, len(events))
+        ended_count = min(ended_per_category, max(0, len(events) - draft_count))
+
+        for index, event in enumerate(events):
+            if index < draft_count:
+                start_at = now + timedelta(days=future_base_days + index, hours=19)
+                status = "DRAFT"
+            elif index < draft_count + ended_count:
+                ended_index = index - draft_count
+                start_at = now - timedelta(days=past_base_days - ended_index, hours=20)
+                status = "ENDED"
+            else:
+                published_index = index - draft_count - ended_count
+                start_at = now + timedelta(days=future_base_days + draft_count + published_index, hours=19)
+                status = "PUBLISHED"
+
+            end_at = start_at + timedelta(hours=3)
+            event["status"] = status
+            event["date"] = start_at.isoformat()
+            event["endDate"] = end_at.isoformat()
 
 
 def crawl_all(
     categories: list[str],
     max_pages: int = 10,
+    limit: int = DEFAULT_LIMIT,
+    target_per_category: int = DEFAULT_TARGET_PER_CATEGORY,
+    draft_per_category: int = DEFAULT_DRAFT_PER_CATEGORY,
+    ended_per_category: int = DEFAULT_ENDED_PER_CATEGORY,
     fetch_detail: bool = True,
 ) -> list[dict]:
     all_events: list[dict] = []
     seen_ids: set[int] = set()
+    events_by_category: dict[str, list[dict]] = {}
 
     for cat in categories:
-        for event in crawl_category(cat, max_pages, fetch_detail):
+        category_events: list[dict] = []
+        for event in crawl_category(cat, max_pages, limit, target_per_category, fetch_detail):
             tid = event["_source"].get("ticketboxId")
             if tid not in seen_ids:
                 seen_ids.add(tid)
                 all_events.append(event)
+                category_events.append(event)
+            else:
+                log.info(f"  Bỏ qua event trùng Ticketbox ID {tid} trong category '{cat}'")
+
+        events_by_category[cat] = category_events
+        if len(category_events) < target_per_category:
+            log.warning(
+                f"Category '{cat}' có {len(category_events)}/{target_per_category} unique events "
+                "sau khi loại trùng"
+            )
         time.sleep(1)
+
+    apply_event_mix(events_by_category, draft_per_category, ended_per_category)
 
     log.info(f"\n═══ Tổng cộng: {len(all_events)} events duy nhất ═══")
     return all_events
@@ -381,17 +732,36 @@ def main():
         description="Crawl events từ ticketbox.vn và lưu ra JSON (có seatmap & zones)"
     )
     parser.add_argument(
-        "--categories", nargs="+", default=["music"],
+        "--categories", nargs="+", default=["all"],
         choices=CATEGORIES + ["all"],
-        help="Category cần crawl. Dùng 'all' cho tất cả. (mặc định: music)",
+        help="Category cần crawl. Dùng 'all' cho tất cả. (mặc định: all)",
     )
     parser.add_argument(
         "--max-pages", type=int, default=10,
-        help="Số trang tối đa mỗi category (mặc định: 10, ~500 events/category)",
+        help="Số trang tối đa mỗi category (mặc định: 10)",
+    )
+    parser.add_argument(
+        "--limit", type=int, default=DEFAULT_LIMIT,
+        help=f"Số event mỗi trang khi gọi API search (mặc định: {DEFAULT_LIMIT})",
+    )
+    parser.add_argument(
+        "--target-per-category", type=int, default=DEFAULT_TARGET_PER_CATEGORY,
+        help=f"Số event tối đa cần lấy mỗi category (mặc định: {DEFAULT_TARGET_PER_CATEGORY})",
+    )
+    parser.add_argument(
+        "--draft-per-category", type=int, default=DEFAULT_DRAFT_PER_CATEGORY,
+        help=f"Số event DRAFT mỗi category (mặc định: {DEFAULT_DRAFT_PER_CATEGORY})",
+    )
+    parser.add_argument(
+        "--ended-per-category", type=int, default=DEFAULT_ENDED_PER_CATEGORY,
+        help=f"Số event ENDED mỗi category (mặc định: {DEFAULT_ENDED_PER_CATEGORY})",
     )
     parser.add_argument(
         "--no-detail", action="store_true",
-        help="Bỏ qua fetch chi tiết (nhanh hơn, thiếu venue/description)",
+        help=(
+            "Bỏ qua fetch chi tiết và HTML JSON-LD "
+            "(nhanh hơn, thiếu venue/description/location/geo)"
+        ),
     )
     parser.add_argument(
         "--output", default="events.json",
@@ -410,7 +780,15 @@ def main():
     cats         = CATEGORIES if "all" in args.categories else args.categories
     fetch_detail = not args.no_detail
 
-    events = crawl_all(cats, max_pages=args.max_pages, fetch_detail=fetch_detail)
+    events = crawl_all(
+        cats,
+        max_pages=args.max_pages,
+        limit=args.limit,
+        target_per_category=args.target_per_category,
+        draft_per_category=args.draft_per_category,
+        ended_per_category=args.ended_per_category,
+        fetch_detail=fetch_detail,
+    )
 
     # Thống kê
     total_seats = sum(

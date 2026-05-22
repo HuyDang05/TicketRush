@@ -36,6 +36,8 @@ export const en = {
   "Sân khấu": "Stage",
   "Thể thao": "Sports",
   "Hội thảo": "Seminar",
+  "Trải nghiệm": "Experiences",
+  "Khác": "Other",
   "Lễ hội": "Festival",
   "sự kiện": "events",
   

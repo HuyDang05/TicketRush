@@ -4,6 +4,11 @@ import SeatmapCanvas from '../../components/seatmap/SeatmapCanvas';
 import SeatmapPreview from '../../components/seatmap/SeatmapPreview';
 import eventService from '../../services/event.service';
 import { generateSeatsForZone } from '../../lib/seatGenerator';
+import {
+  buildLayoutForSave,
+  flattenZonesForDb,
+  zonesFromSeatmapJson,
+} from '../../lib/seatmapLayout';
 import { MAX_PRICE, MAX_SEATS_PER_EVENT, MAX_ZONES } from '../../utils/inputValidation';
 import './SeatmapEditorPage.css';
 

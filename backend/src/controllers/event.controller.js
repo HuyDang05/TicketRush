@@ -35,14 +35,18 @@ function validateSeatmapStructure(seatmap) {
 
 const getEvents = async (req, res) => {
   try {
-    const { search, page = 1, limit = 10 } = req.query;
-    const pageNum = Number(page);
-    const pageSize = Number(limit);
+    const { search, category, page = 1, limit = 10 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
     const skip = (pageNum - 1) * pageSize;
 
     const whereCondition = {
       status: 'PUBLISHED',
     };
+
+    if (category) {
+      whereCondition.category = category;
+    }
 
     if (search) {
       whereCondition.title = {
@@ -51,40 +55,46 @@ const getEvents = async (req, res) => {
       };
     }
 
-    const events = await prisma.event.findMany({
-      where: whereCondition,
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        venue: true,
-        date: true,
-        endDate: true,
-        imageUrl: true,
-        cardImageUrl: true,
-        status: true,
-        createdAt: true,
-        createdBy: true,
-        seatmapVersion: true,
-        zones: {
-          select: {
-            price: true,
-            _count: {
-              select: {
-                seats: {
-                  where: { status: 'SOLD' },
+    const [total, events] = await Promise.all([
+      prisma.event.count({ where: whereCondition }),
+      prisma.event.findMany({
+        where: whereCondition,
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          venue: true,
+          category: true,
+          geoLat: true,
+          geoLong: true,
+          date: true,
+          endDate: true,
+          imageUrl: true,
+          cardImageUrl: true,
+          status: true,
+          createdAt: true,
+          createdBy: true,
+          seatmapVersion: true,
+          zones: {
+            select: {
+              price: true,
+              _count: {
+                select: {
+                  seats: {
+                    where: { status: 'SOLD' },
+                  },
                 },
               },
             },
           },
         },
-      },
-      orderBy: {
-        date: 'asc',
-      },
-      skip,
-      take: pageSize,
-    });
+        orderBy: {
+          date: 'asc',
+        },
+        skip,
+        take: pageSize,
+      }),
+    ]);
 
     const formattedEvents = events.map(event => {
       let minPrice = null;
@@ -107,6 +117,11 @@ const getEvents = async (req, res) => {
 
     return res.status(200).json({
       events: formattedEvents,
+      total,
+      page: pageNum,
+      limit: pageSize,
+      totalPages: Math.ceil(total / pageSize),
+      hasMore: skip + formattedEvents.length < total,
     });
   } catch (error) {
     console.error('[Event][getEvents] Error:', error);
@@ -159,7 +174,7 @@ const getEventById = async (req, res) => {
 
 const createEvent = async (req, res) => {
   try {
-    const { title, description, venue, startDate, endDate, imageUrl, cardImageUrl } = req.body;
+    const { title, description, venue, category, startDate, endDate, imageUrl, cardImageUrl } = req.body;
     const createdBy = req.user.id;
 
     if (!startDate) {
@@ -185,6 +200,7 @@ const createEvent = async (req, res) => {
         title,
         description,
         venue,
+        category,
         date: eventStartDate,
         endDate: eventEndDate,
         imageUrl,
@@ -212,7 +228,7 @@ const createEvent = async (req, res) => {
 const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, venue, startDate, endDate, imageUrl, cardImageUrl } = req.body;
+    const { title, description, venue, category, startDate, endDate, imageUrl, cardImageUrl } = req.body;
 
     // Check event exists and is DRAFT
     const event = await prisma.event.findUnique({
@@ -271,6 +287,7 @@ const updateEvent = async (req, res) => {
         title: title || event.title,
         description: description !== undefined ? description : event.description,
         venue: venue || event.venue,
+        category: category !== undefined ? category : event.category,
         date: eventStartDate,
         endDate: eventEndDate,
         imageUrl: imageUrl !== undefined ? imageUrl : event.imageUrl,
@@ -407,6 +424,9 @@ const getAdminEvents = async (req, res) => {
           id: true,
           title: true,
           venue: true,
+          category: true,
+          geoLat: true,
+          geoLong: true,
           date: true,
           endDate: true,
           status: true,
