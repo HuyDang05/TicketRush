@@ -2,28 +2,27 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AdminLayout from '../../components/shared/AdminLayout';
 import api from '../../services/api';
-
+import { css, cx, setNodeCss } from "../../lib/runtimeCss";
 export default function AdminAudienceDetailPage() {
-  const { eventId } = useParams();
+  const {
+    eventId
+  } = useParams();
   const navigate = useNavigate();
-
   const [buyers, setBuyers] = useState([]);
   const [eventTitle, setEventTitle] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const formatDate = (value) => {
+  const formatDate = value => {
     if (!value) return 'Chưa có';
     return new Date(value).toLocaleString('vi-VN');
   };
-
   const loadBuyers = async () => {
     try {
       setLoading(true);
-
       const res = await api.get(`/admin/tickets/events/${eventId}/buyers`, {
-        params: { sortBy: 'time' },
+        params: {
+          sortBy: 'time'
+        }
       });
-
       setBuyers(res.data.data || []);
     } catch (error) {
       console.error(error);
@@ -32,13 +31,11 @@ export default function AdminAudienceDetailPage() {
       setLoading(false);
     }
   };
-
   const loadEventInfo = async () => {
     try {
       const res = await api.get('/admin/tickets/events');
       const events = res.data.data || [];
-      const currentEvent = events.find((e) => String(e.id) === String(eventId));
-
+      const currentEvent = events.find(e => String(e.id) === String(eventId));
       if (currentEvent) {
         setEventTitle(currentEvent.title);
       }
@@ -46,247 +43,209 @@ export default function AdminAudienceDetailPage() {
       console.error(error);
     }
   };
-
   useEffect(() => {
     loadBuyers();
     loadEventInfo();
   }, [eventId]);
-
   const groupedBuyers = useMemo(() => {
     const map = new Map();
-
-    buyers.forEach((buyer) => {
+    buyers.forEach(buyer => {
       const key = buyer.bookingId || `${buyer.buyerEmail}-${buyer.buyTime}`;
-
       if (!map.has(key)) {
         map.set(key, {
           bookingId: key,
           buyerName: buyer.buyerName || 'Khách hàng',
           buyerEmail: buyer.buyerEmail || '',
           buyTime: buyer.buyTime,
-          seats: [],
+          seats: []
         });
       }
-
       const current = map.get(key);
-
       if (buyer.seatLabel) {
         current.seats.push(buyer.seatLabel);
       }
     });
-
     return Array.from(map.values());
   }, [buyers]);
-
-  return (
-    <AdminLayout>
-      <div
-        style={{
-          padding: 32,
-          color: 'var(--text)',
-          height: '100vh',
-          overflowY: 'auto',
-          boxSizing: 'border-box',
-        }}
-      >
-        <button
-            onClick={() => navigate('/admin/users')}
-            onMouseEnter={(e) => {
-                e.currentTarget.style.border = '1px solid var(--accent)';
-                e.currentTarget.style.boxShadow = '0 0 14px rgba(255,107,53,0.35)';
-                e.currentTarget.style.color = 'var(--accent)';
-            }}
-            onMouseLeave={(e) => {
-                e.currentTarget.style.border = '1px solid var(--border)';
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.color = 'var(--text)';
-            }}
-            style={{
-                background: 'var(--bg-strong)',
-                border: '1px solid var(--border)',
-                color: 'var(--text)',
-                padding: '10px 16px',
-                borderRadius: 12,
-                cursor: 'pointer',
-                marginBottom: 22,
-                transition: 'all 0.25s ease',
-                fontWeight: 600,
-            }}
-            >
+  return <AdminLayout>
+      <div className={css({
+      padding: 32,
+      color: 'var(--text)',
+      height: '100vh',
+      overflowY: 'auto',
+      boxSizing: 'border-box'
+    }, "AdminAudienceDetailPage")}>
+        <button onClick={() => navigate('/admin/users')} onMouseEnter={e => {
+setNodeCss(e.currentTarget, { border: '1px solid var(--accent)' }, 'border');
+setNodeCss(e.currentTarget, { boxShadow: '0 0 14px rgba(255,107,53,0.35)' }, 'boxShadow');
+setNodeCss(e.currentTarget, { color: 'var(--accent)' }, 'color');
+      }} onMouseLeave={e => {
+setNodeCss(e.currentTarget, { border: '1px solid var(--border)' }, 'border');
+setNodeCss(e.currentTarget, { boxShadow: 'none' }, 'boxShadow');
+setNodeCss(e.currentTarget, { color: 'var(--text)' }, 'color');
+      }} className={css({
+        background: 'var(--bg-strong)',
+        border: '1px solid var(--border)',
+        color: 'var(--text)',
+        padding: '10px 16px',
+        borderRadius: 12,
+        cursor: 'pointer',
+        marginBottom: 22,
+        transition: 'all 0.25s ease',
+        fontWeight: 600
+      }, "AdminAudienceDetailPage")}>
             ← Quay lại
             </button>
 
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: 16,
-            alignItems: 'center',
-            marginBottom: 24,
-          }}
-        >
+        <div className={css({
+        display: 'flex',
+        justifyContent: 'space-between',
+        gap: 16,
+        alignItems: 'center',
+        marginBottom: 24
+      }, "AdminAudienceDetailPage")}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 28 }}>
+            <h1 className={css({
+            margin: 0,
+            fontSize: 28
+          }, "AdminAudienceDetailPage")}>
               Danh sách khán giả
             </h1>
 
-            <p style={{ marginTop: 8, color: 'var(--muted)' }}>
+            <p className={css({
+            marginTop: 8,
+            color: 'var(--muted)'
+          }, "AdminAudienceDetailPage")}>
               {eventTitle || 'Chi tiết khán giả theo sự kiện'}
             </p>
           </div>
 
-          <button
-            onClick={loadBuyers}
-            style={{
-              background: 'var(--accent)',
-              border: 'none',
-              color: 'var(--text)',
-              padding: '10px 16px',
-              borderRadius: 10,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
+          <button onClick={loadBuyers} className={css({
+          background: 'var(--accent)',
+          border: 'none',
+          color: 'var(--text)',
+          padding: '10px 16px',
+          borderRadius: 10,
+          fontWeight: 700,
+          cursor: 'pointer'
+        }, "AdminAudienceDetailPage")}>
             Làm mới
           </button>
         </div>
 
-        <div
-          style={{
-            background: 'var(--card)',
-            border: '1px solid var(--border)',
-            borderRadius: 18,
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              padding: 20,
-              borderBottom: '1px solid var(--border)',
-            }}
-          >
-            <h2 style={{ margin: 0, fontSize: 20 }}>
+        <div className={css({
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
+        borderRadius: 18,
+        overflow: 'hidden'
+      }, "AdminAudienceDetailPage")}>
+          <div className={css({
+          padding: 20,
+          borderBottom: '1px solid var(--border)'
+        }, "AdminAudienceDetailPage")}>
+            <h2 className={css({
+            margin: 0,
+            fontSize: 20
+          }, "AdminAudienceDetailPage")}>
               Bảng thông tin khán giả
             </h2>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table
-              style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                fontSize: 14,
-              }}
-            >
+          <div className={css({
+          overflowX: 'auto'
+        }, "AdminAudienceDetailPage")}>
+            <table className={css({
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: 14
+          }, "AdminAudienceDetailPage")}>
               <thead>
-                <tr style={{ background: 'var(--bg-strong)' }}>
-                  <th style={thStyle}>Tên tài khoản</th>
-                  <th style={thStyle}>Ngày giờ mua vé</th>
-                  <th style={thStyle}>Các ghế đã mua</th>
+                <tr className={css({
+                background: 'var(--bg-strong)'
+              }, "AdminAudienceDetailPage")}>
+                  <th className={css(thStyle, "AdminAudienceDetailPage")}>Tên tài khoản</th>
+                  <th className={css(thStyle, "AdminAudienceDetailPage")}>Ngày giờ mua vé</th>
+                  <th className={css(thStyle, "AdminAudienceDetailPage")}>Các ghế đã mua</th>
                 </tr>
               </thead>
 
               <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan="3" style={emptyStyle}>
+                {loading ? <tr>
+                    <td colSpan="3" className={css(emptyStyle, "AdminAudienceDetailPage")}>
                       Đang tải danh sách khán giả...
                     </td>
-                  </tr>
-                ) : groupedBuyers.length === 0 ? (
-                  <tr>
-                    <td colSpan="3" style={emptyStyle}>
+                  </tr> : groupedBuyers.length === 0 ? <tr>
+                    <td colSpan="3" className={css(emptyStyle, "AdminAudienceDetailPage")}>
                       Chưa có khán giả mua vé sự kiện này
                     </td>
-                  </tr>
-                ) : (
-                  groupedBuyers.map((buyer) => (
-                    <tr
-                      key={buyer.bookingId}
-                      style={{ borderBottom: '1px solid var(--border)' }}
-                    >
-                      <td style={tdStyle}>
-                        <div style={{ fontWeight: 700 }}>
+                  </tr> : groupedBuyers.map(buyer => <tr key={buyer.bookingId} className={css({
+                borderBottom: '1px solid var(--border)'
+              }, "AdminAudienceDetailPage")}>
+                      <td className={css(tdStyle, "AdminAudienceDetailPage")}>
+                        <div className={css({
+                    fontWeight: 700
+                  }, "AdminAudienceDetailPage")}>
                           {buyer.buyerName}
                         </div>
 
-                        {buyer.buyerEmail && (
-                          <div
-                            style={{
-                              color: 'var(--muted)',
-                              fontSize: 12,
-                              marginTop: 4,
-                            }}
-                          >
+                        {buyer.buyerEmail && <div className={css({
+                    color: 'var(--muted)',
+                    fontSize: 12,
+                    marginTop: 4
+                  }, "AdminAudienceDetailPage")}>
                             {buyer.buyerEmail}
-                          </div>
-                        )}
+                          </div>}
                       </td>
 
-                      <td style={tdStyle}>
+                      <td className={css(tdStyle, "AdminAudienceDetailPage")}>
                         {formatDate(buyer.buyTime)}
                       </td>
 
-                      <td style={tdStyle}>
-                        <div
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 8,
-                            alignItems: 'flex-start',
-                          }}
-                        >
-                          {buyer.seats.length > 0 ? (
-                            buyer.seats.map((seat, index) => (
-                              <span
-                                key={`${seat}-${index}`}
-                                style={{
-                                  background: 'rgba(255,107,53,.12)',
-                                  color: 'var(--accent)',
-                                  border: '1px solid rgba(255,107,53,.25)',
-                                  padding: '6px 10px',
-                                  borderRadius: 999,
-                                  fontWeight: 700,
-                                  minWidth: 60,
-                                  textAlign: 'center',
-                                }}
-                              >
+                      <td className={css(tdStyle, "AdminAudienceDetailPage")}>
+                        <div className={css({
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                    alignItems: 'flex-start'
+                  }, "AdminAudienceDetailPage")}>
+                          {buyer.seats.length > 0 ? buyer.seats.map((seat, index) => <span key={`${seat}-${index}`} className={css({
+                      background: 'rgba(255,107,53,.12)',
+                      color: 'var(--accent)',
+                      border: '1px solid rgba(255,107,53,.25)',
+                      padding: '6px 10px',
+                      borderRadius: 999,
+                      fontWeight: 700,
+                      minWidth: 60,
+                      textAlign: 'center'
+                    }, "AdminAudienceDetailPage")}>
                                 {seat}
-                              </span>
-                            ))
-                          ) : (
-                            <span style={{ color: 'var(--muted)' }}>Chưa có ghế</span>
-                          )}
+                              </span>) : <span className={css({
+                      color: 'var(--muted)'
+                    }, "AdminAudienceDetailPage")}>Chưa có ghế</span>}
                         </div>
                       </td>
-                    </tr>
-                  ))
-                )}
+                    </tr>)}
               </tbody>
             </table>
           </div>
         </div>
       </div>
-    </AdminLayout>
-  );
+    </AdminLayout>;
 }
-
 const thStyle = {
   textAlign: 'left',
   padding: '14px 16px',
   color: 'var(--muted)',
   fontSize: 12,
-  textTransform: 'uppercase',
+  textTransform: 'uppercase'
 };
-
 const tdStyle = {
   padding: '16px',
   color: 'var(--text)',
-  verticalAlign: 'top',
+  verticalAlign: 'top'
 };
-
 const emptyStyle = {
   padding: 28,
   color: 'var(--muted)',
-  textAlign: 'center',
+  textAlign: 'center'
 };
