@@ -30,6 +30,14 @@ const TERMS = {
   ],
 };
 
+const venueMarkerIcon = L.divIcon({
+  className: 'ed-map-marker',
+  html: '<span></span>',
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
+  popupAnchor: [0, -28],
+});
+
 function fmt(n) {
   return Number(n || 0).toLocaleString('vi-VN') + 'đ';
 }
@@ -242,19 +250,34 @@ export default function EventDetailPage() {
               <div className="ed-venue__addr">{lang === 'en'
                 ? 'Please check the venue information before attending'
                 : 'Vui lòng kiểm tra thông tin địa điểm trước khi đến'}</div>
-              <div className="ed-map">
-                <div className="ed-map__grid" />
-                <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', opacity:.3 }} viewBox="0 0 400 180" preserveAspectRatio="none">
-                  <line x1="0" y1="90" x2="400" y2="90" stroke="#555" strokeWidth="6" />
-                  <line x1="200" y1="0" x2="200" y2="180" stroke="#555" strokeWidth="6" />
-                  <line x1="0" y1="50" x2="400" y2="130" stroke="#444" strokeWidth="3" />
-                  <rect x="155" y="65" width="90" height="50" rx="4" fill="rgba(255,107,53,.15)" stroke="#FF6B35" strokeWidth="1.5" />
-                </svg>
-                <span className="ed-map__pin">📍</span>
-                <span className="ed-map__label">
-                  {lang === 'en' ? removeVietnameseTones(event.venue) : event.venue}
-                </span>
-              </div>
+              {eventCoordinates ? (
+                <MapContainer
+                  className="ed-map"
+                  center={eventCoordinates}
+                  zoom={15}
+                  scrollWheelZoom={false}
+                  dragging
+                  key={`${eventCoordinates[0]}-${eventCoordinates[1]}`}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <Marker position={eventCoordinates} icon={venueMarkerIcon}>
+                    <Popup>
+                      {lang === 'en' ? removeVietnameseTones(event.venue) : event.venue}
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+              ) : (
+                <div className="ed-map ed-map--empty">
+                  <span className="ed-map__label">
+                    {lang === 'en'
+                      ? 'Map is unavailable because this event has no coordinates.'
+                      : 'Không thể hiển thị bản đồ vì sự kiện chưa có tọa độ.'}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
