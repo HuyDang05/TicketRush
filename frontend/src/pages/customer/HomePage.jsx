@@ -129,6 +129,14 @@ function sortBySoldTickets(a, b) {
   return (a.title || '').localeCompare(b.title || '', 'vi', { sensitivity: 'base' });
 }
 
+function removeVietnameseTones(str = '') {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+}
+
 function HomeHeroSkeleton() {
   return (
     <>
@@ -172,7 +180,7 @@ function CategoryPill({ icon, label, count, isActive, onClick }) {
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -348,7 +356,7 @@ export default function HomePage() {
             <div className="home-hero__content">
               <div className="home-hero__badge">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" /></svg>
-                Sự kiện nổi bật
+                {t("Sự kiện nổi bật")}
               </div>
               <h1 className="home-hero__title">{featuredEvent.title}</h1>
               <div className="home-hero__meta">
@@ -361,7 +369,9 @@ export default function HomePage() {
                 {featuredEvent.venue && (
                   <span className="home-hero__meta-item">
                     <svg width="15" height="15" fill="none" stroke="#FF6B35" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.5" /></svg>
-                    {featuredEvent.venue}
+                    {lang === 'en'
+                      ? removeVietnameseTones(featuredEvent.venue)
+                      : featuredEvent.venue}
                   </span>
                 )}
               </div>
@@ -378,14 +388,14 @@ export default function HomePage() {
               <div className="home-hero__card-body">
                 {featuredEvent.minPrice != null && (
                   <div className="home-hero__card-price">
-                    Từ {featuredEvent.minPrice.toLocaleString('vi-VN')}đ
+                    {t("Từ")} {featuredEvent.minPrice.toLocaleString('vi-VN')}đ
                   </div>
                 )}
                 <button
                   className="home-hero__card-btn"
                   onClick={() => navigate(`/events/${featuredEvent.id}`)}
                 >
-                  Chọn vé →
+                  {lang === 'en' ? 'Choose ticket' : 'Chọn vé'} →
                 </button>
               </div>
             </div>

@@ -12,6 +12,18 @@ const {
 
 const router = Router();
 
+/**
+ * @swagger
+ * /api/admin/tickets/events:
+ *   get:
+ *     tags: [Admin Tickets]
+ *     summary: Lấy danh sách sự kiện kèm thống kê vé
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Danh sách sự kiện và số vé
+ */
 router.get(
   '/tickets/events',
   authMiddleware,
@@ -19,6 +31,24 @@ router.get(
   getAdminTicketEvents
 );
 
+/**
+ * @swagger
+ * /api/admin/tickets/events/{eventId}/buyers:
+ *   get:
+ *     tags: [Admin Tickets]
+ *     summary: Lấy danh sách người mua vé của một sự kiện
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: eventId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Danh sách người mua vé
+ */
 router.get(
   '/tickets/events/:eventId/buyers',
   authMiddleware,

@@ -964,8 +964,8 @@
 /* Promo banner */
 .home-promo {
   margin: 0 40px 60px;
-  background: linear-gradient(135deg, #1f0e05 0%, #3d1a08 50%, #1a1a1a 100%);
-  border: 1px solid rgba(255,107,53,.25);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 40px 60px;
   display: flex;
@@ -973,6 +973,7 @@
   justify-content: space-between;
   overflow: hidden;
   position: relative;
+  box-shadow: var(--shadow, 0 8px 24px rgba(0,0,0,0.06));
 }
 
 .home-promo::before {
@@ -983,28 +984,28 @@
   width: 300px;
   height: 300px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,107,53,.15), transparent 70%);
+  background: radial-gradient(circle, rgba(255,107,53,.08), transparent 70%);
 }
 
 .home-promo__title {
   font-size: 28px;
   font-weight: 800;
   margin-bottom: 8px;
-  color: #FFFFFF;
+  color: var(--text);
 }
 
 .home-promo__desc {
   font-size: 15px;
-  color: #CCCCCC;
+  color: var(--text-soft);
 }
 
 .home-promo__accent {
-  color: #FF6B35;
+  color: var(--accent);
 }
 
 .home-promo__btn {
-  background: #FF6B35;
-  border: 1px solid #FF6B35;
+  background: var(--accent);
+  border: 1px solid var(--accent);
   border-radius: 8px;
   color: #fff;
   font-family: inherit;
@@ -1015,9 +1016,26 @@
   flex-shrink: 0;
   position: relative;
   z-index: 1;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.15s;
 }
 
 .home-promo__btn:hover {
-  background: #e85a24;
+  background: var(--accent-h);
+  transform: translateY(-1px);
+}
+
+[data-theme='dark'] .home-promo,
+.dark .home-promo {
+  background: linear-gradient(135deg, #1f0e05 0%, #3d1a08 50%, #1a1a1a 100%);
+  border: 1px solid rgba(255,107,53,.25);
+}
+
+[data-theme='dark'] .home-promo__title,
+.dark .home-promo__title {
+  color: #ffffff;
+}
+
+[data-theme='dark'] .home-promo__desc,
+.dark .home-promo__desc {
+  color: #cccccc;
 }

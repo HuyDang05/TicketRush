@@ -374,13 +374,13 @@
 
 .checkout-countdown-box__label {
   font-size: 11px;
-  font-weight: 600;
-  color: #FF6B35;
+  font-weight: 700;
+  color: var(--text);
 }
 
 .checkout-countdown-box__sublabel {
   font-size: 11px;
-  color: #AAAAAA;
+  color: var(--accent);
 }
 
 .checkout-price-rows {
@@ -501,4 +501,52 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Checkout summary countdown theo theme */
+:root[data-theme='light'] .checkout-countdown-box,
+[data-theme='light'] .checkout-countdown-box {
+  background: rgba(228, 87, 46, 0.06);
+  border-color: rgba(228, 87, 46, 0.28);
+}
+
+:root[data-theme='light'] .checkout-countdown-box__label,
+[data-theme='light'] .checkout-countdown-box__label {
+  color: var(--text) !important;
+}
+
+:root[data-theme='light'] .checkout-countdown-box__sublabel,
+[data-theme='light'] .checkout-countdown-box__sublabel {
+  color: var(--accent) !important;
+}
+
+:root[data-theme='dark'] .checkout-countdown-box,
+[data-theme='dark'] .checkout-countdown-box {
+  background: var(--accent-panel);
+  border-color: var(--accent);
+}
+
+:root[data-theme='dark'] .checkout-countdown-box__label,
+[data-theme='dark'] .checkout-countdown-box__label {
+  color: #ffffff !important;
+}
+
+:root[data-theme='dark'] .checkout-countdown-box__sublabel,
+[data-theme='dark'] .checkout-countdown-box__sublabel {
+  color: #ff6b35 !important;
+}
+
+.checkout-summary-seat-label {
+  font-weight: 700;
+  color: var(--text);
+}
+
+[data-theme='light'] .checkout-summary-seat-label,
+:root[data-theme='light'] .checkout-summary-seat-label {
+  color: #0f172a !important;
+}
+
+[data-theme='dark'] .checkout-summary-seat-label,
+:root[data-theme='dark'] .checkout-summary-seat-label {
+  color: #ffffff !important;
 }

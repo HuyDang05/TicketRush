@@ -253,7 +253,9 @@ export default function CheckoutPage() {
                 <div key={b.bookingId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255, 107, 53, 0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255, 107, 53, 0.2)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#FF6B35' }}></div>
-                    <span style={{ fontWeight: 600, color: '#f8fafc' }}>{b.seatLabel}</span>
+                    <span className="checkout-summary-seat-label">
+                      {b.seatLabel}
+                    </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <svg width="14" height="14" fill="none" stroke="#FF6B35" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>

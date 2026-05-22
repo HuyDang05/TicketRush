@@ -34,6 +34,19 @@ router.get(
 );
 
 // GET /api/bookings/pending
+
+/**
+ * @swagger
+ * /api/bookings/pending:
+ *   get:
+ *     tags: [Bookings]
+ *     summary: Lấy danh sách các ghế đang được khóa tạm thời
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of pending locks
+ */
 router.get(
   '/pending',
   authMiddleware,
@@ -42,6 +55,19 @@ router.get(
 );
 
 // POST /api/bookings/lock
+
+/**
+ * @swagger
+ * /api/bookings/lock:
+ *   post:
+ *     tags: [Bookings]
+ *     summary: Khóa ghế tạm thời khi customer chọn ghế
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lock seat successfully
+ */
 router.post(
   '/lock',
   authMiddleware,
@@ -51,6 +77,18 @@ router.post(
 );
 
 // POST /api/bookings/checkout
+/**
+ * @swagger
+ * /api/bookings/checkout:
+ *   post:
+ *     tags: [Bookings]
+ *     summary: Thanh toán vé
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Checkout successfully
+ */
 router.post(
   '/checkout',
   authMiddleware,
@@ -60,6 +98,19 @@ router.post(
 );
 
 // DELETE /api/bookings/:bookingId/release
+
+/**
+ * @swagger
+ * /api/bookings/:bookingId/release:
+ *   delete:
+ *     tags: [Bookings]
+ *     summary: Giải phóng ghế đã khóa
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Release seat successfully
+ */
 router.delete(
   '/:bookingId/release',
   authMiddleware,

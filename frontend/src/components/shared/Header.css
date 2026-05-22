@@ -300,10 +300,17 @@
 }
 
 .header__lang-btn {
-  width: auto;
-  padding: 0 10px;
+  min-width: 44px;
+  height: 40px;
+  padding: 0 12px;
+  gap: 6px;
 }
 
+.header__lang-btn svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
 .header__dropdown {
   position: absolute;
   top: calc(100% + 10px);
@@ -367,5 +374,17 @@
   height: 32px;
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
+}
+
+.header__dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header__dropdown-item svg {
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
 }
