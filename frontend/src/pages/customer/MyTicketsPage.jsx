@@ -91,6 +91,9 @@ function TicketCard({
   idx,
   onViewQR
 }) {
+  const {
+    lang
+  } = useLang();
   const eventName = booking.eventName || booking.eventTitle || (lang === 'en' ? 'Event' : 'Sự kiện');
   const seatName = booking.seatName || booking.seat?.label || '—';
   const rawZoneName = booking.zoneName || booking.seat?.zone?.name || '—';
@@ -99,9 +102,6 @@ function TicketCard({
   const startDate = booking.eventDate || booking.seat?.zone?.event?.date;
   const endDate = booking.eventEndDate || booking.seat?.zone?.event?.endDate;
   const location = booking.location || booking.seat?.zone?.event?.venue || '—';
-  const {
-    lang
-  } = useLang();
   const imageUrl = booking.imageUrl || booking.cardImageUrl || booking.seat?.zone?.event?.imageUrl || booking.seat?.zone?.event?.cardImageUrl || '';
   const isPast = booking.status === 'PAID' && startDate && new Date(startDate) < new Date();
   const isUpcoming = booking.status === 'PAID' && startDate && new Date(startDate) >= new Date();
