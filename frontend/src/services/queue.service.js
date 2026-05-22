@@ -1,5 +1,9 @@
 import api from './api';
 
+export function getQueueSessionId(eventId, preferredSessionId) {
+  return preferredSessionId || `tkr-q-${eventId}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
 const queueService = {
   join: (eventId, queueSessionId) =>
     api.post(`/queue/${eventId}/join`, { queueSessionId }).then((r) => r.data),
