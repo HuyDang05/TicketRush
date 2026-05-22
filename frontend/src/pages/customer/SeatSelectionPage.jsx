@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import eventService from '../../services/event.service';
 import bookingService from '../../services/booking.service';
+import queueService from '../../services/queue.service';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import CustomerSeatmapCanvas from '../../components/seatmap/CustomerSeatmapCanvas';
 import { useSocket } from '../../hooks/useSocket';
 import { useTheme } from '../../hooks/useTheme';
 import { useCart } from '../../context/CartContext';
+import useAuthStore from '../../store/authStore';
 import './seat-selection.css';
 
 const LOCK_SECONDS = 10 * 60;
@@ -57,12 +59,16 @@ export default function SeatSelectionPage() {
   const location        = useLocation();
   const navigate        = useNavigate();
   const { refreshCart } = useCart();
+  const currentUser     = useAuthStore(state => state.user);
 
-  void location.state;
+  const queueToken = location.state?.queueToken;
+  const queueSessionId = location.state?.queueSessionId;
+  const releaseSentRef = useRef(false);
 
   const [event,            setEvent]           = useState(null);
   const [zones,            setZones]           = useState([]);
   const [loading,          setLoading]         = useState(true);
+  const [queueValidated,   setQueueValidated]  = useState(false);
   const [booking,          setBooking]         = useState(false);
   const [toastMsg,         setToastMsg]        = useState('');
   const [selected,         setSelected]        = useState({});
@@ -71,6 +77,94 @@ export default function SeatSelectionPage() {
   const [othersSelecting,  setOthersSelecting] = useState({});
 
   const { on, emit, getSocketId } = useSocket(eventId);
+
+  const releaseQueueSlot = useCallback(async ({ keepalive = false } = {}) => {
+    if (!eventId || !queueToken || !queueSessionId || !queueValidated || releaseSentRef.current) return;
+
+    releaseSentRef.current = true;
+
+    if (keepalive) {
+      const token = localStorage.getItem('token');
+      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+      fetch(`${baseURL}/queue/${eventId}/release`, {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ queueSessionId }),
+      }).catch(() => {});
+      return;
+    }
+
+    try {
+      await queueService.release(eventId, queueSessionId);
+    } catch {
+      releaseSentRef.current = false;
+    }
+  }, [eventId, queueToken, queueSessionId, queueValidated]);
+
+  useEffect(() => {
+    if (!eventId) return;
+
+    let alive = true;
+
+    async function validateQueueAccess() {
+      if (!queueToken || !queueSessionId) {
+        navigate(`/events/${eventId}/queue`, { replace: true });
+        return;
+      }
+
+      try {
+        const res = await queueService.validate(eventId, queueToken, queueSessionId);
+        if (!alive) return;
+
+        if (res.valid) {
+          setQueueValidated(true);
+          return;
+        }
+
+        navigate(`/events/${eventId}/queue`, { replace: true });
+      } catch {
+        if (alive) navigate(`/events/${eventId}/queue`, { replace: true });
+      }
+    }
+
+    validateQueueAccess();
+
+    return () => {
+      alive = false;
+    };
+  }, [eventId, queueToken, queueSessionId, navigate]);
+
+  useEffect(() => {
+    if (!queueValidated) return undefined;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await queueService.heartbeat(eventId, queueToken, queueSessionId);
+        if (!res.valid) {
+          navigate(`/events/${eventId}/queue`, { replace: true });
+        }
+      } catch {
+        // Transient network errors should not eject the user immediately.
+      }
+    }, 20000);
+
+    return () => clearInterval(interval);
+  }, [eventId, queueToken, queueSessionId, queueValidated, navigate]);
+
+  useEffect(() => {
+    if (!queueValidated) return undefined;
+
+    const releaseOnPageExit = () => {
+      releaseQueueSlot({ keepalive: true });
+    };
+
+    window.addEventListener('pagehide', releaseOnPageExit);
+    return () => window.removeEventListener('pagehide', releaseOnPageExit);
+  }, [queueValidated, releaseQueueSlot]);
 
   // ── Nhận realtime events ───────────────────────────────────────────────────
   useEffect(() => {
@@ -101,7 +195,17 @@ export default function SeatSelectionPage() {
     });
 
     // Ghế bị lock cứng (sau khi bấm thanh toán)
-    const offLocked = on('seat_locked', ({ seatId, socketId }) => {
+    const offLocked = on('seat_locked', ({
+      seatId,
+      label,
+      socketId,
+      userId,
+      bookingId,
+      expiresAt,
+      zoneId,
+      zoneName,
+      totalPrice,
+    }) => {
       updateSeatStatus(seatId, 'LOCKED');
       // Xoá khỏi soft-selecting map vì giờ đã locked
       setOthersSelecting(prev => {
@@ -111,6 +215,33 @@ export default function SeatSelectionPage() {
         return next;
       });
       // Chỉ thông báo nếu event đến từ người khác
+      const isMyLock = userId && currentUser?.id && userId === currentUser.id;
+      if (isMyLock && bookingId) {
+        const dbZone = zones.find(zone => zone.seats?.some(seat => seat.id === seatId));
+        const dbSeat = dbZone?.seats?.find(seat => seat.id === seatId);
+        const sj = event?.seatmapJson;
+        const rawLayout = Array.isArray(sj?.layout) ? sj.layout : (Array.isArray(sj?.zones) ? sj.zones : []);
+        const matchedLayoutZone = rawLayout.find(lz => lz.id === zoneId || lz.name === (zoneName || dbZone?.name));
+
+        setSelected(prev => ({
+          ...prev,
+          [seatId]: {
+            seatDbId: seatId,
+            bookingId,
+            expiresAt,
+            label: label || dbSeat?.label,
+            row: dbSeat?.row,
+            col: dbSeat?.col,
+            zoneKey: zoneName || dbZone?.name,
+            zoneId: zoneId || dbZone?.id,
+            price: Number(totalPrice ?? dbZone?.price ?? 0),
+            color: matchedLayoutZone?.color,
+          },
+        }));
+        refreshCart();
+        return;
+      }
+
       if (socketId && socketId === getSocketId()) return;
       setSelected(prev => {
         if (!prev[seatId]) return prev;
@@ -150,11 +281,11 @@ export default function SeatSelectionPage() {
       offSold();
       offReleased();
     };
-  }, [on, getSocketId]);
+  }, [on, getSocketId, currentUser?.id, zones, event?.seatmapJson, refreshCart]);
 
   // ── Load dữ liệu sự kiện ───────────────────────────────────────────────────
   useEffect(() => {
-    if (!eventId) return;
+    if (!eventId || !queueValidated) return;
     setLoading(true);
 
     Promise.allSettled([
@@ -200,7 +331,7 @@ export default function SeatSelectionPage() {
       })
       .catch(err => console.error('SeatSelection load error:', err))
       .finally(() => setLoading(false));
-  }, [eventId]);
+  }, [eventId, queueValidated]);
 
   function showToast(msg) {
     setToastMsg(msg);
@@ -267,7 +398,7 @@ export default function SeatSelectionPage() {
     setLockingSeats(prev => ({ ...prev, [seatId]: true }));
 
     try {
-      const res = await bookingService.lockSeat(seatId, getSocketId());
+      const res = await bookingService.lockSeat(seatId, getSocketId(), queueToken, queueSessionId);
       const data = res.data;
       
       // Cập nhật lại với dữ liệu thật từ DB
@@ -298,7 +429,7 @@ export default function SeatSelectionPage() {
         return next;
       });
     }
-  }, [selected, lockingSeats, getSocketId]);
+  }, [selected, lockingSeats, getSocketId, queueToken, queueSessionId]);
 
   // Hủy tự động khi hết hạn (onExpire từ Countdown)
   const handleSeatExpire = useCallback((seatId) => {
@@ -342,6 +473,8 @@ export default function SeatSelectionPage() {
         status: 'PENDING',
         expiresAt: selected[k].expiresAt,
       }));
+
+      await releaseQueueSlot();
 
       navigate('/checkout', {
         state: {
@@ -398,7 +531,13 @@ export default function SeatSelectionPage() {
       {toastMsg && <div className="ss-toast">{toastMsg}</div>}
 
       <header className="ss-fullscreen__header">
-        <button onClick={() => navigate(-1)} className="ss-fullscreen__back-btn">
+        <button
+          onClick={async () => {
+            await releaseQueueSlot();
+            navigate(-1);
+          }}
+          className="ss-fullscreen__back-btn"
+        >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>

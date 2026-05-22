@@ -14,9 +14,10 @@ const {
 async function joinQueue(req, res) {
   const { eventId } = req.params;
   const userId = req.user.id;
+  const { queueSessionId } = req.body || {};
 
   try {
-    const result = await tryAdmit(eventId, userId);
+    const result = await tryAdmit(eventId, userId, queueSessionId);
     return res.json(result);
   } catch (err) {
     console.error('[Queue] joinQueue error:', err.message);
@@ -31,9 +32,10 @@ async function joinQueue(req, res) {
 async function queueStatus(req, res) {
   const { eventId } = req.params;
   const userId = req.user.id;
+  const { queueSessionId } = req.query;
 
   try {
-    const result = await getStatus(eventId, userId);
+    const result = await getStatus(eventId, userId, queueSessionId);
     return res.json(result);
   } catch (err) {
     console.error('[Queue] queueStatus error:', err.message);
@@ -48,9 +50,10 @@ async function queueStatus(req, res) {
 async function leaveQueue(req, res) {
   const { eventId } = req.params;
   const userId = req.user.id;
+  const { queueSessionId } = req.body || {};
 
   try {
-    await releaseSlot(eventId, userId);
+    await releaseSlot(eventId, userId, queueSessionId);
     return res.json({ success: true });
   } catch (err) {
     console.error('[Queue] leaveQueue error:', err.message);
@@ -65,11 +68,11 @@ async function leaveQueue(req, res) {
 async function validateQueueToken(req, res) {
   const { eventId } = req.params;
   const userId = req.user.id;
-  const { token } = req.body;
+  const { token, queueSessionId } = req.body;
 
   try {
     if (!token) return res.status(400).json({ valid: false });
-    const valid = await validateToken(eventId, userId, token);
+    const valid = await validateToken(eventId, userId, token, queueSessionId);
     return res.json({ valid });
   } catch (err) {
     console.error('[Queue] validateToken error:', err.message);
