@@ -1,4 +1,6 @@
+require('dotenv').config();
 const axios = require('axios');
+const Redis = require('ioredis');
 
 const API_URL = (process.env.DEMO_API_URL || 'http://localhost:3000/api').replace(/\/$/, '');
 const EVENT_ID = process.env.DEMO_EVENT_ID || '';
@@ -15,6 +17,13 @@ const USERS = [
     fullName: process.env.DEMO_USER2_NAME || 'Demo Race User 2',
   },
 ];
+
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+
+function listKey(eventId) { return `vq:${eventId}:list`; }
+function activeKey(eventId) { return `vq:${eventId}:active`; }
+function waitingKey(eventId, memberId) { return `vq:${eventId}:waiting:${memberId}`; }
+function tokenKey(eventId, memberId) { return `vq:${eventId}:token:${memberId}`; }
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -40,6 +49,7 @@ function formatResult(label, result) {
     httpStatus: response?.status || 'NO_RESPONSE',
     outcome: 'FAILED',
     message: response?.data?.message || result.reason.message,
+    errors: response?.data?.errors ? JSON.stringify(response.data.errors) : undefined,
   };
 }
 
@@ -97,6 +107,85 @@ function authClient(session) {
     },
     timeout: 15000,
   });
+}
+
+async function clearDemoQueueSlots(sessions, eventId) {
+  const redis = new Redis(REDIS_URL, {
+    connectTimeout: 2000,
+    maxRetriesPerRequest: 1,
+    enableOfflineQueue: false,
+    lazyConnect: true,
+  });
+
+  redis.on('error', () => {});
+
+  try {
+    await redis.connect();
+    const keys = [listKey(eventId), activeKey(eventId)];
+    const membersByKey = await Promise.all(
+      keys.map(async (key) => {
+        const type = await redis.type(key);
+        if (type === 'none') return { key, members: [] };
+        if (type !== 'zset') {
+          await redis.del(key);
+          return { key, members: [] };
+        }
+        return { key, members: await redis.zrange(key, 0, -1) };
+      })
+    );
+
+    const demoUserIds = new Set(sessions.map((session) => session.userId).filter(Boolean));
+    const demoMembers = new Set();
+
+    for (const { members } of membersByKey) {
+      for (const memberId of members) {
+        const userId = memberId.includes(':') ? memberId.split(':')[0] : memberId;
+        if (demoUserIds.has(userId)) demoMembers.add(memberId);
+      }
+    }
+
+    if (demoMembers.size === 0) return;
+
+    const pipeline = redis.pipeline();
+    for (const memberId of demoMembers) {
+      pipeline.zrem(listKey(eventId), memberId);
+      pipeline.zrem(activeKey(eventId), memberId);
+      pipeline.del(tokenKey(eventId, memberId));
+      pipeline.del(waitingKey(eventId, memberId));
+    }
+    await pipeline.exec();
+    console.log(`Cleared ${demoMembers.size} old queue slot(s) for demo users.`);
+  } catch (error) {
+    console.log(`Could not clear old demo queue slots directly: ${error.message}`);
+    console.log('If queue admission fails, set QUEUE_CAPACITY=4 or close the demo browser tabs for 45 seconds.');
+  } finally {
+    redis.disconnect();
+  }
+}
+
+function makeQueueSessionId(session) {
+  const safeEmail = session.email.replace(/[^a-zA-Z0-9]/g, '-');
+  return `demo-race-${safeEmail}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function acquireQueueAccess(session, eventId) {
+  const client = authClient(session);
+  const queueSessionId = makeQueueSessionId(session);
+  let result = (await client.post(`/queue/${eventId}/join`, { queueSessionId })).data;
+
+  for (let attempt = 0; attempt < 20 && !(result.admitted && result.token); attempt += 1) {
+    await sleep(1000);
+    result = (await client.get(`/queue/${eventId}/status`, { params: { queueSessionId } })).data;
+  }
+
+  if (!(result.admitted && result.token)) {
+    throw new Error(`Queue did not admit ${session.email}. Try again or increase QUEUE_CAPACITY for demo.`);
+  }
+
+  return {
+    queueToken: result.token,
+    queueSessionId,
+  };
 }
 
 async function cleanupPendingLocks(session, eventId) {
@@ -164,6 +253,7 @@ async function main() {
   const eventId = await pickEventId();
 
   await Promise.all(sessions.map((session) => cleanupPendingLocks(session, eventId)));
+  await clearDemoQueueSlots(sessions, eventId);
   await sleep(300);
 
   const { event, seat } = await pickSeat(eventId);
@@ -181,12 +271,18 @@ async function main() {
 
   console.log('Sending 2 lock requests at the same time...');
 
+  const queueAccess = await Promise.all(
+    sessions.map((session) => acquireQueueAccess(session, eventId))
+  );
+
   const startedAt = new Date();
   const results = await Promise.allSettled(
-    sessions.map((session) =>
+    sessions.map((session, index) =>
       authClient(session).post('/bookings/lock', {
         seatId: seat.id,
         socketId: `demo-script-${session.email}`,
+        queueToken: queueAccess[index].queueToken,
+        queueSessionId: queueAccess[index].queueSessionId,
       })
     )
   );
@@ -203,7 +299,7 @@ async function main() {
   console.log(`Result: ${successCount} success, ${failedCount} failed`);
 
   if (successCount === 1 && failedCount === 1) {
-    console.log('OK: Chi 1 user giu ghe thanh cong. Refresh 2 trinh duyet de thay UI cap nhat.');
+    console.log('OK: Chi 1 user giu ghe thanh cong. Neu 2 trinh duyet dang mo dung event, UI se cap nhat realtime.');
     return;
   }
 

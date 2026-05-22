@@ -64,13 +64,16 @@
   font-weight: 800;
   line-height: 1.2;
   margin-bottom: 12px;
+  color: #FFFFFF;
+  text-shadow: 0 2px 12px rgba(0,0,0,.55);
 }
 
 .auth-panel--left__subtitle {
   font-size: 15px;
-  color: #AAAAAA;
+  color: #E5E7EB;
   line-height: 1.6;
   margin-bottom: 40px;
+  text-shadow: 0 1px 10px rgba(0,0,0,.45);
 }
 
 .auth-panel--left__cards {
@@ -99,6 +102,7 @@
   font-size: 28px;
   font-weight: 800;
   margin-bottom: 6px;
+  color: #FFFFFF;
 }
 
 .auth-form-wrap__sub {
