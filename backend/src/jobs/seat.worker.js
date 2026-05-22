@@ -125,4 +125,9 @@ seatWorker.on('failed', (job, err) => {
 
 console.log('[Worker] seat-release worker started');
 
-module.exports = { seatWorker };
+const closeSeatWorker = async () => {
+  await seatWorker.close();
+  await prisma.$disconnect();
+};
+
+module.exports = { seatWorker, closeSeatWorker };
