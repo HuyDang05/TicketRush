@@ -9,6 +9,8 @@ export function useSocket(eventId) {
   const listenersRef = useRef({});
 
   useEffect(() => {
+    if (!eventId) return undefined;
+
     const socket = io(SOCKET_URL, {
       reconnection: true,
       reconnectionDelay: 1000,

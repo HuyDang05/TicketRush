@@ -92,12 +92,23 @@ const adminEventsQuery = paginationQuery.extend({
 const publicEventsQuery = paginationQuery.extend({
   category: categorySlug.optional(),
   categories: categoryListQuery.optional(),
+  sort: z.enum(['latest']).optional(),
+}).strict();
+
+const eventSuggestionsQuery = z.object({
+  search: z
+    .string({ message: 'Từ khóa tìm kiếm phải là chuỗi' })
+    .trim()
+    .min(1, 'Từ khóa tìm kiếm là bắt buộc')
+    .max(100, 'Từ khóa tìm kiếm tối đa 100 ký tự'),
+  limit: z.coerce.number().int().min(1).max(10).default(8),
 }).strict();
 
 module.exports = {
   adminEventsQuery,
   categorySlug,
   createEventBody,
+  eventSuggestionsQuery,
   publicEventsQuery,
   updateEventBody,
 };

@@ -366,6 +366,29 @@
   justify-content: space-between;
 }
 
+.checkout-countdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 107, 53, 0.05);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 107, 53, 0.2);
+}
+
+.checkout-countdown-item__title {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.checkout-countdown-item__title--sm {
+  font-size: 12px;
+}
+
+.checkout-countdown-item__subtitle {
+  color: var(--muted);
+}
+
 .checkout-countdown-box__left {
   display: flex;
   align-items: center;
@@ -398,6 +421,12 @@
 
 .checkout-price-row__label {
   color: var(--muted);
+}
+
+.checkout-price-row__label--total {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text);
 }
 
 .checkout-price-row__value {

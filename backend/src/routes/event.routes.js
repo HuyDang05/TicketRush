@@ -1,5 +1,5 @@
 const express = require('express');
-const { getEvents, getEventById } = require('../controllers/event.controller');
+const { getEventSearchSuggestions, getEvents, getEventById } = require('../controllers/event.controller');
 const { getEventComments, createEventComment } = require('../controllers/comment.controller');
 const authenticate = require('../middlewares/auth.middleware');
 const requireRole = require('../middlewares/role.middleware');
@@ -7,7 +7,7 @@ const validate = require('../middlewares/validate.middleware');
 const upload = require('../config/multer');
 const { idParams } = require('../validators/common.validator');
 const { createCommentBody } = require('../validators/comment.validator');
-const { publicEventsQuery } = require('../validators/event.validator');
+const { eventSuggestionsQuery, publicEventsQuery } = require('../validators/event.validator');
 
 const router = express.Router();
 
@@ -55,6 +55,12 @@ const router = express.Router();
  *         description: Lấy danh sách sự kiện thành công
  */
 router.get('/', validate({ query: publicEventsQuery }), getEvents);
+
+router.get(
+  '/search-suggestions',
+  validate({ query: eventSuggestionsQuery }),
+  getEventSearchSuggestions
+);
 
 /**
  * @swagger

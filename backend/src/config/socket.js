@@ -70,4 +70,15 @@ function emitSeatEvent(eventId, eventName, payload) {
   getIO().to(`event:${eventId}`).emit(eventName, payload);
 }
 
-module.exports = { initSocket, getIO, emitSeatEvent };
+function closeSocket() {
+  if (!io) return Promise.resolve();
+
+  return new Promise((resolve) => {
+    io.close(() => {
+      io = null;
+      resolve();
+    });
+  });
+}
+
+module.exports = { initSocket, getIO, emitSeatEvent, closeSocket };

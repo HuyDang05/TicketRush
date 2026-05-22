@@ -54,7 +54,7 @@ function validateSeatmapStructure(seatmap) {
 
 const getEvents = async (req, res) => {
   try {
-    const { search, category, categories, page = 1, limit = 10 } = req.query;
+    const { search, category, categories, sort, page = 1, limit = 10 } = req.query;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
     const skip = (pageNum - 1) * pageSize;
@@ -71,10 +71,11 @@ const getEvents = async (req, res) => {
     }
 
     if (search) {
-      whereCondition.title = {
-        contains: search,
-        mode: 'insensitive',
-      };
+      whereCondition.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { venue: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
     }
 
     const [total, events] = await Promise.all([
@@ -110,9 +111,15 @@ const getEvents = async (req, res) => {
             },
           },
         },
-        orderBy: {
-          date: 'asc',
-        },
+        orderBy: sort === 'latest'
+          ? [
+              { date: 'desc' },
+              { title: 'asc' },
+            ]
+          : [
+              { date: 'asc' },
+              { title: 'asc' },
+            ],
         skip,
         take: pageSize,
       }),
@@ -148,6 +155,42 @@ const getEvents = async (req, res) => {
   } catch (error) {
     console.error('[Event][getEvents] Error:', error);
     return res.status(500).json({ message: 'Đã có lỗi xảy ra' });
+  }
+};
+
+const getEventSearchSuggestions = async (req, res) => {
+  try {
+    const { search, limit = 8 } = req.query;
+    const keyword = search.trim();
+    const take = Math.min(10, Math.max(1, parseInt(limit, 10) || 8));
+
+    const events = await prisma.event.findMany({
+      where: {
+        status: 'PUBLISHED',
+        OR: [
+          { title: { contains: keyword, mode: 'insensitive' } },
+          { venue: { contains: keyword, mode: 'insensitive' } },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        venue: true,
+        imageUrl: true,
+        cardImageUrl: true,
+        date: true,
+      },
+      orderBy: [
+        { date: 'asc' },
+        { title: 'asc' },
+      ],
+      take,
+    });
+
+    return res.status(200).json({ events });
+  } catch (error) {
+    console.error('[Event][getEventSearchSuggestions] Error:', error);
+    return res.status(500).json({ message: 'ÄÃ£ cÃ³ lá»—i xáº£y ra' });
   }
 };
 
@@ -554,6 +597,23 @@ const getSeatmap = async (req, res) => {
         status: true,
         seatmapJson: true,
         seatmapVersion: true,
+        zones: {
+          include: {
+            seats: {
+              select: {
+                id: true,
+                label: true,
+                row: true,
+                col: true,
+                status: true,
+              },
+              orderBy: [
+                { row: 'asc' },
+                { col: 'asc' },
+              ],
+            },
+          },
+        },
       },
     });
 
@@ -565,6 +625,7 @@ const getSeatmap = async (req, res) => {
       seatmapJson: event.seatmapJson,
       seatmapVersion: event.seatmapVersion,
       status: event.status,
+      zones: event.zones,
     });
   } catch (error) {
     console.error('[Event][getSeatmap] Error:', error);
@@ -690,6 +751,7 @@ const saveSeatmap = async (req, res) => {
 };
 
 module.exports = {
+  getEventSearchSuggestions,
   getEvents,
   getEventById,
   getAdminEvents,

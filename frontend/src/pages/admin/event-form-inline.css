@@ -1,0 +1,5 @@
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+        ::-webkit-scrollbar { width: 5px }
+        ::-webkit-scrollbar-track { background: var(--nav) }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent) }
