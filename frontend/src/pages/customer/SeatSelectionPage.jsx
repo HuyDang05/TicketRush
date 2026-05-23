@@ -1,3 +1,4 @@
+// Purpose: Trang customer hien thi workflow mua ve, xem su kien, chon ghe hoac thanh toan.
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import eventService from '../../services/event.service';
@@ -99,6 +100,8 @@ export default function SeatSelectionPage() {
     const nextSessionId = getQueueSessionId(eventId);
     const result = await queueService.join(eventId, nextSessionId);
     if (result.admitted && result.token) {
+      // A fresh token means this tab owns an active queue slot. Reset the release
+      // guard so the slot can be returned when the user leaves the seat page.
       releaseSentRef.current = false;
       setQueueAccess({
         token: result.token,
@@ -124,6 +127,8 @@ export default function SeatSelectionPage() {
     if (!eventId || !queueToken || !queueSessionId || !queueValidated || releaseSentRef.current) return;
     releaseSentRef.current = true;
     if (keepalive) {
+      // pagehide/unload cannot reliably await axios. Native fetch with keepalive
+      // gives the browser a chance to send the release while the page is closing.
       const token = localStorage.getItem('token');
       const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
       fetch(`${baseURL}/queue/${eventId}/release`, {
@@ -151,6 +156,8 @@ export default function SeatSelectionPage() {
     if (!eventId) return;
     let alive = true;
     async function validateQueueAccess() {
+      // Direct visits to /seats are converted back through the queue. If the token
+      // is missing or stale, the user is silently re-admitted or sent to /queue.
       if (!queueToken || !queueSessionId) {
         await silentlyAcquireQueueAccess();
         return;
@@ -176,6 +183,8 @@ export default function SeatSelectionPage() {
     if (!queueValidated) return undefined;
     const interval = setInterval(async () => {
       try {
+        // Heartbeat extends the Redis active slot while the user is still working
+        // on the seat page; a false response means the slot expired elsewhere.
         const res = await queueService.heartbeat(eventId, queueToken, queueSessionId);
         if (!res.valid) {
           await silentlyAcquireQueueAccess();
@@ -241,6 +250,8 @@ export default function SeatSelectionPage() {
       userId,
       bookingId,
       expiresAt,
+      sessionExpiresAt,
+      holdSessionId,
       zoneId,
       zoneName,
       totalPrice
@@ -258,17 +269,25 @@ export default function SeatSelectionPage() {
       // Chỉ thông báo nếu event đến từ người khác
       const isMyLock = userId && currentUser?.id && userId === currentUser.id;
       if (isMyLock && bookingId) {
+        const normalizedExpiresAt = sessionExpiresAt || expiresAt;
         const dbZone = zones.find(zone => zone.seats?.some(seat => seat.id === seatId));
         const dbSeat = dbZone?.seats?.find(seat => seat.id === seatId);
         const sj = event?.seatmapJson;
         const rawLayout = Array.isArray(sj?.layout) ? sj.layout : Array.isArray(sj?.zones) ? sj.zones : [];
         const matchedLayoutZone = rawLayout.find(lz => lz.id === zoneId || lz.name === (zoneName || dbZone?.name));
-        setSelected(prev => ({
-          ...prev,
-          [seatId]: {
+        setSelected(prev => {
+          const next = Object.fromEntries(Object.entries(prev).map(([key, seat]) => [key, {
+            ...seat,
+            holdSessionId: holdSessionId || seat.holdSessionId,
+            expiresAt: normalizedExpiresAt,
+            sessionExpiresAt: normalizedExpiresAt
+          }]));
+          next[seatId] = {
             seatDbId: seatId,
             bookingId,
-            expiresAt,
+            holdSessionId,
+            expiresAt: normalizedExpiresAt,
+            sessionExpiresAt: normalizedExpiresAt,
             label: label || dbSeat?.label,
             row: dbSeat?.row,
             col: dbSeat?.col,
@@ -276,8 +295,9 @@ export default function SeatSelectionPage() {
             zoneId: zoneId || dbZone?.id,
             price: Number(totalPrice ?? dbZone?.price ?? 0),
             color: matchedLayoutZone?.color
-          }
-        }));
+          };
+          return next;
+        });
         refreshCart();
         return;
       }
@@ -354,7 +374,9 @@ export default function SeatSelectionPage() {
               initialSelected[lock.seatId] = {
                 seatDbId: lock.seatId,
                 bookingId: lock.bookingId,
+                holdSessionId: lock.holdSessionId,
                 expiresAt: lock.expiresAt,
+                sessionExpiresAt: lock.sessionExpiresAt || lock.expiresAt,
                 label: lock.seatLabel,
                 row: lock.row,
                 col: lock.col,
@@ -455,18 +477,25 @@ export default function SeatSelectionPage() {
     try {
       const res = await bookingService.lockSeat(seatId, getSocketId(), queueToken, queueSessionId);
       const data = res.data;
+      const normalizedExpiresAt = data.sessionExpiresAt || data.expiresAt;
 
       // Cập nhật lại với dữ liệu thật từ DB
       setSelected(prev => {
         if (!prev[seatId]) return prev; // Đã bị xóa bởi logic khác?
-        return {
-          ...prev,
-          [seatId]: {
-            ...prev[seatId],
-            bookingId: data.bookingId,
-            expiresAt: data.expiresAt
-          }
+        const next = Object.fromEntries(Object.entries(prev).map(([key, seat]) => [key, {
+          ...seat,
+          holdSessionId: data.holdSessionId || seat.holdSessionId,
+          expiresAt: normalizedExpiresAt,
+          sessionExpiresAt: normalizedExpiresAt
+        }]));
+        next[seatId] = {
+          ...next[seatId],
+          bookingId: data.bookingId,
+          holdSessionId: data.holdSessionId,
+          expiresAt: normalizedExpiresAt,
+          sessionExpiresAt: normalizedExpiresAt
         };
+        return next;
       });
       refreshCart();
     } catch (err) {
@@ -491,24 +520,19 @@ export default function SeatSelectionPage() {
   }, [selected, lockingSeats, getSocketId, queueToken, queueSessionId, queueValidated, silentlyAcquireQueueAccess]);
 
   // Hủy tự động khi hết hạn (onExpire từ Countdown)
-  const handleSeatExpire = useCallback(seatId => {
-    setSelected(prev => {
-      const next = {
-        ...prev
-      };
-      delete next[seatId];
-      return next;
-    });
+  const handleHoldSessionExpire = useCallback(seatIds => {
+    const expiredSeatIds = new Set(seatIds);
+    setSelected({});
 
     // Proactively set status to AVAILABLE to prevent flashing grey before socket event arrives
     setZones(prev => prev.map(zone => ({
       ...zone,
-      seats: zone.seats?.map(seat => seat.id === seatId ? {
+      seats: zone.seats?.map(seat => expiredSeatIds.has(seat.id) ? {
         ...seat,
         status: 'AVAILABLE'
       } : seat)
     })));
-    showToast('Một ghế bạn chọn đã hết thời gian giữ chỗ');
+    showToast('Phiên giữ chỗ đã hết hạn. Vui lòng đợi ít phút rồi thử lại.');
   }, []);
 
   // ── Tiến hành thanh toán ───────────────────────────────────────────────────
@@ -528,7 +552,9 @@ export default function SeatSelectionPage() {
         zoneName: selected[k].zoneKey,
         totalPrice: selected[k].price,
         status: 'PENDING',
-        expiresAt: selected[k].expiresAt
+        holdSessionId: selected[k].holdSessionId,
+        expiresAt: selected[k].sessionExpiresAt || selected[k].expiresAt,
+        sessionExpiresAt: selected[k].sessionExpiresAt || selected[k].expiresAt
       }));
       await releaseQueueSlot();
       navigate('/checkout', {
@@ -565,6 +591,7 @@ export default function SeatSelectionPage() {
     });
   }, [event?.seatmapJson, zones]);
   const selKeys = Object.keys(selected);
+  const sessionExpiresAt = selKeys.map(k => selected[k].sessionExpiresAt || selected[k].expiresAt).filter(Boolean).sort()[0] || null;
   const subtotal = selKeys.reduce((acc, k) => acc + toNumberPrice(selected[k].price), 0);
   const fee = Math.round(subtotal * 0.05);
   const total = subtotal + fee;
@@ -651,6 +678,20 @@ export default function SeatSelectionPage() {
         <div className="ss-fullscreen__panel">
           <div className="ss-fullscreen__panel-top">
             <div className="ss-fullscreen__panel-heading">Ghế đang chọn</div>
+            {sessionExpiresAt && <div className={css({
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: '#ff6b35',
+              fontSize: '12px',
+              fontWeight: 700
+            }, "SeatSelectionPage")}>
+              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
+              </svg>
+              <span>Phiên hết hạn sau</span>
+              <Countdown expiresAt={sessionExpiresAt} onExpire={() => handleHoldSessionExpire(selKeys)} />
+            </div>}
           </div>
 
           <div className="ss-fullscreen__seat-list">
@@ -692,7 +733,7 @@ export default function SeatSelectionPage() {
                         <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                           <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
                         </svg>
-                        {s.expiresAt ? <Countdown expiresAt={s.expiresAt} onExpire={() => handleSeatExpire(key)} /> : <span>Đang khóa...</span>}
+                        {s.expiresAt ? <span>Cùng phiên</span> : <span>Đang khóa...</span>}
                       </div>
                     </div>
                     <button onClick={() => handleSeatClick({
