@@ -1,3 +1,4 @@
+// Purpose: Component UI dung de hien thi danh sach va thong tin su kien.
 import EventSkeleton from './EventSkeleton';
 import './event.css';
 

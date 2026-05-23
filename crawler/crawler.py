@@ -1,3 +1,4 @@
+# Purpose: Crawler/script tao du lieu su kien va seatmap mau cho moi truong dev.
 """
 Ticketbox.vn Event Crawler
 ==========================
@@ -248,6 +249,8 @@ def load_seatmap_templates() -> list[dict]:
             log.warning(f"Bỏ qua seatmap template dòng {line_no}: {error}")
             continue
 
+        # The template file is JSONL-like and may contain notes. Only validated
+        # object lines are cached so later event mapping can pick one in O(1).
         templates.append(template)
 
     _SEATMAP_TEMPLATES = templates
@@ -322,6 +325,8 @@ def seatmap_from_template(base_price: Optional[float] = None):
         rows, cols = zone_dimensions(zone)
         seats = zone.get("seats") if isinstance(zone.get("seats"), list) else []
         for seat in seats:
+            # Imported templates may omit status because DB seed always starts
+            # from an available seatmap.
             seat["status"] = seat.get("status") or "AVAILABLE"
 
         price = zone.get("price")
@@ -518,7 +523,8 @@ def map_event(
             or detail.get("shortDescription")
         )
 
-    # Lấy giá từ API để làm anchor cho preset
+    # Ticketbox price is only an anchor. The selected template still controls the
+    # zone count and relative layout so generated events look realistic.
     base_price = raw.get("price")
 
     # Chọn 1 seatmap mẫu từ file template

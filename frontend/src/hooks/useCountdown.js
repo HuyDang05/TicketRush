@@ -1,3 +1,4 @@
+// Purpose: React hook dong goi state/effect dung lai trong UI.
 import { useState, useEffect } from 'react';
 
 export function useCountdown(expiresAt) {

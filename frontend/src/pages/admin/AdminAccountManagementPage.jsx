@@ -1,3 +1,4 @@
+// Purpose: Trang admin quan ly du lieu va thao tac van hanh cua TicketRush.
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../components/shared/AdminLayout';
 import api from '../../services/api';

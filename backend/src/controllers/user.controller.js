@@ -1,3 +1,4 @@
+// Purpose: Controller nhan request HTTP, goi service/Prisma va chuan hoa response cho API.
 const bcrypt = require('bcryptjs');
 const prisma = require('../config/prisma');
 const { toPublicUser } = require('../utils/user.util');

@@ -1,3 +1,4 @@
+// Purpose: React hook dong goi state/effect dung lai trong UI.
 // Inspired by react-hot-toast library
 import * as React from "react"
 

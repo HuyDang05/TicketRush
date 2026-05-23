@@ -1,3 +1,4 @@
+// Purpose: Test tu dong de bao ve behavior quan trong cua module lien quan.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 

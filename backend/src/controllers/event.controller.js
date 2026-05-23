@@ -1,3 +1,4 @@
+// Purpose: Controller nhan request HTTP, goi service/Prisma va chuan hoa response cho API.
 const prisma = require('../config/prisma');
 
 const EVENT_CATEGORIES = new Set([
@@ -695,6 +696,9 @@ const saveSeatmap = async (req, res) => {
     const nextVersion = event.seatmapVersion + 1;
 
     await prisma.$transaction(async (tx) => {
+      // Store the editor JSON and rebuild relational zones/seats together. The
+      // version check above is optimistic locking, so stale admin tabs cannot
+      // overwrite a newer seatmap silently.
       await tx.event.update({
         where: { id },
         data: {
@@ -706,6 +710,8 @@ const saveSeatmap = async (req, res) => {
       await tx.seat.deleteMany({ where: { zone: { eventId: id } } });
       await tx.zone.deleteMany({ where: { eventId: id } });
 
+      // seatmap.zones is already flattened by the frontend. Layout-only wrappers
+      // such as floors stay in seatmapJson.layout and are not inserted as DB zones.
       for (const zoneData of seatmap.zones) {
         const rows = zoneData.config?.rows ?? 0;
         const cols = zoneData.config?.cols ?? (zoneData.seats.length > 0 ? zoneData.seats.length : 1);
@@ -724,6 +730,8 @@ const saveSeatmap = async (req, res) => {
         if (zoneData.seats.length > 0) {
           await tx.seat.createMany({
             data: zoneData.seats.map((seat) => {
+              // Preserve editor-generated ids when available so realtime updates
+              // can keep referring to the same seat ids after a save.
               const seatData = {
                 zoneId: createdZone.id,
                 row: typeof seat.row === 'number' ? seat.row : 0,

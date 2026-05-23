@@ -1,3 +1,4 @@
+// Purpose: Client API wrapper goi backend va gom cac endpoint theo domain.
 import api from './api';
 
 const bookingService = {
@@ -7,7 +8,7 @@ const bookingService = {
   getMyPendingLocks: (eventId) =>
     api.get('/bookings/pending', { params: { eventId } }),
 
-  // Lock a single seat — returns { bookingId, seatId, seatLabel, zoneName, totalPrice, status, expiresAt }
+  // Lock a single seat — returns session-level expiresAt shared by all seats in the event hold.
   lockSeat: (seatId, socketId, queueToken, queueSessionId) => {
     const payload = { seatId, queueToken, queueSessionId };
     if (socketId) payload.socketId = socketId;

@@ -1,3 +1,4 @@
+// Purpose: Component seatmap editor/preview, xu ly ve va tuong tac voi so do ghe.
 import { useState } from 'react';
 import { css, cx, setNodeCss } from "../../lib/runtimeCss";
 import './PropertyPanel.css';

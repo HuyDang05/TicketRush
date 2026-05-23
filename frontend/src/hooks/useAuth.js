@@ -1,3 +1,4 @@
+// Purpose: React hook dong goi state/effect dung lai trong UI.
 import { useCallback } from 'react';
 import useAuthStore from '../store/authStore';
 import authService from '../services/auth.service';

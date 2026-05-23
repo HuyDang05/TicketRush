@@ -1,3 +1,4 @@
+// Purpose: Script van hanh/demonstration de kiem tra queue hoac tinh trang ghe tu terminal.
 require('dotenv').config();
 const axios = require('axios');
 const Redis = require('ioredis');

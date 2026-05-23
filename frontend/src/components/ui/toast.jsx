@@ -1,3 +1,4 @@
+// Purpose: Primitive UI component dung chung, uu tien giu logic mong va de compose.
 "use client";
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"

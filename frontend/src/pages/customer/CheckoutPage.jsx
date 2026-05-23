@@ -1,3 +1,4 @@
+// Purpose: Trang customer hien thi workflow mua ve, xem su kien, chon ghe hoac thanh toan.
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -106,6 +107,7 @@ export default function CheckoutPage() {
     }
   }, [currentBookings, navigate, eventId]);
   if (currentBookings.length === 0) return null;
+  const sessionExpiresAt = currentBookings.map(b => b.sessionExpiresAt || b.expiresAt).filter(Boolean).sort()[0] || null;
   const subtotal = currentBookings.reduce((sum, b) => sum + Number(b.totalPrice || 0), 0);
   const serviceFee = Math.round(Number(subtotal) * 0.05);
   const grandTotal = Number(subtotal) + Number(serviceFee);
@@ -121,7 +123,7 @@ export default function CheckoutPage() {
   }) : '';
   async function handleConfirm() {
     if (confirming || success) return;
-    const bookingIds = bookings.map(b => b.bookingId).filter(Boolean);
+    const bookingIds = currentBookings.map(b => b.bookingId).filter(Boolean);
     if (bookingIds.length === 0 || bookingIds.length > MAX_CHECKOUT_BOOKINGS) {
       toast.error(`Chỉ được thanh toán 1-${MAX_CHECKOUT_BOOKINGS} vé mỗi lần`);
       return;
@@ -287,7 +289,7 @@ export default function CheckoutPage() {
             gap: '8px',
             marginBottom: '24px'
           }, "CheckoutPage"))}>
-              {currentBookings.map(b => <div key={b.bookingId} className="checkout-countdown-item">
+              {sessionExpiresAt && <div className="checkout-countdown-item">
                   <div className={css({
                 display: 'flex',
                 alignItems: 'center',
@@ -300,7 +302,7 @@ export default function CheckoutPage() {
                   background: '#FF6B35'
                 }, "CheckoutPage")}></div>
                     <span className="checkout-summary-seat-label">
-                      {b.seatLabel}
+                      {currentBookings.length} ghế trong phiên
                     </span>
                   </div>
                   <div className={css({
@@ -309,9 +311,9 @@ export default function CheckoutPage() {
                 gap: '6px'
               }, "CheckoutPage")}>
                     <svg width="14" height="14" fill="none" stroke="#FF6B35" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>
-                    <CheckoutCountdown expiresAt={b.expiresAt} />
+                    <CheckoutCountdown expiresAt={sessionExpiresAt} />
                   </div>
-                </div>)}
+                </div>}
             </div>
 
             <div className="checkout-price-rows">

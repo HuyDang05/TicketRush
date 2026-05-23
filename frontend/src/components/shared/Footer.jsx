@@ -1,3 +1,4 @@
+// Purpose: Component layout/shared dung lai tren nhieu man hinh.
 import { Link } from 'react-router-dom';
 import './Footer.css';
 import { useLang } from '../../context/LangContext';

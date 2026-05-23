@@ -1,3 +1,4 @@
+// Purpose: Controller nhan request HTTP, goi service/Prisma va chuan hoa response cho API.
 const { OAuth2Client } = require('google-auth-library');
 const prisma = require('../config/prisma');
 const { issueAuthTokens } = require('../services/auth-token.service');

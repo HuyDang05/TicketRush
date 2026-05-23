@@ -1,3 +1,4 @@
+// Purpose: Trang admin quan ly du lieu va thao tac van hanh cua TicketRush.
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import SeatmapCanvas from '../../components/seatmap/SeatmapCanvas';
@@ -1007,7 +1008,9 @@ export default function SeatmapEditorPage() {
       setToast('⚠ Phải có ít nhất 1 khu vực');
       return false;
     }
-    // Flatten: grouped floors expand to children; ungrouped floors are skipped (their zones are top-level); regular zones included
+    // Flatten editor layout to DB zones. Floors are visual containers only:
+    // grouped floors expand to children, ungrouped floor frames are skipped, and
+    // regular zones are kept as-is.
     const flatZones = flattenZonesForDb(zones);
     if (flatZones.length === 0) {
       setToast('⚠ Phải có ít nhất 1 khu vực có ghế');
@@ -1046,6 +1049,8 @@ export default function SeatmapEditorPage() {
       const generated = generateSeatsForZone(z);
       const labels = new Set();
       const positions = new Set();
+      // Validate generated geometry, not only raw config, because arc/table zones
+      // derive final labels and row/col positions from several config fields.
       for (const seat of generated) {
         const label = String(seat.label || '').trim().toLowerCase();
         const position = `${seat.row}:${seat.col}`;
@@ -1076,6 +1081,8 @@ export default function SeatmapEditorPage() {
         layout: buildLayoutForSave(zones),
         zones: flatZones.map(z => {
           const generated = generateSeatsForZone(z);
+          // Seat ids are deterministic per zone + row/col so websocket events and
+          // reloads can address the same logical seat after a save.
           const seats = generated.map(s => ({
             id: `${z.id}_${s.row}_${s.col}`,
             label: s.label,

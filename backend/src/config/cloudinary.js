@@ -1,3 +1,4 @@
+// Purpose: Cau hinh ket noi dich vu ha tang nhu Prisma, Redis, Socket, upload hoac Swagger.
 const cloudinary = require('cloudinary').v2;
 
 // CLOUDINARY_URL env var được tự động đọc bởi SDK nếu đặt đúng tên

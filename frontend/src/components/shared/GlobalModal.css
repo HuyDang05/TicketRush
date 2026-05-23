@@ -1,3 +1,6 @@
+/*
+ * Purpose: Component layout/shared dung lai tren nhieu man hinh.
+ */
 .global-modal-overlay {
   position: fixed;
   inset: 0;

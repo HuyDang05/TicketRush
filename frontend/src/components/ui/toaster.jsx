@@ -1,3 +1,4 @@
+// Purpose: Primitive UI component dung chung, uu tien giu logic mong va de compose.
 "use client"
 
 import { useToast } from "@/hooks/use-toast"

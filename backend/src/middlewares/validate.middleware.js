@@ -1,3 +1,4 @@
+// Purpose: Middleware Express dung chung cho xac thuc, phan quyen hoac validate request.
 const { ZodError } = require('zod');
 
 const formatPath = (path) => path.join('.') || 'root';

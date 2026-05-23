@@ -1,3 +1,4 @@
+// Purpose: Entry point React, mount ung dung vao DOM va nap provider toan cuc.
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'

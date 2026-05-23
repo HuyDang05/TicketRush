@@ -1,3 +1,4 @@
+// Purpose: Trang customer hien thi workflow mua ve, xem su kien, chon ghe hoac thanh toan.
 export const CATEGORY_LABELS = {
   music: 'Âm nhạc',
   seminarsworkshops: 'Hội thảo',

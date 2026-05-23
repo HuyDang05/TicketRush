@@ -1,3 +1,4 @@
+// Purpose: Cau hinh job nen de xu ly tac vu bat dong bo lien quan den ghe/queue.
 require('dotenv').config();
 const { Queue } = require('bullmq');
 const { redisConnectionOptions } = require('../config/redis');

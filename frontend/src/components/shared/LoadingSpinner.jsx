@@ -1,3 +1,4 @@
+// Purpose: Component layout/shared dung lai tren nhieu man hinh.
 export default function LoadingSpinner() {
   return (
     <div className="flex justify-center items-center min-h-screen">

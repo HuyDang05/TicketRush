@@ -1,3 +1,4 @@
+// Purpose: File code TicketRush; doc comment gan logic ben duoi de nam vai tro va luong xu ly.
 const nodemailer = require('nodemailer');
 
 console.log('[Mailer] Initializing with user:', process.env.GMAIL_USER);

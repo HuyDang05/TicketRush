@@ -1,3 +1,4 @@
+// Purpose: Component hien thi so do ghe cho customer khi chon ghe.
 const ITEMS = [
   { color: '#22c55e', label: 'Còn trống' },
   { color: '#555555', label: 'Đang giữ' },

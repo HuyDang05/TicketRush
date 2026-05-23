@@ -1,3 +1,4 @@
+// Purpose: File cau hinh toolchain build/test cho du an.
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'

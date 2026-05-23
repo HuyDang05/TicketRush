@@ -1,3 +1,4 @@
+// Purpose: Trang customer hien thi workflow mua ve, xem su kien, chon ghe hoac thanh toan.
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -91,9 +92,15 @@ export default function CartCheckoutPage() {
   const eventGroups = cartItems.reduce((acc, item) => {
     if (!acc[item.eventId]) {
       acc[item.eventId] = {
+        eventId: item.eventId,
         title: item.eventTitle,
+        expiresAt: item.sessionExpiresAt || item.expiresAt,
         items: []
       };
+    }
+    const itemExpiresAt = item.sessionExpiresAt || item.expiresAt;
+    if (itemExpiresAt && new Date(itemExpiresAt).getTime() < new Date(acc[item.eventId].expiresAt).getTime()) {
+      acc[item.eventId].expiresAt = itemExpiresAt;
     }
     acc[item.eventId].items.push(item);
     return acc;
@@ -264,7 +271,7 @@ export default function CartCheckoutPage() {
             overflowY: 'auto',
             paddingRight: '8px'
           }, "CartCheckoutPage"))}>
-              {cartItems.map(b => <div key={b.bookingId} className="checkout-countdown-item">
+              {Object.values(eventGroups).map(group => <div key={group.eventId} className="checkout-countdown-item">
                   <div className={css({
                 display: 'flex',
                 alignItems: 'center',
@@ -277,9 +284,9 @@ export default function CartCheckoutPage() {
                   background: '#FF6B35'
                 }, "CartCheckoutPage")}></div>
                     <span className="checkout-countdown-item__title checkout-countdown-item__title--sm">
-                      {b.eventTitle.length > 15 ? b.eventTitle.substring(0, 15) + '...' : b.eventTitle}
+                      {group.title.length > 15 ? group.title.substring(0, 15) + '...' : group.title}
                       <br />
-                      <span className="checkout-countdown-item__subtitle">{b.seatLabel}</span>
+                      <span className="checkout-countdown-item__subtitle">{group.items.length} ghế trong phiên</span>
                     </span>
                   </div>
                   <div className={css({
@@ -288,7 +295,7 @@ export default function CartCheckoutPage() {
                 gap: '6px'
               }, "CartCheckoutPage")}>
                     <svg width="14" height="14" fill="none" stroke="#FF6B35" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>
-                    <CheckoutCountdown expiresAt={b.expiresAt} onExpire={refreshCart} />
+                    <CheckoutCountdown expiresAt={group.expiresAt} onExpire={refreshCart} />
                   </div>
                 </div>)}
             </div>

@@ -1,3 +1,4 @@
+// Purpose: Service chua nghiep vu chinh cua backend, tach khoi controller de de test va tai su dung.
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
