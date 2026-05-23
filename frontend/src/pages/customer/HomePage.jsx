@@ -1,3 +1,4 @@
+// Purpose: Trang customer hien thi workflow mua ve, xem su kien, chon ghe hoac thanh toan.
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import EventList from '../../components/event/EventList';

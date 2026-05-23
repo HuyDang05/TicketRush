@@ -1,3 +1,4 @@
+// Purpose: Schema validate input API truoc khi controller xu ly nghiep vu.
 const { z } = require('zod');
 const { nonEmptyTrimmedString, uuid } = require('./common.validator');
 

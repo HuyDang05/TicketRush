@@ -1,3 +1,4 @@
+// Purpose: Controller nhan request HTTP, goi service/Prisma va chuan hoa response cho API.
 const bookingService = require('../services/booking.service');
 
 async function lockSeatHandler(req, res) {

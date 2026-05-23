@@ -1,3 +1,4 @@
+// Purpose: Dinh nghia hoac seed du lieu Prisma cho database TicketRush.
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const axios = require('axios');

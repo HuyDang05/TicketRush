@@ -1,3 +1,4 @@
+// Purpose: Khai bao route Express va gan middleware/controller tuong ung.
 const { Router } = require('express');
 const authMiddleware = require('../middlewares/auth.middleware');
 const requireRole = require('../middlewares/role.middleware');

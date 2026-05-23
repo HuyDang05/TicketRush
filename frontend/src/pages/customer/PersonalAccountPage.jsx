@@ -1,3 +1,4 @@
+// Purpose: Trang customer hien thi workflow mua ve, xem su kien, chon ghe hoac thanh toan.
 import { useState } from 'react';
 import { Camera, Lock, User, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
@@ -172,7 +173,6 @@ export default function PersonalAccountPage() {
       <section className="account-hero">
         <div>
           <h1>{lang === 'en' ? 'Personal account' : 'Tài khoản cá nhân'}</h1>
-          <h1>Tài khoản cá nhân</h1>
           <span>
             {lang === 'en'
               ? 'Manage your avatar, account name, password and account deletion.'

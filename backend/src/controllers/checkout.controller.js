@@ -1,3 +1,4 @@
+// Purpose: Controller nhan request HTTP, goi service/Prisma va chuan hoa response cho API.
 const { checkout } = require('../services/checkout.service');
 
 async function checkoutHandler(req, res) {

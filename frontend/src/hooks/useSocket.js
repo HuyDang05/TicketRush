@@ -1,3 +1,4 @@
+// Purpose: React hook dong goi state/effect dung lai trong UI.
 import { useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 

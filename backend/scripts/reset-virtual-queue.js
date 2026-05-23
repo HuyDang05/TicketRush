@@ -1,3 +1,4 @@
+// Purpose: Script van hanh/demonstration de kiem tra queue hoac tinh trang ghe tu terminal.
 const Redis = require('ioredis');
 const path = require('path');
 

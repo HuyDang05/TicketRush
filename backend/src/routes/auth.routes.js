@@ -1,3 +1,4 @@
+// Purpose: Khai bao route Express va gan middleware/controller tuong ung.
 const express = require('express');
 
 const { register, login, refresh, logout } = require('../controllers/auth.controller');

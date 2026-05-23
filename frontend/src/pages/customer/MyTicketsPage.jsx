@@ -1,3 +1,4 @@
+// Purpose: Trang customer hien thi workflow mua ve, xem su kien, chon ghe hoac thanh toan.
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import bookingService from '../../services/booking.service';

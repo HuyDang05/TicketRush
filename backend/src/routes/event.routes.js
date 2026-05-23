@@ -1,3 +1,4 @@
+// Purpose: Khai bao route Express va gan middleware/controller tuong ung.
 const express = require('express');
 const { getEventSearchSuggestions, getEvents, getEventById } = require('../controllers/event.controller');
 const { getEventComments, createEventComment } = require('../controllers/comment.controller');

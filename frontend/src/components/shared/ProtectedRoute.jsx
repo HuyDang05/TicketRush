@@ -1,3 +1,4 @@
+// Purpose: Component layout/shared dung lai tren nhieu man hinh.
 import { Navigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 

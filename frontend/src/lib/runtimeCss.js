@@ -1,3 +1,4 @@
+// Purpose: Ham tien ich thuan, dung chung cho tinh toan layout, sinh ghe hoac className.
 const cache = new Map();
 let sheet;
 let counter = 0;

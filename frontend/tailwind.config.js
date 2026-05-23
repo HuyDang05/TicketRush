@@ -1,3 +1,4 @@
+// Purpose: File cau hinh toolchain build/test cho du an.
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [

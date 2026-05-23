@@ -1,3 +1,4 @@
+// Purpose: Trang customer hien thi workflow mua ve, xem su kien, chon ghe hoac thanh toan.
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import eventService from '../../services/event.service';

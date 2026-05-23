@@ -1,3 +1,4 @@
+// Purpose: Middleware Express dung chung cho xac thuc, phan quyen hoac validate request.
 const requireRole = (allowedRoles) => {
   return (req, res, next) => {
     const userRole = req.user?.role;

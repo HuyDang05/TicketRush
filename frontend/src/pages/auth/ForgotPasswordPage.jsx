@@ -1,3 +1,4 @@
+// Purpose: Trang xac thuc nguoi dung va cac luong lien quan den tai khoan.
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';

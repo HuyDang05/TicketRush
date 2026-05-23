@@ -1,3 +1,4 @@
+// Purpose: Component seatmap editor/preview, xu ly ve va tuong tac voi so do ghe.
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Stage, Layer, Rect, Circle, Text, Group, Arc } from 'react-konva';
 import { useTheme } from '../../hooks/useTheme';

@@ -1,3 +1,4 @@
+// Purpose: Trang customer hien thi workflow mua ve, xem su kien, chon ghe hoac thanh toan.
 export default function CategoryPill({ icon, label, count, isActive, onClick }) {
   return (
     <button

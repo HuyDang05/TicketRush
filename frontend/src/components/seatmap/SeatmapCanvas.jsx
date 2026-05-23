@@ -1,3 +1,4 @@
+// Purpose: Component seatmap editor/preview, xu ly ve va tuong tac voi so do ghe.
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Stage, Layer, Rect, Circle, Text, Group, Arc, Transformer, Image as KonvaImage } from 'react-konva';
 
@@ -58,7 +59,8 @@ function genArcSeats(zone) {
   const endDeg = cfg.endAngle ?? 60;
   const rowSpacing = SEAT_STEP + 2;
 
-  // Parse per-row seat counts
+  // Parse per-row seat counts. Missing rows keep growing by 2 seats so an arc
+  // remains visually wider toward the back even when admin only provides a base.
   let seatsPerRow;
   if (cfg.seatsPerRow) {
     seatsPerRow = String(cfg.seatsPerRow).split(',').map(v => Math.max(1, parseInt(v.trim()) || (cfg.baseSeats ?? 10)));
@@ -71,7 +73,9 @@ function genArcSeats(zone) {
   }
   const toRad = d => d * Math.PI / 180;
 
-  // Use a large virtual origin to compute raw seat positions, then crop to tight bbox
+  // Use a large virtual origin to compute raw seat positions, then crop to tight
+  // bbox. This keeps the Konva group compact, so drag/resize handles match the
+  // visible seats instead of the full mathematical circle.
   const maxRadius = baseRadius + (numRows - 1) * rowSpacing + SEAT_SIZE;
   const originX = maxRadius + SEAT_SIZE;
   const originY = maxRadius + SEAT_SIZE;
@@ -197,8 +201,8 @@ function useZoneGroup(zone, onChange) {
     });
   };
 
-  // Called by each block with its natural (un-scaled) w/h so we can persist
-  // the new pixel dimensions after the user resizes via the Transformer.
+  // Called by each block with its natural unscaled w/h. Konva resize mutates node
+  // scale, so convert that scale back to persisted width/height in editor state.
   const makeTransformEnd = (naturalW, naturalH, bakeScale = false) => () => {
     const node = groupRef.current;
     if (!node) return;

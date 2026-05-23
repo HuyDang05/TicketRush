@@ -1,3 +1,4 @@
+// Purpose: Component hien thi so do ghe cho customer khi chon ghe.
 import './seat-map.css';
 import { css, cx } from "../../lib/runtimeCss";
 export default function SeatItem({

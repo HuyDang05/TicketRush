@@ -1,3 +1,4 @@
+// Purpose: Component hien thi so do ghe cho customer khi chon ghe.
 import SeatItem from './SeatItem';
 import './seat-map.css';
 

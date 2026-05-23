@@ -1,3 +1,4 @@
+// Purpose: Tien ich frontend dung lai cho validation, toast hoac xu ly nho.
 // Minimal toast utility (no external deps)
 export function toast(message, type = 'info', ttl = 4000) {
   try {
