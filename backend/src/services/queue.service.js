@@ -1,3 +1,4 @@
+// Purpose: Service chua nghiep vu chinh cua backend, tach khoi controller de de test va tai su dung.
 /**
  * Virtual Queue Service
  *
@@ -72,6 +73,9 @@ function emitQueueUpdated(eventId) {
 async function cleanupExpiredActive(eventId) {
   const key = activeKey(eventId);
   const type = await redis.type(key);
+  // Redis keys may survive old deployments or manual debugging. If the key type
+  // is not the zset shape expected by this service, drop it and rebuild state
+  // from active tabs instead of letting later Z* commands fail.
   if (type !== 'none' && type !== 'zset') {
     await redis.del(key);
     await removeLegacyUserMembers(eventId);
@@ -86,6 +90,9 @@ async function cleanupExpiredActive(eventId) {
   }
 
   await redis.zremrangebyscore(key, '-inf', Date.now());
+  // The queue is intentionally self-healing: active members need a token, waiting
+  // members need a heartbeat key, and legacy userId-only members are removed so
+  // multiple tabs from the same account do not collide.
   await removeLegacyUserMembers(eventId);
   await removeTokenlessActiveMembers(eventId);
   await removeInactiveWaitingMembers(eventId);
@@ -193,6 +200,9 @@ async function tryAdmit(eventId, userId, queueSessionId) {
   const now = Date.now();
   const expiresAt = now + TOKEN_TTL * 1000;
 
+  // Admission must be atomic because many users can click into the same event at
+  // once. The Lua script checks existing token, capacity, active set, and queue
+  // insertion in one Redis round-trip.
   const [admitted, issuedToken] = await redis.eval(
     `
       local listKey = KEYS[1]
@@ -350,6 +360,8 @@ async function drainQueue(eventId) {
   for (let i = 0; i < BATCH; i += 1) {
     const token = crypto.randomBytes(16).toString('hex');
     const expiresAt = Date.now() + TOKEN_TTL * 1000;
+    // Each iteration admits at most one live waiting tab. Returning 2 means the
+    // queue member was stale, so the loop continues without consuming capacity.
     const admitted = await redis.eval(
       `
         local listKey = KEYS[1]
@@ -429,6 +441,8 @@ async function validateToken(eventId, userId, token, queueSessionId) {
   const valid = parsed && parsed.token === token && (!parsed.userId || parsed.userId === userId);
   if (!valid) return false;
 
+  // A valid page visit/heartbeat extends the active slot. Without this renewal,
+  // users who are still on the seat page could be evicted by TTL cleanup.
   await Promise.all([
     redis.expire(tokenKey(eventId, memberId), TOKEN_TTL),
     redis.zadd(activeKey(eventId), expiresAt, memberId),

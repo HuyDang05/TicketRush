@@ -1,3 +1,4 @@
+// Purpose: Client API wrapper goi backend va gom cac endpoint theo domain.
 import axios from 'axios';
 
 const api = axios.create({

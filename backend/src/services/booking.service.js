@@ -1,3 +1,4 @@
+// Purpose: Service chua nghiep vu chinh cua backend, tach khoi controller de de test va tai su dung.
 const { PrismaClient } = require('@prisma/client');
 const { seatReleaseQueue } = require('../jobs/queue');
 const { emitSeatEvent } = require('../config/socket');
@@ -5,8 +6,153 @@ const { validateToken } = require('./queue.service');
 
 const prisma = new PrismaClient();
 
-const LOCK_DURATION_MS = 10 * 60 * 1000; // 10 phút
+const LOCK_DURATION_MS = 10 * 60 * 1000;
+const HOLD_COOLDOWN_MS = 5 * 60 * 1000;
 const MAX_LOCKS_PER_EVENT = 4;
+
+function createHttpError(message, statusCode) {
+  const err = new Error(message);
+  err.statusCode = statusCode;
+  return err;
+}
+
+function getLegacyExpiresAt(booking) {
+  const baseTime = booking.seat?.lockedAt
+    ? booking.seat.lockedAt.getTime()
+    : booking.createdAt.getTime();
+  return new Date(baseTime + LOCK_DURATION_MS);
+}
+
+function getBookingExpiresAt(booking) {
+  return booking.holdSession?.expiresAt || getLegacyExpiresAt(booking);
+}
+
+function createCooldownResult(cooldownUntil, releasedSeats = [], eventId = null) {
+  const waitSeconds = Math.max(1, Math.ceil((cooldownUntil.getTime() - Date.now()) / 1000));
+  return {
+    blocked: true,
+    statusCode: 429,
+    message: `Phien giu ghe vua het han. Vui long doi ${Math.ceil(waitSeconds / 60)} phut roi thu lai.`,
+    cooldownUntil,
+    releasedSeats,
+    eventId,
+  };
+}
+
+async function scheduleSessionRelease(sessionId, expiresAt) {
+  const delay = Math.max(0, expiresAt.getTime() - Date.now());
+  const job = await seatReleaseQueue.add(
+    'release-session',
+    { sessionId },
+    { delay }
+  );
+
+  await prisma.seatHoldSession.update({
+    where: { id: sessionId },
+    data: { jobId: job.id.toString() },
+  });
+}
+
+async function expireSessionInTransaction(tx, sessionId, cooldownUntil) {
+  const pendingBookings = await tx.booking.findMany({
+    where: {
+      holdSessionId: sessionId,
+      status: 'PENDING',
+    },
+    select: {
+      id: true,
+      seatId: true,
+      seat: {
+        select: { label: true },
+      },
+    },
+  });
+
+  const bookingIds = pendingBookings.map((booking) => booking.id);
+  const seatIds = pendingBookings.map((booking) => booking.seatId);
+
+  if (seatIds.length > 0) {
+    await tx.seat.updateMany({
+      where: { id: { in: seatIds } },
+      data: { status: 'AVAILABLE', lockedAt: null },
+    });
+  }
+
+  if (bookingIds.length > 0) {
+    await tx.booking.deleteMany({
+      where: { id: { in: bookingIds } },
+    });
+  }
+
+  await tx.seatHoldSession.update({
+    where: { id: sessionId },
+    data: {
+      status: 'EXPIRED',
+      cooldownUntil,
+    },
+  });
+
+  return pendingBookings.map((booking) => ({
+    seatId: booking.seatId,
+    label: booking.seat?.label,
+  }));
+}
+
+async function getOrCreateHoldSession(tx, userId, eventId) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${eventId}), hashtext(${userId}))`;
+
+  const now = new Date();
+  const [existingSession] = await tx.$queryRaw`
+    SELECT id, status, "expiresAt", "cooldownUntil", "jobId"
+    FROM seat_hold_sessions
+    WHERE "userId" = ${userId}
+      AND "eventId" = ${eventId}
+      AND status IN ('ACTIVE'::"HoldSessionStatus", 'EXPIRED'::"HoldSessionStatus")
+    ORDER BY "createdAt" DESC
+    LIMIT 1
+    FOR UPDATE
+  `;
+
+  if (existingSession?.status === 'ACTIVE') {
+    const expiresAt = new Date(existingSession.expiresAt);
+    if (expiresAt.getTime() > now.getTime()) {
+      return {
+        session: {
+          id: existingSession.id,
+          expiresAt,
+          jobId: existingSession.jobId,
+        },
+        created: false,
+      };
+    }
+
+    const cooldownUntil = new Date(now.getTime() + HOLD_COOLDOWN_MS);
+    const releasedSeats = await expireSessionInTransaction(tx, existingSession.id, cooldownUntil);
+    return createCooldownResult(cooldownUntil, releasedSeats, eventId);
+  }
+
+  if (existingSession?.cooldownUntil) {
+    const cooldownUntil = new Date(existingSession.cooldownUntil);
+    if (cooldownUntil.getTime() > now.getTime()) {
+      return createCooldownResult(cooldownUntil, [], eventId);
+    }
+  }
+
+  const session = await tx.seatHoldSession.create({
+    data: {
+      userId,
+      eventId,
+      expiresAt: new Date(now.getTime() + LOCK_DURATION_MS),
+    },
+    select: {
+      id: true,
+      expiresAt: true,
+      jobId: true,
+    },
+  });
+
+  return { session, created: true };
+}
 
 async function lockSeat(userId, seatId, socketId, queueToken, queueSessionId) {
   const seatForQueue = await prisma.seat.findUnique({
@@ -19,9 +165,7 @@ async function lockSeat(userId, seatId, socketId, queueToken, queueSessionId) {
   });
 
   if (!seatForQueue) {
-    const err = new Error('Ghế không tồn tại');
-    err.statusCode = 404;
-    throw err;
+    throw createHttpError('Ghe khong ton tai', 404);
   }
 
   const queueAllowed = queueToken
@@ -29,134 +173,127 @@ async function lockSeat(userId, seatId, socketId, queueToken, queueSessionId) {
     : false;
 
   if (!queueAllowed) {
-    const err = new Error('Bạn chưa đến lượt chọn ghế. Vui lòng vào lại từ trang sự kiện.');
-    err.statusCode = 403;
-    throw err;
+    throw createHttpError('Ban chua den luot chon ghe. Vui long vao lai tu trang su kien.', 403);
   }
 
-  // Toàn bộ validation + mutation trong 1 transaction duy nhất với SERIALIZABLE
-  // để tránh race condition khi nhiều user cùng click 1 ghế
-  let booking;
-  let seat;
-  let eventId;
-  try {
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. SELECT FOR UPDATE trên ghế — block mọi transaction khác đang cố lock cùng row
-      const [lockedSeat] = await tx.$queryRaw`
-        SELECT id, status, "zoneId", label FROM seats WHERE id = ${seatId} FOR UPDATE
-      `;
+  const result = await prisma.$transaction(async (tx) => {
+    const [lockedSeat] = await tx.$queryRaw`
+      SELECT id, status, "zoneId", label FROM seats WHERE id = ${seatId} FOR UPDATE
+    `;
 
-      if (!lockedSeat) {
-        const err = new Error('Ghế không tồn tại');
-        err.statusCode = 404;
-        throw err;
-      }
+    if (!lockedSeat) {
+      throw createHttpError('Ghe khong ton tai', 404);
+    }
 
-      if (lockedSeat.status !== 'AVAILABLE') {
-        const err = new Error('Ghế vừa được người khác chọn');
-        err.statusCode = 409;
-        throw err;
-      }
+    if (lockedSeat.status !== 'AVAILABLE') {
+      throw createHttpError('Ghe vua duoc nguoi khac chon', 409);
+    }
 
-      // 2. Lấy zone/event (sau khi đã giữ lock ghế)
-      const zone = await tx.zone.findUnique({
-        where: { id: lockedSeat.zoneId },
-        include: { event: true },
-      });
-
-      if (!zone) {
-        const err = new Error('Khu vực không tồn tại');
-        err.statusCode = 404;
-        throw err;
-      }
-
-      const eventId = zone.eventId;
-
-      // 3. Kiểm tra giới hạn 4 ghế/event — bên trong transaction để đếm chính xác
-      const [{ count }] = await tx.$queryRaw`
-        SELECT COUNT(*) AS count
-        FROM bookings b
-        JOIN seats s ON s.id = b."seatId"
-        JOIN zones z ON z.id = s."zoneId"
-        WHERE b."userId" = ${userId}
-          AND b.status = 'PENDING'
-          AND z."eventId" = ${eventId}
-      `;
-
-      if (Number(count) >= MAX_LOCKS_PER_EVENT) {
-        const err = new Error(`Bạn chỉ được giữ tối đa ${MAX_LOCKS_PER_EVENT} ghế trong cùng một sự kiện`);
-        err.statusCode = 409;
-        throw err;
-      }
-
-      // 4. Cập nhật ghế → LOCKED
-      await tx.seat.update({
-        where: { id: seatId },
-        data: { status: 'LOCKED', lockedAt: new Date() },
-      });
-
-      // 5. Tạo Booking PENDING — seatId là UNIQUE nên DB cũng chặn duplicate
-      const newBooking = await tx.booking.create({
-        data: {
-          userId,
-          seatId,
-          status: 'PENDING',
-          totalPrice: zone.price,
-        },
-      });
-
-      return { booking: newBooking, zone, eventId, seatLabel: lockedSeat.label };
+    const zone = await tx.zone.findUnique({
+      where: { id: lockedSeat.zoneId },
+      include: { event: true },
     });
 
-    booking = result.booking;
-    seat = { label: result.seatLabel, zone: result.zone };
-    eventId = result.eventId;
-  } catch (err) {
-    if (!err.statusCode) err.statusCode = 500;
+    if (!zone) {
+      throw createHttpError('Khu vuc khong ton tai', 404);
+    }
+
+    const sessionResult = await getOrCreateHoldSession(tx, userId, zone.eventId);
+    if (sessionResult.blocked) {
+      return sessionResult;
+    }
+
+    const [{ count }] = await tx.$queryRaw`
+      SELECT COUNT(*) AS count
+      FROM bookings b
+      JOIN seats s ON s.id = b."seatId"
+      JOIN zones z ON z.id = s."zoneId"
+      WHERE b."userId" = ${userId}
+        AND b.status = 'PENDING'
+        AND z."eventId" = ${zone.eventId}
+    `;
+
+    if (Number(count) >= MAX_LOCKS_PER_EVENT) {
+      throw createHttpError(`Ban chi duoc giu toi da ${MAX_LOCKS_PER_EVENT} ghe trong cung mot su kien`, 409);
+    }
+
+    await tx.seat.update({
+      where: { id: seatId },
+      data: { status: 'LOCKED', lockedAt: new Date() },
+    });
+
+    const booking = await tx.booking.create({
+      data: {
+        userId,
+        seatId,
+        holdSessionId: sessionResult.session.id,
+        status: 'PENDING',
+        totalPrice: zone.price,
+      },
+    });
+
+    return {
+      booking,
+      zone,
+      eventId: zone.eventId,
+      seatLabel: lockedSeat.label,
+      sessionId: sessionResult.session.id,
+      sessionExpiresAt: sessionResult.session.expiresAt,
+      createdSession: sessionResult.created,
+    };
+  });
+
+  if (result.blocked) {
+    if (result.eventId && Array.isArray(result.releasedSeats)) {
+      for (const releasedSeat of result.releasedSeats) {
+        try {
+          emitSeatEvent(result.eventId, 'seat_released', {
+            ...releasedSeat,
+            cooldownUntil: result.cooldownUntil,
+          });
+        } catch {
+          // Socket failure
+        }
+      }
+    }
+    const err = createHttpError(result.message, result.statusCode);
+    err.cooldownUntil = result.cooldownUntil;
     throw err;
   }
 
-  // Bước 6: Enqueue BullMQ job (ngoài transaction)
-  const job = await seatReleaseQueue.add(
-    'release-seat',
-    { bookingId: booking.id, seatId },
-    { delay: LOCK_DURATION_MS }
-  );
+  if (result.createdSession) {
+    await scheduleSessionRelease(result.sessionId, result.sessionExpiresAt);
+  }
 
-  // Lưu jobId vào booking
-  await prisma.booking.update({
-    where: { id: booking.id },
-    data: { jobId: job.id.toString() },
-  });
-
-  const expiresAt = new Date(Date.now() + LOCK_DURATION_MS);
-
-  // Bước 7: Broadcast seat_locked qua Socket.IO
   try {
-    emitSeatEvent(eventId, 'seat_locked', {
+    emitSeatEvent(result.eventId, 'seat_locked', {
       seatId,
-      label: seat.label,
+      label: result.seatLabel,
       userId,
-      bookingId: booking.id,
-      expiresAt,
-      zoneId: seat.zone.id,
-      zoneName: seat.zone.name,
-      totalPrice: Number(seat.zone.price),
+      bookingId: result.booking.id,
+      holdSessionId: result.sessionId,
+      expiresAt: result.sessionExpiresAt,
+      sessionExpiresAt: result.sessionExpiresAt,
+      zoneId: result.zone.id,
+      zoneName: result.zone.name,
+      totalPrice: Number(result.zone.price),
       socketId: socketId ?? null,
     });
   } catch {
-    // Socket lỗi không ảnh hưởng response
+    // Socket loi khong anh huong response
   }
 
   return {
-    bookingId: booking.id,
+    bookingId: result.booking.id,
     seatId,
-    seatLabel: seat.label,
-    zoneName: seat.zone.name,
-    totalPrice: Number(seat.zone.price),
-    status: booking.status,
-    expiresAt,
-    createdAt: booking.createdAt,
+    seatLabel: result.seatLabel,
+    zoneName: result.zone.name,
+    totalPrice: Number(result.zone.price),
+    status: result.booking.status,
+    holdSessionId: result.sessionId,
+    expiresAt: result.sessionExpiresAt,
+    sessionExpiresAt: result.sessionExpiresAt,
+    createdAt: result.booking.createdAt,
   };
 }
 
@@ -211,25 +348,22 @@ async function getMyTickets(userId) {
 async function releaseSeatUser(userId, bookingId) {
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    include: { seat: { include: { zone: true } } },
+    include: {
+      holdSession: true,
+      seat: { include: { zone: true } },
+    },
   });
 
   if (!booking) {
-    const err = new Error('Không tìm thấy thông tin đặt chỗ');
-    err.statusCode = 404;
-    throw err;
+    throw createHttpError('Khong tim thay thong tin dat cho', 404);
   }
 
   if (booking.userId !== userId) {
-    const err = new Error('Không có quyền thực hiện thao tác này');
-    err.statusCode = 403;
-    throw err;
+    throw createHttpError('Khong co quyen thuc hien thao tac nay', 403);
   }
 
   if (booking.status !== 'PENDING') {
-    const err = new Error('Ghế không ở trạng thái đang khóa');
-    err.statusCode = 400;
-    throw err;
+    throw createHttpError('Ghe khong o trang thai dang khoa', 400);
   }
 
   const eventId = booking.seat.zone.eventId;
@@ -247,12 +381,22 @@ async function releaseSeatUser(userId, bookingId) {
   ]);
 
   try {
-    emitSeatEvent(eventId, 'seat_released', { seatId, label: seatLabel });
+    emitSeatEvent(eventId, 'seat_released', {
+      seatId,
+      label: seatLabel,
+      holdSessionId: booking.holdSessionId,
+    });
   } catch {
     // Socket failure
   }
 
-  return { success: true, message: 'Đã hủy giữ chỗ thành công' };
+  return {
+    success: true,
+    message: 'Da huy giu cho thanh cong',
+    holdSessionId: booking.holdSessionId,
+    expiresAt: booking.holdSession?.expiresAt || null,
+    sessionExpiresAt: booking.holdSession?.expiresAt || null,
+  };
 }
 
 async function getMyPendingLocks(userId, eventId) {
@@ -260,51 +404,54 @@ async function getMyPendingLocks(userId, eventId) {
     userId,
     status: 'PENDING',
   };
-  
+
   if (eventId) {
     whereCondition.seat = {
       zone: {
-        eventId
-      }
+        eventId,
+      },
     };
   }
 
   const pendingBookings = await prisma.booking.findMany({
     where: whereCondition,
     include: {
+      holdSession: true,
       seat: {
         include: {
           zone: {
             include: {
-              event: true
-            }
-          }
-        }
-      }
+              event: true,
+            },
+          },
+        },
+      },
     },
     orderBy: {
-      createdAt: 'desc'
-    }
+      createdAt: 'desc',
+    },
   });
 
-  return pendingBookings.map((b) => {
-    const baseTime = b.seat.lockedAt ? b.seat.lockedAt.getTime() : b.createdAt.getTime();
-    const expiresAt = new Date(baseTime + LOCK_DURATION_MS);
+  return pendingBookings.map((booking) => {
+    const expiresAt = getBookingExpiresAt(booking);
     return {
-      bookingId: b.id,
-      seatId: b.seatId,
-      seatLabel: b.seat.label,
-      row: b.seat.row,
-      col: b.seat.col,
-      zoneId: b.seat.zoneId,
-      zoneName: b.seat.zone.name,
-      eventId: b.seat.zone.eventId,
-      eventTitle: b.seat.zone.event.title,
-      eventImageUrl: b.seat.zone.event.cardImageUrl || b.seat.zone.event.imageUrl,
-      totalPrice: Number(b.totalPrice),
-      status: b.status,
-      expiresAt: expiresAt,
-      createdAt: b.createdAt
+      bookingId: booking.id,
+      seatId: booking.seatId,
+      seatLabel: booking.seat.label,
+      row: booking.seat.row,
+      col: booking.seat.col,
+      zoneId: booking.seat.zoneId,
+      zoneName: booking.seat.zone.name,
+      eventId: booking.seat.zone.eventId,
+      eventTitle: booking.seat.zone.event.title,
+      eventImageUrl: booking.seat.zone.event.cardImageUrl || booking.seat.zone.event.imageUrl,
+      totalPrice: Number(booking.totalPrice),
+      status: booking.status,
+      holdSessionId: booking.holdSessionId,
+      expiresAt,
+      sessionExpiresAt: expiresAt,
+      cooldownUntil: booking.holdSession?.cooldownUntil || null,
+      createdAt: booking.createdAt,
     };
   });
 }

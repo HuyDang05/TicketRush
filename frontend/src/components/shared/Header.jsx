@@ -1,3 +1,4 @@
+// Purpose: Component layout/shared dung lai tren nhieu man hinh.
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';

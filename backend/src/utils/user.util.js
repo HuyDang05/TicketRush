@@ -1,3 +1,4 @@
+// Purpose: File code TicketRush; doc comment gan logic ben duoi de nam vai tro va luong xu ly.
 const toPublicUser = (user) => {
   if (!user) {
     return null;

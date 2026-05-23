@@ -1,3 +1,6 @@
+/*
+ * Purpose: Component layout/shared dung lai tren nhieu man hinh.
+ */
 .footer {
   background: var(--nav);
   border-top: 3px solid var(--accent);

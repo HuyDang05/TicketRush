@@ -1,3 +1,4 @@
+// Purpose: React context chia se state ung dung nhu gio hang hoac ngon ngu.
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { en } from './locales/en';
 import { vi } from './locales/vi';

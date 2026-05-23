@@ -1,3 +1,4 @@
+// Purpose: Controller nhan request HTTP, goi service/Prisma va chuan hoa response cho API.
 const prisma = require('../config/prisma');
 
 async function getAdminTicketEvents(req, res) {

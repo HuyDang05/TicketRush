@@ -1,3 +1,4 @@
+// Purpose: Trang customer hien thi workflow mua ve, xem su kien, chon ghe hoac thanh toan.
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import bookingService from '../../services/booking.service';
@@ -83,8 +84,13 @@ export default function CartPage() {
       acc[item.eventId] = {
         eventId: item.eventId,
         eventTitle: item.eventTitle,
+        expiresAt: item.sessionExpiresAt || item.expiresAt,
         items: []
       };
+    }
+    const itemExpiresAt = item.sessionExpiresAt || item.expiresAt;
+    if (itemExpiresAt && new Date(itemExpiresAt).getTime() < new Date(acc[item.eventId].expiresAt).getTime()) {
+      acc[item.eventId].expiresAt = itemExpiresAt;
     }
     acc[item.eventId].items.push(item);
     return acc;
@@ -156,11 +162,11 @@ export default function CartPage() {
                           {lang === 'en' ? item.zoneName.replace('Khu', 'Zone') : item.zoneName}/{item.seatLabel}
                         </div>
                       </td>
-                      <td className={css({
+                      {index === 0 && <td rowSpan={group.items.length} className={css({
                   textAlign: 'center'
                 }, "CartPage")}>
-                        <CountdownText expiresAt={item.expiresAt} onExpire={refreshCart} />
-                      </td>
+                        <CountdownText expiresAt={group.expiresAt} onExpire={refreshCart} />
+                      </td>}
                       <td className={css({
                   textAlign: 'right',
                   fontWeight: 'bold'

@@ -1,3 +1,4 @@
+// Purpose: React hook dong goi state/effect dung lai trong UI.
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
 const THEME_KEY = 'ticketRushTheme';

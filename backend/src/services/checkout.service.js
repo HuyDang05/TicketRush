@@ -1,3 +1,4 @@
+// Purpose: Service chua nghiep vu chinh cua backend, tach khoi controller de de test va tai su dung.
 const { PrismaClient } = require('@prisma/client');
 const jwt = require('jsonwebtoken');
 const QRCode = require('qrcode');
@@ -20,6 +21,7 @@ async function checkout(userId, bookingIds) {
     prisma.booking.findMany({
       where: { id: { in: bookingIds } },
       include: {
+        holdSession: true,
         seat: {
           include: {
             zone: { include: { event: true } },
@@ -56,10 +58,14 @@ async function checkout(userId, bookingIds) {
     throw err;
   }
 
-  // Validate none are expired (LOCK_DURATION = 10 min, check lockedAt on seat)
+  // Validate none are expired. New bookings use an event-level hold session;
+  // legacy bookings fall back to seat.lockedAt + 10 minutes.
   const LOCK_DURATION_MS = 10 * 60 * 1000;
   const now = Date.now();
   const expired = bookings.filter((b) => {
+    if (b.holdSession) {
+      return new Date(b.holdSession.expiresAt).getTime() <= now;
+    }
     if (!b.seat.lockedAt) return true;
     return now - new Date(b.seat.lockedAt).getTime() > LOCK_DURATION_MS;
   });
@@ -106,7 +112,7 @@ async function checkout(userId, bookingIds) {
     )
   );
 
-  // Cancel BullMQ auto-release jobs (fire-and-forget, best-effort)
+  // Cancel legacy per-seat BullMQ auto-release jobs (best-effort)
   await Promise.allSettled(
     bookings
       .filter((b) => b.jobId)
@@ -114,6 +120,41 @@ async function checkout(userId, bookingIds) {
         const job = await seatReleaseQueue.getJob(b.jobId);
         if (job) await job.remove();
       })
+  );
+
+  // A hold session may contain several pending bookings. Mark it paid and remove
+  // the session release job only after all pending bookings in that session are paid.
+  const holdSessionIds = [...new Set(bookings.map((b) => b.holdSessionId).filter(Boolean))];
+  await Promise.allSettled(
+    holdSessionIds.map(async (holdSessionId) => {
+      const [remainingPending, session] = await Promise.all([
+        prisma.booking.count({
+          where: {
+            holdSessionId,
+            status: 'PENDING',
+          },
+        }),
+        prisma.seatHoldSession.findUnique({
+          where: { id: holdSessionId },
+          select: { jobId: true },
+        }),
+      ]);
+
+      if (remainingPending > 0) return;
+
+      await prisma.seatHoldSession.update({
+        where: { id: holdSessionId },
+        data: {
+          status: 'PAID',
+          cooldownUntil: null,
+        },
+      });
+
+      if (session?.jobId) {
+        const job = await seatReleaseQueue.getJob(session.jobId);
+        if (job) await job.remove();
+      }
+    })
   );
 
   // Broadcast seat_sold for each unique event

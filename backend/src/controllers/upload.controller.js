@@ -1,3 +1,4 @@
+// Purpose: Controller nhan request HTTP, goi service/Prisma va chuan hoa response cho API.
 const cloudinary = require('../config/cloudinary');
 const { validateImageFile } = require('../utils/imageValidation.util');
 

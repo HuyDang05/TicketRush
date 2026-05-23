@@ -1,3 +1,4 @@
+// Purpose: Dinh nghia hoac seed du lieu Prisma cho database TicketRush.
 generator client {
   provider = "prisma-client-js"
 }
@@ -21,6 +22,7 @@ model User {
   createdAt     DateTime             @default(now())
   lastLoginAt   DateTime?
   bookings      Booking[]
+  holdSessions  SeatHoldSession[]
   events        Event[]              @relation("AdminEvents")
   resetTokens   PasswordResetToken[]
   refreshTokens RefreshToken[]
@@ -30,7 +32,7 @@ model User {
 }
 
 model Event {
-  id             String      @id @default(uuid())
+  id             String            @id @default(uuid())
   createdBy      String
   title          String
   description    String?
@@ -41,14 +43,15 @@ model Event {
   date           DateTime
   imageUrl       String?
   cardImageUrl   String?
-  status         EventStatus @default(DRAFT)
-  createdAt      DateTime    @default(now())
+  status         EventStatus       @default(DRAFT)
+  createdAt      DateTime          @default(now())
   seatmapJson    Json?
-  seatmapVersion Int         @default(1)
-  endDate        DateTime?   @map("end_date") @db.Timestamp(6)
-  admin          User        @relation("AdminEvents", fields: [createdBy], references: [id])
+  seatmapVersion Int               @default(1)
+  endDate        DateTime?         @map("end_date") @db.Timestamp(6)
+  admin          User              @relation("AdminEvents", fields: [createdBy], references: [id])
   zones          Zone[]
   comments       Comment[]
+  holdSessions   SeatHoldSession[]
 
   @@map("events")
 }
@@ -83,19 +86,41 @@ model Seat {
 }
 
 model Booking {
-  id         String        @id @default(uuid())
-  userId     String
-  seatId     String        @unique
-  status     BookingStatus @default(PENDING)
-  totalPrice Decimal
-  qrCode     String?
-  jobId      String?
-  createdAt  DateTime      @default(now())
-  paidAt     DateTime?
-  seat       Seat          @relation(fields: [seatId], references: [id], onDelete: Cascade)
-  user       User          @relation(fields: [userId], references: [id])
+  id            String           @id @default(uuid())
+  userId        String
+  seatId        String           @unique
+  holdSessionId String?
+  status        BookingStatus    @default(PENDING)
+  totalPrice    Decimal
+  qrCode        String?
+  jobId         String?
+  createdAt     DateTime         @default(now())
+  paidAt        DateTime?
+  holdSession   SeatHoldSession? @relation(fields: [holdSessionId], references: [id], onDelete: SetNull)
+  seat          Seat             @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  user          User             @relation(fields: [userId], references: [id])
 
+  @@index([holdSessionId])
   @@map("bookings")
+}
+
+model SeatHoldSession {
+  id            String            @id @default(uuid())
+  userId        String
+  eventId       String
+  status        HoldSessionStatus @default(ACTIVE)
+  expiresAt     DateTime
+  cooldownUntil DateTime?
+  jobId         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  bookings      Booking[]
+  event         Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, eventId, status])
+  @@index([expiresAt])
+  @@map("seat_hold_sessions")
 }
 
 model PasswordResetToken {
@@ -160,6 +185,13 @@ enum SeatStatus {
 
 enum BookingStatus {
   PENDING
+  PAID
+  CANCELLED
+}
+
+enum HoldSessionStatus {
+  ACTIVE
+  EXPIRED
   PAID
   CANCELLED
 }

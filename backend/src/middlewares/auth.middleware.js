@@ -1,3 +1,4 @@
+// Purpose: Middleware Express dung chung cho xac thuc, phan quyen hoac validate request.
 const prisma = require('../config/prisma');
 const { verifyAccessToken } = require('../utils/jwt.util');
 

@@ -1,3 +1,4 @@
+# Purpose: Crawler/script tao du lieu su kien va seatmap mau cho moi truong dev.
 #!/usr/bin/env python3
 """
 Fetch seatmapJson from selected TicketRush events by title and append them to
@@ -158,6 +159,8 @@ def normalize_seatmap(event: dict[str, Any], event_id: str) -> dict[str, Any]:
         raise ValueError(f"Event {event_id} khong co seatmapJson object")
 
     if not seatmap.get("venue") and event.get("venue"):
+        # Keep template records self-contained so crawler.py can later use them
+        # without fetching the original event again.
         seatmap["venue"] = event["venue"]
 
     zones = seatmap.get("zones")
@@ -171,6 +174,8 @@ def normalize_seatmap(event: dict[str, Any], event_id: str) -> dict[str, Any]:
         if not isinstance(seats, list) or not seats:
             raise ValueError(f"Event {event_id} zones[{zone_index}] thieu seats")
 
+    # The script intentionally validates only the fields crawler.py requires.
+    # Extra editor metadata is preserved in the JSON line for future use.
     return seatmap
 
 

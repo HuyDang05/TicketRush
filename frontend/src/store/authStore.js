@@ -1,3 +1,4 @@
+// Purpose: Store client-side nho gon cho state dung chung giua component.
 import { create } from 'zustand';
 
 const useAuthStore = create((set) => ({

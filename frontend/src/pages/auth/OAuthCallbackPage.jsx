@@ -1,3 +1,4 @@
+// Purpose: Trang xac thuc nguoi dung va cac luong lien quan den tai khoan.
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';

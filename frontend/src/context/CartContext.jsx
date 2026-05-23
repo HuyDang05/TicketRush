@@ -1,3 +1,4 @@
+// Purpose: React context chia se state ung dung nhu gio hang hoac ngon ngu.
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import bookingService from '../services/booking.service';
 import { useAuth } from '../hooks/useAuth';
@@ -19,7 +20,7 @@ export function CartProvider({ children }) {
       const res = await bookingService.getMyPendingLocks();
       const items = res.data?.data || [];
       // Filter out expired locks immediately
-      const activeItems = items.filter(item => new Date(item.expiresAt).getTime() > Date.now());
+      const activeItems = items.filter(item => new Date(item.sessionExpiresAt || item.expiresAt).getTime() > Date.now());
       setCartItems(activeItems);
       setCartCount(activeItems.length);
     } catch (err) {
@@ -37,7 +38,7 @@ export function CartProvider({ children }) {
     const timer = setInterval(() => {
       setCartItems(prevItems => {
         const now = Date.now();
-        const activeItems = prevItems.filter(item => new Date(item.expiresAt).getTime() > now);
+        const activeItems = prevItems.filter(item => new Date(item.sessionExpiresAt || item.expiresAt).getTime() > now);
         if (activeItems.length !== prevItems.length) {
           setCartCount(activeItems.length);
           return activeItems;

@@ -1,3 +1,4 @@
+// Purpose: Primitive UI component dung chung, uu tien giu logic mong va de compose.
 import * as React from "react"
 import * as SeparatorPrimitive from "@radix-ui/react-separator"
 

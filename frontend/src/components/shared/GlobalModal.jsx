@@ -1,3 +1,4 @@
+// Purpose: Component layout/shared dung lai tren nhieu man hinh.
 import React, { useEffect } from 'react';
 import useModalStore from '../../store/modalStore';
 import './GlobalModal.css';

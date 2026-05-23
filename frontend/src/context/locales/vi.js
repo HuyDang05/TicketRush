@@ -1,3 +1,4 @@
+// Purpose: React context chia se state ung dung nhu gio hang hoac ngon ngu.
 export const vi = {
   // Header
   "Tìm kiếm sự kiện, nghệ sĩ...": "Tìm kiếm sự kiện, nghệ sĩ...",

@@ -1,3 +1,4 @@
+// Purpose: Tien ich frontend dung lai cho validation, toast hoac xu ly nho.
 export const MAX_CHECKOUT_BOOKINGS = 4;
 export const MAX_DESCRIPTION_LENGTH = 5000;
 export const MAX_EMAIL_LENGTH = 254;

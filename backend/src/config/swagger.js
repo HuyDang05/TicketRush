@@ -1,3 +1,4 @@
+// Purpose: Cau hinh ket noi dich vu ha tang nhu Prisma, Redis, Socket, upload hoac Swagger.
 const path = require('path');
 const swaggerJsdoc = require('swagger-jsdoc');
 

@@ -1,3 +1,4 @@
+// Purpose: Component UI dung de hien thi danh sach va thong tin su kien.
 import EventCard from './EventCard';
 import SkeletonLoader from './SkeletonLoader';
 import EmptyState from './EmptyState';

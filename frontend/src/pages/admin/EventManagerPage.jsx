@@ -1,3 +1,4 @@
+// Purpose: Trang admin quan ly du lieu va thao tac van hanh cua TicketRush.
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import eventService from '../../services/event.service';

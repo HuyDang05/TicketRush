@@ -1,3 +1,4 @@
+// Purpose: Khai bao cay route chinh va layout bao quanh cac page frontend.
 import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import Header from './components/shared/Header';

@@ -1,3 +1,4 @@
+// Purpose: Ham tien ich thuan, dung chung cho tinh toan layout, sinh ghe hoac className.
 const colLetter = (n) => {
   let s = '';
   do { s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26) - 1; } while (n >= 0);

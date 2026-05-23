@@ -1,3 +1,4 @@
+// Purpose: Trang admin quan ly du lieu va thao tac van hanh cua TicketRush.
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AdminLayout from '../../components/shared/AdminLayout';

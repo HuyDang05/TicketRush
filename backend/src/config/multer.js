@@ -1,3 +1,4 @@
+// Purpose: Cau hinh ket noi dich vu ha tang nhu Prisma, Redis, Socket, upload hoac Swagger.
 const multer = require('multer');
 
 // Dùng memory storage — file sẽ ở req.file.buffer, không lưu đĩa

@@ -1,3 +1,4 @@
+// Purpose: Component UI dung de hien thi danh sach va thong tin su kien.
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';

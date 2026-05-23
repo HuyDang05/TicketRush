@@ -1,3 +1,4 @@
+// Purpose: Test tu dong de bao ve behavior quan trong cua module lien quan.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 

@@ -1,3 +1,4 @@
+// Purpose: Component UI dung de hien thi danh sach va thong tin su kien.
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useLang } from '../../context/LangContext';

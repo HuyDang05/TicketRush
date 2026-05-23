@@ -1,3 +1,4 @@
+// Purpose: Ham tien ich thuan, dung chung cho tinh toan layout, sinh ghe hoac className.
 /**
  * Helpers for seatmap editor save/load and layout tree (floor frames + children).
  */
@@ -31,6 +32,8 @@ export function normalizeZone(z, index = 0) {
 export function zonesFromSeatmapJson(seatmapJson) {
   if (!seatmapJson) return [];
 
+  // New saves keep the editable hierarchy in layout. Older data may only have
+  // zones, so the loader falls back to zones to keep existing events editable.
   const raw = Array.isArray(seatmapJson.layout) && seatmapJson.layout.length > 0
     ? seatmapJson.layout
     : Array.isArray(seatmapJson.zones) && seatmapJson.zones.length > 0
@@ -58,6 +61,8 @@ export function flattenZonesForDb(zones) {
       if (z.grouped && (z.children || []).length > 0) {
         const fx = z.x ?? 0;
         const fy = z.y ?? 0;
+        // Grouped floor children are stored locally inside the frame in the
+        // editor. Convert them to absolute canvas coordinates before saving seats.
         return z.children.map(child => ({
           ...child,
           x: (child.x ?? FRAME_PAD) + fx,
@@ -76,6 +81,9 @@ export function buildLayoutForSave(zoneList) {
   return zoneList
     .filter(z => !z._floorId)
     .map(z => {
+      // layout preserves editor-only information, while zones is flattened for
+      // DB persistence. Keeping both lets customer rendering and admin editing
+      // use the shape that is easiest for each workflow.
       const base = {
         id: z.id,
         name: z.name.trim(),
@@ -94,6 +102,8 @@ export function buildLayoutForSave(zoneList) {
       if (z.blockType === 'floor') {
         const ungroupedKids = zoneList.filter(c => c._floorId === z.id);
         base.grouped = z.grouped;
+        // Ungrouped children live as top-level zones while editing, but they are
+        // nested again in layout so reload can reconstruct the floor relationship.
         base.children = z.grouped
           ? (z.children || []).map(c => ({ ...c }))
           : ungroupedKids.map(c => ({ ...c }));
