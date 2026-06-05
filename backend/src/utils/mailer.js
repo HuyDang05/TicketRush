@@ -1,13 +1,21 @@
 // Purpose: File code TicketRush; doc comment gan logic ben duoi de nam vai tro va luong xu ly.
 const nodemailer = require('nodemailer');
+const dns = require('dns');
 
 console.log('[Mailer] Initializing with user:', process.env.GMAIL_USER);
+
+dns.setDefaultResultOrder?.('ipv4first');
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 465,
   secure: true,
   family: 4,
+  lookup: (hostname, options, callback) =>
+    dns.lookup(hostname, { ...options, family: 4 }, callback),
+  tls: {
+    servername: 'smtp.gmail.com',
+  },
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD,
