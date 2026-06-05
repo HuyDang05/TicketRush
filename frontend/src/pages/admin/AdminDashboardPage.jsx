@@ -330,7 +330,7 @@ export default function AdminDashboardPage() {
   // realtime refresh when customer locks / buys / releases seats
   useEffect(() => {
     if (!selectedId) return;
-    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+    const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000', {
       withCredentials: true
     });
     socket.emit('join_event', selectedId);
