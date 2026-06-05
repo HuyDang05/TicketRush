@@ -32,7 +32,7 @@ function createCooldownResult(cooldownUntil, releasedSeats = [], eventId = null)
   return {
     blocked: true,
     statusCode: 429,
-    message: `Phien giu ghe vua het han. Vui long doi ${Math.ceil(waitSeconds / 60)} phut roi thu lai.`,
+    message: `Phiên giữ ghế vừa hết hạn. Vui lòng đợi ${Math.ceil(waitSeconds / 60)} phút rồi thử lại.`,
     cooldownUntil,
     releasedSeats,
     eventId,
