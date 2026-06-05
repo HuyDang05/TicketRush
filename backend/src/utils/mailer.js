@@ -8,8 +8,9 @@ dns.setDefaultResultOrder?.('ipv4first');
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false,
+  requireTLS: true,
   family: 4,
   lookup: (hostname, options, callback) =>
     dns.lookup(hostname, { ...options, family: 4 }, callback),
