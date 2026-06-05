@@ -24,6 +24,7 @@ TicketRush is a full-stack event ticketing application. It supports public event
 | Storage/Media | PostgreSQL, Redis, Cloudinary |
 | Documentation/Test | Swagger/OpenAPI, node:test, PowerShell test runner |
 | Data Tools | Python, requests, Ticketbox crawler |
+| Deploy | Frontend: Vercel, Backend: Render |
 
 ## Repository Structure
 
